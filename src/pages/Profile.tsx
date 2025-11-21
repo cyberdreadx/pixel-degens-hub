@@ -93,7 +93,7 @@ const Profile = () => {
                   </div>
                   <div className="text-center pixel-border bg-muted p-3">
                     <div className="text-xl font-bold text-accent">8.5</div>
-                    <div className="text-xs text-muted-foreground">ETH VOL</div>
+                    <div className="text-xs text-muted-foreground">KTA VOL</div>
                   </div>
                 </div>
               </div>

@@ -47,8 +47,8 @@ const NFTDetail = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">CURRENT PRICE</span>
                   <div className="text-right">
-                    <div className="text-2xl font-bold neon-glow">0.5 ETH</div>
-                    <div className="text-xs text-muted-foreground">$1,250 USD</div>
+                    <div className="text-2xl font-bold neon-glow">0.5 KTA</div>
+                    <div className="text-xs text-muted-foreground">$125 USD</div>
                   </div>
                 </div>
 
