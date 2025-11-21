@@ -39,13 +39,25 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
   const handleGenerateWallet = async () => {
     try {
-      const seed = await connectWallet();
-      const savedSeed = localStorage.getItem("keetaWalletSeed");
-      if (savedSeed) {
-        setGeneratedSeed(savedSeed);
-      }
+      const { generateNewWallet } = useWallet();
+      const newSeed = await generateNewWallet();
+      setGeneratedSeed(newSeed);
+      toast.success("Seed generated! Save it before connecting.");
     } catch (error) {
       console.error("Error generating wallet:", error);
+    }
+  };
+
+  const handleConnectWithSeed = async () => {
+    if (!generatedSeed) {
+      toast.error("Please generate a seed first");
+      return;
+    }
+    try {
+      await connectWallet(generatedSeed);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error connecting wallet:", error);
     }
   };
 
@@ -174,44 +186,65 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
               </div>
             </div>
 
-            <Button
-              className="w-full pixel-border bg-primary hover:bg-primary/80 text-xs"
-              onClick={handleGenerateWallet}
-            >
-              GENERATE NEW WALLET
-            </Button>
+            {!generatedSeed ? (
+              <Button
+                className="w-full pixel-border bg-primary hover:bg-primary/80 text-xs"
+                onClick={handleGenerateWallet}
+              >
+                GENERATE NEW SEED
+              </Button>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-xs text-destructive">SAVE YOUR SEED (IMPORTANT!)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showSeed ? "text" : "password"}
+                      value={generatedSeed}
+                      readOnly
+                      className="pixel-border bg-muted text-xs font-mono"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="pixel-border"
+                      onClick={() => setShowSeed(!showSeed)}
+                    >
+                      {showSeed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="pixel-border"
+                      onClick={handleCopySeed}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-destructive">
+                    ⚠️ Copy and store this seed safely. You'll need it to recover your wallet!
+                  </p>
+                </div>
 
-            {generatedSeed && (
-              <div className="space-y-2">
-                <Label className="text-xs text-destructive">SAVE YOUR SEED (IMPORTANT!)</Label>
                 <div className="flex gap-2">
-                  <Input
-                    type={showSeed ? "text" : "password"}
-                    value={generatedSeed}
-                    readOnly
-                    className="pixel-border bg-muted text-xs font-mono"
-                  />
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="pixel-border"
-                    onClick={() => setShowSeed(!showSeed)}
+                    className="flex-1 pixel-border text-xs"
+                    onClick={() => {
+                      setGeneratedSeed("");
+                      setShowSeed(false);
+                    }}
                   >
-                    {showSeed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    CANCEL
                   </Button>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="pixel-border"
-                    onClick={handleCopySeed}
+                    className="flex-1 pixel-border bg-accent hover:bg-accent/80 text-xs"
+                    onClick={handleConnectWithSeed}
                   >
-                    <Copy className="w-4 h-4" />
+                    I SAVED IT - CONNECT
                   </Button>
                 </div>
-                <p className="text-xs text-destructive">
-                  ⚠️ Copy and store this seed safely. You'll need it to recover your wallet!
-                </p>
-              </div>
+              </>
             )}
           </TabsContent>
 
