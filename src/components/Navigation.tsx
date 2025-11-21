@@ -27,47 +27,47 @@ const Navigation = () => {
           <div className="flex items-center gap-2 sm:gap-6">
             <NavLink
               to="/"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors text-sm"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
               activeClassName="bg-muted"
             >
-              <Home className="w-5 h-5" />
-              <span className="hidden sm:inline">HOME</span>
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs">HOME</span>
             </NavLink>
             
             <NavLink
               to="/collection"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors text-sm"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
               activeClassName="bg-muted"
             >
-              <Image className="w-5 h-5" />
-              <span className="hidden sm:inline">NFTS</span>
+              <Image className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs">NFTS</span>
             </NavLink>
             
             <NavLink
               to="/feed"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors text-sm"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
               activeClassName="bg-muted"
             >
-              <Activity className="w-5 h-5" />
-              <span className="hidden sm:inline">FEED</span>
+              <Activity className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs">FEED</span>
             </NavLink>
             
             <NavLink
               to="/profile"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors text-sm"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
               activeClassName="bg-muted"
             >
-              <Users className="w-5 h-5" />
-              <span className="hidden sm:inline">PROFILE</span>
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs">PROFILE</span>
             </NavLink>
             
             <Button 
               variant="default" 
               size="sm"
-              className="pixel-border bg-primary hover:bg-primary/80 text-sm gap-2 h-10"
+              className="pixel-border bg-primary hover:bg-primary/80 text-xs gap-2"
               onClick={() => setWalletDialogOpen(true)}
             >
-              <Wallet className="w-5 h-5" />
+              <Wallet className="w-4 h-4" />
               {isConnected ? (
                 <div className="flex items-center gap-2">
                   <span className="hidden md:inline">{balance ? `${balance} KTA` : "0.0000 KTA"}</span>

@@ -32,27 +32,27 @@ const NFTCard = ({ id, title, creator, price, image, likes, comments }: NFTCardP
         </CardHeader>
         
         <CardContent className="p-4 space-y-2">
-          <h3 className="font-bold text-base neon-glow truncate font-pixel">{title}</h3>
-          <p className="text-sm text-muted-foreground">by {creator}</p>
+          <h3 className="font-bold text-sm neon-glow truncate">{title}</h3>
+          <p className="text-xs text-muted-foreground">by {creator}</p>
         </CardContent>
         
         <CardFooter className="p-4 pt-0 flex gap-2">
           <Button 
             variant="outline" 
             size="sm" 
-            className="flex-1 pixel-border text-sm gap-1"
+            className="flex-1 pixel-border text-xs gap-1"
             onClick={(e) => e.preventDefault()}
           >
-            <Heart className="w-4 h-4" />
+            <Heart className="w-3 h-3" />
             {likes}
           </Button>
           <Button 
             variant="outline" 
             size="sm" 
-            className="flex-1 pixel-border text-sm gap-1"
+            className="flex-1 pixel-border text-xs gap-1"
             onClick={(e) => e.preventDefault()}
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className="w-3 h-3" />
             {comments}
           </Button>
         </CardFooter>

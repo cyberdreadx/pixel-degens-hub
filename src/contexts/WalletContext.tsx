@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import * as KeetaNet from "@keetanetwork/keetanet-client";
 import { toast } from "sonner";
-import * as bip39 from "bip39";
 
 interface WalletContextType {
   isConnected: boolean;
@@ -12,8 +11,6 @@ interface WalletContextType {
   connectWallet: (seed?: string) => Promise<void>;
   disconnectWallet: () => void;
   generateNewWallet: () => Promise<string>;
-  generateMnemonic: () => Promise<string>;
-  seedFromMnemonic: (mnemonic: string, index?: number) => Promise<string>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -63,33 +60,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error) {
       console.error("Error generating wallet:", error);
       toast.error("Failed to generate wallet");
-      throw error;
-    }
-  };
-
-  const generateMnemonic = async (): Promise<string> => {
-    try {
-      const mnemonic = bip39.generateMnemonic(256); // 24 words
-      return mnemonic;
-    } catch (error) {
-      console.error("Error generating mnemonic:", error);
-      toast.error("Failed to generate mnemonic");
-      throw error;
-    }
-  };
-
-  const seedFromMnemonic = async (mnemonic: string, index: number = 0): Promise<string> => {
-    try {
-      // Validate mnemonic
-      if (!bip39.validateMnemonic(mnemonic)) {
-        throw new Error("Invalid mnemonic phrase");
-      }
-      
-      const seed = await KeetaNet.lib.Account.seedFromPassphrase(mnemonic, { asString: true });
-      return seed as string;
-    } catch (error) {
-      console.error("Error converting mnemonic to seed:", error);
-      toast.error("Invalid mnemonic phrase");
       throw error;
     }
   };
@@ -152,8 +122,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         connectWallet,
         disconnectWallet,
         generateNewWallet,
-        generateMnemonic,
-        seedFromMnemonic,
       }}
     >
       {children}

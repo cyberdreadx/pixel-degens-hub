@@ -23,7 +23,7 @@ const Home = () => {
             <span className="text-xs neon-glow-secondary">POWERED BY KEETA CHAIN</span>
           </div>
           
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold font-degen neon-glow leading-tight">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold neon-glow leading-tight">
             DEGEN<br />NFT STORE
           </h1>
           
@@ -82,7 +82,7 @@ const Home = () => {
       {/* Features Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-4xl font-bold font-degen text-center mb-12 neon-glow">
+          <h2 className="text-2xl md:text-4xl font-bold text-center mb-12 neon-glow">
             WHY DEGEN?
           </h2>
           

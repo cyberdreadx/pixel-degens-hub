@@ -15,13 +15,10 @@ interface WalletDialogProps {
 }
 
 const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
-  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, generateNewWallet, generateMnemonic, seedFromMnemonic } = useWallet();
+  const { connectWallet, disconnectWallet, publicKey, isConnected, balance } = useWallet();
   const [importSeed, setImportSeed] = useState("");
-  const [importMnemonic, setImportMnemonic] = useState("");
   const [showSeed, setShowSeed] = useState(false);
   const [generatedSeed, setGeneratedSeed] = useState("");
-  const [generatedMnemonic, setGeneratedMnemonic] = useState("");
-  const [seedType, setSeedType] = useState<"seed" | "mnemonic">("mnemonic");
   const [qrCode, setQrCode] = useState("");
 
   useEffect(() => {
@@ -42,17 +39,10 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
   const handleGenerateWallet = async () => {
     try {
-      if (seedType === "mnemonic") {
-        const newMnemonic = await generateMnemonic();
-        setGeneratedMnemonic(newMnemonic);
-        const seed = await seedFromMnemonic(newMnemonic);
-        setGeneratedSeed(seed);
-        toast.success("Mnemonic generated! Save it before connecting.");
-      } else {
-        const newSeed = await generateNewWallet();
-        setGeneratedSeed(newSeed);
-        toast.success("Seed generated! Save it before connecting.");
-      }
+      const { generateNewWallet } = useWallet();
+      const newSeed = await generateNewWallet();
+      setGeneratedSeed(newSeed);
+      toast.success("Seed generated! Save it before connecting.");
     } catch (error) {
       console.error("Error generating wallet:", error);
     }
@@ -72,22 +62,13 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
   };
 
   const handleImportWallet = async () => {
+    if (!importSeed.trim()) {
+      toast.error("Please enter a valid seed");
+      return;
+    }
     try {
-      let seedToImport = importSeed.trim();
-      
-      if (importMnemonic.trim()) {
-        // Convert mnemonic to seed
-        seedToImport = await seedFromMnemonic(importMnemonic.trim());
-      }
-      
-      if (!seedToImport) {
-        toast.error("Please enter a valid seed or mnemonic");
-        return;
-      }
-      
-      await connectWallet(seedToImport);
+      await connectWallet(importSeed);
       setImportSeed("");
-      setImportMnemonic("");
       onOpenChange(false);
     } catch (error) {
       console.error("Error importing wallet:", error);
@@ -102,17 +83,15 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
   };
 
   const handleCopySeed = () => {
-    const textToCopy = seedType === "mnemonic" ? generatedMnemonic : generatedSeed;
-    if (textToCopy) {
-      navigator.clipboard.writeText(textToCopy);
-      toast.success(seedType === "mnemonic" ? "Mnemonic copied!" : "Seed copied!");
+    if (generatedSeed) {
+      navigator.clipboard.writeText(generatedSeed);
+      toast.success("Seed copied!");
     }
   };
 
   const handleDisconnect = () => {
     disconnectWallet();
     setGeneratedSeed("");
-    setGeneratedMnemonic("");
     onOpenChange(false);
   };
 
@@ -208,77 +187,42 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             </div>
 
             {!generatedSeed ? (
-              <>
-                <div className="space-y-2">
-                  <Label className="text-xs">WALLET TYPE</Label>
-                  <Tabs value={seedType} onValueChange={(v) => setSeedType(v as "seed" | "mnemonic")} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 pixel-border bg-muted text-xs">
-                      <TabsTrigger value="mnemonic" className="text-xs">24 WORDS</TabsTrigger>
-                      <TabsTrigger value="seed" className="text-xs">HEX SEED</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-                <Button
-                  className="w-full pixel-border bg-primary hover:bg-primary/80 text-xs"
-                  onClick={handleGenerateWallet}
-                >
-                  GENERATE NEW {seedType === "mnemonic" ? "MNEMONIC" : "SEED"}
-                </Button>
-              </>
+              <Button
+                className="w-full pixel-border bg-primary hover:bg-primary/80 text-xs"
+                onClick={handleGenerateWallet}
+              >
+                GENERATE NEW SEED
+              </Button>
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label className="text-xs text-destructive">
-                    SAVE YOUR {seedType === "mnemonic" ? "RECOVERY PHRASE" : "SEED"} (IMPORTANT!)
-                  </Label>
-                  {seedType === "mnemonic" ? (
-                    <div className="space-y-2">
-                      <div className="pixel-border bg-muted p-3 grid grid-cols-3 gap-2">
-                        {generatedMnemonic.split(" ").map((word, index) => (
-                          <div key={index} className="flex items-center gap-1">
-                            <span className="text-xs text-muted-foreground">{index + 1}.</span>
-                            <span className="text-xs font-mono">{word}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full pixel-border text-xs"
-                        onClick={handleCopySeed}
-                      >
-                        <Copy className="w-4 h-4 mr-2" />
-                        COPY MNEMONIC
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        type={showSeed ? "text" : "password"}
-                        value={generatedSeed}
-                        readOnly
-                        className="pixel-border bg-muted text-xs font-mono"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="pixel-border"
-                        onClick={() => setShowSeed(!showSeed)}
-                      >
-                        {showSeed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="pixel-border"
-                        onClick={handleCopySeed}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
+                  <Label className="text-xs text-destructive">SAVE YOUR SEED (IMPORTANT!)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showSeed ? "text" : "password"}
+                      value={generatedSeed}
+                      readOnly
+                      className="pixel-border bg-muted text-xs font-mono"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="pixel-border"
+                      onClick={() => setShowSeed(!showSeed)}
+                    >
+                      {showSeed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="pixel-border"
+                      onClick={handleCopySeed}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
                   <p className="text-xs text-destructive">
-                    ⚠️ Copy and store this {seedType === "mnemonic" ? "phrase" : "seed"} safely. You'll need it to recover your wallet!
+                    ⚠️ Copy and store this seed safely. You'll need it to recover your wallet!
                   </p>
                 </div>
 
@@ -288,7 +232,6 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                     className="flex-1 pixel-border text-xs"
                     onClick={() => {
                       setGeneratedSeed("");
-                      setGeneratedMnemonic("");
                       setShowSeed(false);
                     }}
                   >
@@ -306,49 +249,23 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
           </TabsContent>
 
           <TabsContent value="import" className="space-y-4">
-            <Tabs defaultValue="mnemonic" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 pixel-border bg-muted text-xs">
-                <TabsTrigger value="mnemonic" className="text-xs">24 WORDS</TabsTrigger>
-                <TabsTrigger value="seed" className="text-xs">HEX SEED</TabsTrigger>
-              </TabsList>
+            <div className="space-y-2">
+              <Label className="text-xs">ENTER YOUR SEED</Label>
+              <Input
+                type="password"
+                placeholder="Enter your existing seed..."
+                value={importSeed}
+                onChange={(e) => setImportSeed(e.target.value)}
+                className="pixel-border bg-muted text-xs font-mono"
+              />
+            </div>
 
-              <TabsContent value="mnemonic" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">ENTER YOUR 24-WORD RECOVERY PHRASE</Label>
-                  <textarea
-                    placeholder="word1 word2 word3 ..."
-                    value={importMnemonic}
-                    onChange={(e) => setImportMnemonic(e.target.value)}
-                    className="w-full min-h-[100px] pixel-border bg-muted text-xs font-mono p-3 rounded-md resize-none"
-                  />
-                </div>
-                <Button
-                  className="w-full pixel-border bg-secondary hover:bg-secondary/80 text-xs"
-                  onClick={handleImportWallet}
-                >
-                  IMPORT FROM MNEMONIC
-                </Button>
-              </TabsContent>
-
-              <TabsContent value="seed" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">ENTER YOUR HEX SEED</Label>
-                  <Input
-                    type="password"
-                    placeholder="0x..."
-                    value={importSeed}
-                    onChange={(e) => setImportSeed(e.target.value)}
-                    className="pixel-border bg-muted text-xs font-mono"
-                  />
-                </div>
-                <Button
-                  className="w-full pixel-border bg-secondary hover:bg-secondary/80 text-xs"
-                  onClick={handleImportWallet}
-                >
-                  IMPORT FROM SEED
-                </Button>
-              </TabsContent>
-            </Tabs>
+            <Button
+              className="w-full pixel-border bg-secondary hover:bg-secondary/80 text-xs"
+              onClick={handleImportWallet}
+            >
+              IMPORT WALLET
+            </Button>
           </TabsContent>
         </Tabs>
       </DialogContent>

@@ -72,8 +72,8 @@ const Collection = () => {
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="mb-8 space-y-4">
-          <h1 className="text-3xl md:text-5xl font-bold neon-glow font-pixel">NFT COLLECTION</h1>
-          <p className="text-sm md:text-base text-muted-foreground">
+          <h1 className="text-3xl md:text-5xl font-bold neon-glow">NFT COLLECTION</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">
             EXPLORE THE DOPEST 8-BIT DROPS
           </p>
         </div>
@@ -81,17 +81,17 @@ const Collection = () => {
         {/* Filters */}
         <div className="mb-8 flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
               placeholder="SEARCH NFTS..." 
-              className="pl-10 pixel-border bg-card text-sm h-12"
+              className="pl-10 pixel-border bg-card text-xs"
             />
           </div>
           <Button 
             variant="outline" 
-            className="pixel-border gap-2 text-sm h-12"
+            className="pixel-border gap-2 text-xs"
           >
-            <Filter className="w-5 h-5" />
+            <Filter className="w-4 h-4" />
             FILTER
           </Button>
         </div>
@@ -108,7 +108,7 @@ const Collection = () => {
           <Button 
             variant="outline" 
             size="lg"
-            className="pixel-border-thick text-sm h-12 px-8"
+            className="pixel-border-thick text-xs"
           >
             LOAD MORE NFTS
           </Button>
