@@ -55,7 +55,7 @@ export default {
       },
       fontFamily: {
         pixel: ['"Press Start 2P"', 'monospace'],
-        degen: ['"Black Ops One"', 'cursive'],
+        degen: ['Bungee', 'cursive'],
       },
       borderRadius: {
         lg: "var(--radius)",
