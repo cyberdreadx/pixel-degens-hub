@@ -26,7 +26,7 @@ const NFTCard = ({ id, title, creator, price, image, likes, comments }: NFTCardP
               style={{ imageRendering: "pixelated" }}
             />
             <div className="absolute top-2 right-2 bg-primary pixel-border px-2 py-1 text-xs">
-              {price} ETH
+              {price} KTA
             </div>
           </div>
         </CardHeader>
