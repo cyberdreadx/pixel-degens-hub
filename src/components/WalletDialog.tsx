@@ -8,6 +8,8 @@ import { Copy, Eye, EyeOff, Wallet, QrCode as QrCodeIcon, AlertTriangle } from "
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 import { toDataURL } from "qrcode";
+import * as KeetaNet from "@keetanetwork/keetanet-client";
+import * as bip39 from "bip39";
 
 interface WalletDialogProps {
   open: boolean;
@@ -20,6 +22,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
   const [showSeed, setShowSeed] = useState(false);
   const [generatedSeed, setGeneratedSeed] = useState("");
   const [qrCode, setQrCode] = useState("");
+  const [previewAddress, setPreviewAddress] = useState<string | null>(null);
 
   useEffect(() => {
     if (publicKey && open) {
@@ -92,6 +95,34 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
     disconnectWallet();
     setGeneratedSeed("");
     onOpenChange(false);
+  };
+
+  const handlePreviewAddress = () => {
+    if (!importSeed.trim()) {
+      setPreviewAddress(null);
+      return;
+    }
+
+    try {
+      let actualSeed = importSeed.trim();
+      
+      // Convert mnemonic to seed if it's a valid mnemonic phrase
+      if (bip39.validateMnemonic(actualSeed)) {
+        const fullSeed = bip39.mnemonicToSeedSync(actualSeed);
+        actualSeed = fullSeed.subarray(0, 32).toString('hex');
+      }
+
+      // Create account from seed
+      const account = KeetaNet.lib.Account.fromSeed(actualSeed, 0);
+      const address = account.publicKeyString.toString();
+      
+      setPreviewAddress(address);
+      toast.info("Address preview generated");
+    } catch (error) {
+      console.error("Error previewing address:", error);
+      setPreviewAddress("Error: Invalid seed format");
+      toast.error("Invalid seed format");
+    }
   };
 
   if (isConnected) {
@@ -286,7 +317,10 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
               <textarea
                 placeholder="Enter your 24-word recovery phrase..."
                 value={importSeed}
-                onChange={(e) => setImportSeed(e.target.value)}
+                onChange={(e) => {
+                  setImportSeed(e.target.value);
+                  setPreviewAddress(null); // Clear preview on change
+                }}
                 className="pixel-border bg-muted text-xs font-mono w-full min-h-[100px] p-3 rounded-md resize-none"
               />
               <p className="text-xs text-muted-foreground">
@@ -295,8 +329,30 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             </div>
 
             <Button
+              variant="outline"
+              className="w-full pixel-border text-xs"
+              onClick={handlePreviewAddress}
+              disabled={!importSeed.trim()}
+            >
+              PREVIEW ADDRESS (DON'T CONNECT YET)
+            </Button>
+
+            {previewAddress && (
+              <div className="pixel-border bg-muted p-3 space-y-2">
+                <Label className="text-xs text-primary">DERIVED ADDRESS AT INDEX 0:</Label>
+                <div className="font-mono text-xs break-all bg-background p-2 rounded">
+                  {previewAddress}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Compare this to the FX Anchor Status address on the swap page. They should match if using the same phrase.
+                </p>
+              </div>
+            )}
+
+            <Button
               className="w-full pixel-border bg-secondary hover:bg-secondary/80 text-xs"
               onClick={handleImportWallet}
+              disabled={!importSeed.trim()}
             >
               IMPORT WALLET
             </Button>
