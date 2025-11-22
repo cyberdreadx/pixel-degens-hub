@@ -42,7 +42,7 @@ serve(async (req) => {
       try {
         // Try to create account with secp256k1 at this index
         const account = KeetaNet.lib.Account.fromSeed(actualSeed, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
-        const address = account.publicKeyString.get();
+        const address = account.publicKeyString.toString();
         
         console.log(`Checking secp256k1 index ${index}: ${address}`);
         
