@@ -281,7 +281,7 @@ const Swap = () => {
           {anchorInfo ? (
             <div className="space-y-2 text-sm">
               <div className="p-3 bg-muted rounded">
-                <div className="text-xs text-muted-foreground mb-1">Address (Index 1)</div>
+                <div className="text-xs text-muted-foreground mb-1">Address (secp256k1, Index 0)</div>
                 <div className="font-mono text-xs break-all">{anchorInfo.address}</div>
               </div>
               

@@ -3,6 +3,8 @@ import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
 import * as bip39 from "npm:bip39@3.1.0";
 import { Buffer } from "node:buffer";
 
+const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -45,11 +47,11 @@ serve(async (req) => {
     // First, test indices 0-9 quickly
     for (let index = 0; index < 10; index++) {
       try {
-        // Try to create account with this index
-        const account = KeetaNet.lib.Account.fromSeed(actualSeed, index);
+        // Try to create account with secp256k1 at this index
+        const account = KeetaNet.lib.Account.fromSeed(actualSeed, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
         const address = account.publicKeyString.get();
         
-        console.log(`Checking index ${index}: ${address}`);
+        console.log(`Checking secp256k1 index ${index}: ${address}`);
         
         // Create client for this account
         const client = KeetaNet.UserClient.fromNetwork('main', account);

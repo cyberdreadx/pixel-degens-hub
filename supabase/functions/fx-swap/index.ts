@@ -3,6 +3,8 @@ import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
 import * as bip39 from "npm:bip39@3.1.0";
 import { Buffer } from "node:buffer";
 
+const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -126,11 +128,11 @@ serve(async (req) => {
       actualSeed = Buffer.from(fullSeed.subarray(0, 32)).toString('hex');
     }
 
-    // Create anchor account and client at index 1
-    const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 1);
+    // Create anchor account using secp256k1 at index 0
+    const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
 
-    console.log('Anchor wallet:', anchorAccount.publicKeyString.get());
+    console.log('Anchor wallet (secp256k1, index 0):', anchorAccount.publicKeyString.get());
     console.log('Swap details:', { 
       from: fromCurrency, 
       to: toCurrency, 

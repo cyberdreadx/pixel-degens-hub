@@ -3,6 +3,8 @@ import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
 import * as bip39 from "npm:bip39@3.1.0";
 import { Buffer } from "node:buffer";
 
+const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -28,19 +30,19 @@ serve(async (req) => {
     const TARGET_ADDRESS = 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq';
     const results: any[] = [];
 
-    // Test Method 1: bip39.mnemonicToSeedSync
+    // Test Method 1: bip39.mnemonicToSeedSync with secp256k1
     if (bip39.validateMnemonic(anchorSeed)) {
-      console.log('Testing Method 1: bip39.mnemonicToSeedSync');
+      console.log('Testing Method 1: bip39.mnemonicToSeedSync + secp256k1');
       const fullSeed = bip39.mnemonicToSeedSync(anchorSeed);
       const actualSeed1 = Buffer.from(fullSeed.subarray(0, 32)).toString('hex');
       
       for (let index = 0; index < 5; index++) {
-        const account = KeetaNet.lib.Account.fromSeed(actualSeed1, index);
+        const account = KeetaNet.lib.Account.fromSeed(actualSeed1, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
         const address = account.publicKeyString.get();
         const match = address === TARGET_ADDRESS;
         
         results.push({
-          method: 'bip39',
+          method: 'bip39+secp256k1',
           index,
           address,
           match,
@@ -48,25 +50,25 @@ serve(async (req) => {
         });
         
         if (match) {
-          console.log(`✅ MATCH FOUND: bip39 method, index ${index}`);
+          console.log(`✅ MATCH FOUND: bip39+secp256k1 method, index ${index}`);
         }
       }
     } else {
-      results.push({ method: 'bip39', error: 'Invalid mnemonic for bip39' });
+      results.push({ method: 'bip39+secp256k1', error: 'Invalid mnemonic for bip39' });
     }
 
-    // Test Method 2: KeetaNet.lib.Account.seedFromPassphrase
+    // Test Method 2: KeetaNet.lib.Account.seedFromPassphrase with secp256k1
     try {
-      console.log('Testing Method 2: KeetaNet seedFromPassphrase');
+      console.log('Testing Method 2: KeetaNet seedFromPassphrase + secp256k1');
       const actualSeed2 = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
       
       for (let index = 0; index < 5; index++) {
-        const account = KeetaNet.lib.Account.fromSeed(actualSeed2, index);
+        const account = KeetaNet.lib.Account.fromSeed(actualSeed2, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
         const address = account.publicKeyString.get();
         const match = address === TARGET_ADDRESS;
         
         results.push({
-          method: 'seedFromPassphrase',
+          method: 'seedFromPassphrase+secp256k1',
           index,
           address,
           match,
@@ -74,11 +76,11 @@ serve(async (req) => {
         });
         
         if (match) {
-          console.log(`✅ MATCH FOUND: seedFromPassphrase method, index ${index}`);
+          console.log(`✅ MATCH FOUND: seedFromPassphrase+secp256k1 method, index ${index}`);
         }
       }
     } catch (error: any) {
-      results.push({ method: 'seedFromPassphrase', error: error.message });
+      results.push({ method: 'seedFromPassphrase+secp256k1', error: error.message });
     }
 
     const matchFound = results.find(r => r.match);
