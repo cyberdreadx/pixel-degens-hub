@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
+import * as bip39 from "npm:bip39@3.1.0";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -28,15 +29,19 @@ serve(async (req) => {
       );
     }
 
-    // Convert mnemonic to seed using Keeta's seedFromPassphrase (same as original backend behavior)
-    const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
+    // Convert mnemonic to seed using BIP39 (CLI-compatible method)
+    const fullSeed = bip39.mnemonicToSeedSync(anchorSeed.trim());
+    const seed32Bytes = fullSeed.slice(0, 32);
+    const seedHex = Array.from(new Uint8Array(seed32Bytes))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
 
     // Create anchor account using secp256k1 at index 0
-    const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
+    const anchorAccount = KeetaNet.lib.Account.fromSeed(seedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const anchorAddress = anchorAccount.publicKeyString.toString();
 
     console.log('Anchor address (secp256k1, index 0):', anchorAddress);
-    console.log('Seed conversion: Account.seedFromPassphrase (backend default)');
+    console.log('Seed conversion: BIP39 mnemonicToSeedSync (CLI-compatible)');
     
     // Get balances to verify
     const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
@@ -67,7 +72,7 @@ serve(async (req) => {
         address: anchorAddress,
         ktaBalance: kta,
         xrgeBalance: xrge,
-        method: 'BIP39 mnemonicToSeedSync + secp256k1 index 0 (standard method)'
+        method: 'BIP39 mnemonicToSeedSync + secp256k1 index 0 (CLI-compatible)'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
