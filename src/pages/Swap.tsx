@@ -7,9 +7,6 @@ import { ArrowDownUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-// Anchor wallet address (where users send tokens for swaps)
-const ANCHOR_ADDRESS = "keeta_aabk5bcvcrxddx4byht5grtx34iwnnraprsjh3ou7ytwvt6zwmcuivcxkcx73qa";
-
 // Token addresses
 const TOKENS = {
   KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
@@ -24,6 +21,22 @@ const Swap = () => {
   const [toCurrency, setToCurrency] = useState("XRGE");
   const [isLoading, setIsLoading] = useState(false);
   const [rate, setRate] = useState<number | null>(null);
+  const [anchorAddress, setAnchorAddress] = useState<string | null>(null);
+
+  // Fetch anchor address on mount
+  useEffect(() => {
+    const fetchAnchorAddress = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('fx-anchor-info');
+        if (error) throw error;
+        setAnchorAddress(data.address);
+      } catch (error) {
+        console.error('Failed to fetch anchor address:', error);
+        toast.error('Failed to connect to anchor');
+      }
+    };
+    fetchAnchorAddress();
+  }, []);
 
   // Fetch rate on mount and when currencies change
   useEffect(() => {
@@ -76,6 +89,11 @@ const Swap = () => {
       return;
     }
 
+    if (!anchorAddress) {
+      toast.error("Anchor not available. Please try again.");
+      return;
+    }
+
     if (!fromAmount || parseFloat(fromAmount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
@@ -91,7 +109,7 @@ const Swap = () => {
       const fromTokenAddress = fromCurrency === 'KTA' ? undefined : TOKENS[fromCurrency as keyof typeof TOKENS];
       
       // Send tokens to anchor wallet (sendTokens handles conversion to smallest units)
-      await sendTokens(ANCHOR_ADDRESS, fromAmount, fromTokenAddress);
+      await sendTokens(anchorAddress, fromAmount, fromTokenAddress);
       
       toast.success("Tokens sent to anchor. Processing swap...");
 

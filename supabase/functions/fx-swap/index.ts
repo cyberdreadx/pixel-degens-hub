@@ -100,7 +100,7 @@ serve(async (req) => {
       );
     }
 
-    // Connect to Keeta testnet
+    // Connect to Keeta mainnet
     const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
     if (!anchorSeed) {
       console.error('ANCHOR_WALLET_SEED not configured');
@@ -116,8 +116,30 @@ serve(async (req) => {
       );
     }
 
+    // Convert mnemonic to seed if needed (24 words separated by spaces)
+    let actualSeed = anchorSeed;
+    const words = anchorSeed.trim().split(/\s+/);
+    if (words.length === 24) {
+      // It's a mnemonic, convert it using Keeta SDK
+      try {
+        actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
+      } catch (error: any) {
+        console.error('Failed to convert mnemonic:', error);
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: 'Invalid anchor wallet mnemonic format.'
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
     // Create anchor account and client
-    const anchorAccount = KeetaNet.lib.Account.fromSeed(anchorSeed, 0);
+    const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0);
     const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
 
     console.log('Anchor wallet:', anchorAccount.publicKeyString.get());
