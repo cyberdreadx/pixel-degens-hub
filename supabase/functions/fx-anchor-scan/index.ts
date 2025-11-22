@@ -34,8 +34,10 @@ serve(async (req) => {
     
     const results = [];
     const KTA_TOKEN = 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';
+    const XRGE_TOKEN = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
+    const TARGET_ADDRESS = 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq';
 
-    for (let index = 0; index < 10; index++) {
+    for (let index = 0; index < 100; index++) {
       try {
         // Try to create account with this index
         const account = KeetaNet.lib.Account.fromSeed(actualSeed, index);
@@ -46,24 +48,42 @@ serve(async (req) => {
         // Create client for this account
         const client = KeetaNet.UserClient.fromNetwork('main', account);
         
-        // Check KTA balance
+        // Check if this is the target address
+        const isTarget = address === TARGET_ADDRESS;
+        
+        // Check KTA and XRGE balances
         const allBalances = await client.allBalances();
-        const ktaBalance = allBalances.find((b: any) => {
+        
+        const ktaBalanceData = allBalances.find((b: any) => {
           const tokenInfo = JSON.parse(JSON.stringify(b, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
           return tokenInfo.token === KTA_TOKEN;
         });
-        const balance = ktaBalance 
-          ? BigInt(JSON.parse(JSON.stringify(ktaBalance, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v)).balance) / BigInt(10 ** 18)
+        const ktaBalance = ktaBalanceData 
+          ? BigInt(JSON.parse(JSON.stringify(ktaBalanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v)).balance) / BigInt(10 ** 18)
           : 0n;
-          
+
+        const xrgeBalanceData = allBalances.find((b: any) => {
+          const tokenInfo = JSON.parse(JSON.stringify(b, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
+          return tokenInfo.token === XRGE_TOKEN;
+        });
+        const xrgeBalance = xrgeBalanceData 
+          ? BigInt(JSON.parse(JSON.stringify(xrgeBalanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v)).balance) / BigInt(10 ** 18)
+          : 0n;
+        
         results.push({
           index,
           address,
-          ktaBalance: balance.toString(),
-          hasBalance: balance > 0n
+          ktaBalance: ktaBalance.toString(),
+          xrgeBalance: xrgeBalance.toString(),
+          hasBalance: ktaBalance > 0n || xrgeBalance > 0n,
+          isTarget
         });
 
-        console.log(`  Balance: ${balance} KTA`);
+        if (isTarget) {
+          console.log(`  ✅ TARGET FOUND at index ${index}: ${ktaBalance} KTA, ${xrgeBalance} XRGE`);
+        } else {
+          console.log(`  Balance: ${ktaBalance} KTA, ${xrgeBalance} XRGE`);
+        }
       } catch (error: any) {
         console.error(`Error checking index ${index}:`, error.message);
         results.push({
@@ -74,15 +94,19 @@ serve(async (req) => {
       }
     }
 
+    const targetFound = results.find(r => r.isTarget);
     const withBalance = results.filter(r => r.hasBalance);
     
     return new Response(
       JSON.stringify({ 
         results,
         withBalance,
-        recommendation: withBalance.length > 0 
-          ? `Use index ${withBalance[0].index} (${withBalance[0].address})`
-          : 'No addresses with KTA balance found'
+        targetFound,
+        recommendation: targetFound
+          ? `✅ Target anchor found at index ${targetFound.index} with ${targetFound.ktaBalance} KTA and ${targetFound.xrgeBalance} XRGE`
+          : withBalance.length > 0 
+            ? `Use index ${withBalance[0].index} (${withBalance[0].address})`
+            : 'Target anchor not found in first 100 indices'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

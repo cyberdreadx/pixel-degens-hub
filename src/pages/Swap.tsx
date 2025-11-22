@@ -274,11 +274,19 @@ const Swap = () => {
           {scanResults && (
             <div className="mt-4 p-3 bg-muted rounded-lg text-sm">
               <p className="font-semibold mb-2">{scanResults.recommendation}</p>
-              {scanResults.withBalance.length > 0 && (
+              {scanResults.targetFound && (
+                <div className="mt-2 p-2 bg-primary/10 border border-primary/20 rounded text-xs">
+                  <div className="font-semibold text-primary">✅ Anchor Found!</div>
+                  <div className="font-mono mt-1">Index: {scanResults.targetFound.index}</div>
+                  <div className="font-mono">{scanResults.targetFound.ktaBalance} KTA</div>
+                  <div className="font-mono">{scanResults.targetFound.xrgeBalance} XRGE</div>
+                </div>
+              )}
+              {!scanResults.targetFound && scanResults.withBalance.length > 0 && (
                 <div className="space-y-2 mt-2">
-                  {scanResults.withBalance.map((r: any, i: number) => (
+                  {scanResults.withBalance.slice(0, 5).map((r: any, i: number) => (
                     <div key={i} className="text-xs font-mono bg-background p-2 rounded">
-                      <div>Index {r.index}: {r.ktaBalance} KTA</div>
+                      <div>Index {r.index}: {r.ktaBalance} KTA, {r.xrgeBalance} XRGE</div>
                       <div className="text-muted-foreground truncate">{r.address}</div>
                     </div>
                   ))}
