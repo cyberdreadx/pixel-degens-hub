@@ -118,8 +118,11 @@ serve(async (req) => {
       );
     }
 
+    // Normalize mnemonic: trim and collapse internal whitespace (matches wallet preview behavior)
+    const anchorMnemonic = anchorSeed.trim().replace(/\s+/g, ' ');
+
     // Convert mnemonic to seed using Keeta's seedFromPassphrase (same as CLI)
-    const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
+    const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorMnemonic, { asString: true }) as string;
 
     // Create anchor account using secp256k1 at index 0
     const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
