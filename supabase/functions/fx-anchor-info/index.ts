@@ -31,8 +31,9 @@ serve(async (req) => {
     }
 
     // Convert mnemonic to seed using standard BIP39 (matches CLI)
+    // BIP39 returns 64 bytes, but Keeta needs 32 bytes (first half)
     const seedBuffer = bip39.mnemonicToSeedSync(anchorSeed.trim());
-    const actualSeed = Buffer.from(seedBuffer).toString('hex');
+    const actualSeed = Buffer.from(seedBuffer.slice(0, 32)).toString('hex');
 
     // Create anchor account using secp256k1 at index 0
     const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
