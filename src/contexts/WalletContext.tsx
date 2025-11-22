@@ -64,7 +64,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const allBalances = await client.allBalances();
       
       // Get base token address for comparison
-      const baseTokenAddr = client.baseToken.publicKeyString.get();
+      const baseTokenAddr = client.baseToken.publicKeyString.toString();
       
       // Find KTA balance from allBalances
       let keetaBalance = BigInt(0);
@@ -97,7 +97,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const balances = await client.allBalances();
       
       // Get base token address for comparison
-      const baseTokenAddr = client.baseToken.publicKeyString.get();
+      const baseTokenAddr = client.baseToken.publicKeyString.toString();
       
       // Convert to our token format
       // Filter out the native KTA token since it's displayed separately
@@ -160,7 +160,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Create account from seed using secp256k1 algorithm at index 0
       const newAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
-      const newPublicKey = newAccount.publicKeyString.get();
+      const newPublicKey = newAccount.publicKeyString.toString();
 
       console.log('Connected wallet (secp256k1, index 0, Keeta CLI method):', newPublicKey);
 
@@ -219,7 +219,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const amountBigInt = BigInt(Math.floor(parseFloat(amount) * Math.pow(10, 18)));
       
       // Get base token address
-      const baseTokenAddr = client.baseToken.publicKeyString.get();
+      const baseTokenAddr = client.baseToken.publicKeyString.toString();
       
       if (tokenAddress && tokenAddress !== baseTokenAddr) {
         // Send specific token
