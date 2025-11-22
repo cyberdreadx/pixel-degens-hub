@@ -157,8 +157,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (bip39.validateMnemonic(walletSeed)) {
         // Use standard BIP39 method to convert mnemonic to seed
         // BIP39 returns 64 bytes, but Keeta needs 32 bytes (first half)
-        const seedBuffer = bip39.mnemonicToSeedSync(walletSeed);
-        actualSeed = seedBuffer.slice(0, 32).buffer;
+        const fullSeed = bip39.mnemonicToSeedSync(walletSeed);
+        const seedBytes = new Uint8Array(32);
+        seedBytes.set(fullSeed.subarray(0, 32));
+        actualSeed = seedBytes.buffer;
       }
 
       // Create account from seed using secp256k1 algorithm at index 0
