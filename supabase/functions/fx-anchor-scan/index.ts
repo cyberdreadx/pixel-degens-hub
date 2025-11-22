@@ -34,6 +34,8 @@ serve(async (req) => {
     }
 
     console.log('Scanning derivation paths for KTA balance...');
+    console.log('Seed conversion method: bip39.mnemonicToSeedSync (matches WalletContext)');
+    console.log('Looking for target address:', 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq');
     
     const results = [];
     const KTA_TOKEN = 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';

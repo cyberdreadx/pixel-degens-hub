@@ -22,22 +22,25 @@ const Swap = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rate, setRate] = useState<number | null>(null);
   const [anchorAddress, setAnchorAddress] = useState<string | null>(null);
+  const [anchorInfo, setAnchorInfo] = useState<any>(null);
   const [scanResults, setScanResults] = useState<any>(null);
   const [isScanning, setIsScanning] = useState(false);
 
-  // Fetch anchor address on mount
+  // Fetch anchor info on mount
   useEffect(() => {
-    const fetchAnchorAddress = async () => {
+    const fetchAnchorInfo = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('fx-anchor-info');
         if (error) throw error;
         setAnchorAddress(data.address);
+        setAnchorInfo(data);
+        console.log('Anchor info:', data);
       } catch (error) {
-        console.error('Failed to fetch anchor address:', error);
+        console.error('Failed to fetch anchor info:', error);
         toast.error('Failed to connect to anchor');
       }
     };
-    fetchAnchorAddress();
+    fetchAnchorInfo();
   }, []);
 
   // Fetch rate on mount and when currencies change
@@ -252,15 +255,40 @@ const Swap = () => {
 
         {/* Info Section */}
         <Card className="mt-6 p-4 bg-card border-border">
-          <h3 className="font-semibold text-foreground mb-2">About FX Anchor</h3>
-          <p className="text-sm text-muted-foreground mb-3">
-            This is your own FX anchor running on Lovable Cloud. It enables
-            seamless token swaps between KTA and XRGE using exchange rates
-            calculated in real-time.
-          </p>
-          <p className="text-sm text-muted-foreground mb-3">
-            FX Anchor: <span className="font-mono text-xs">{anchorAddress || 'Loading...'}</span>
-          </p>
+          <h3 className="font-semibold text-foreground mb-2">FX Anchor Status</h3>
+          
+          {anchorInfo ? (
+            <div className="space-y-2 text-sm">
+              <div className="p-3 bg-muted rounded">
+                <div className="text-xs text-muted-foreground mb-1">Address (Index 0)</div>
+                <div className="font-mono text-xs break-all">{anchorInfo.address}</div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground mb-1">KTA Balance</div>
+                  <div className="font-bold">{anchorInfo.ktaBalance || '0'} KTA</div>
+                </div>
+                <div className="p-3 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground mb-1">XRGE Balance</div>
+                  <div className="font-bold">{anchorInfo.xrgeBalance || '0'} XRGE</div>
+                </div>
+              </div>
+              
+              <div className="p-2 bg-primary/10 border border-primary/20 rounded text-xs">
+                <div className="font-semibold mb-1">Expected: keeta_aabky6l7...eaq</div>
+                <div className={anchorInfo.address === 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq' 
+                  ? 'text-green-600 dark:text-green-400' 
+                  : 'text-destructive'}>
+                  {anchorInfo.address === 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq'
+                    ? '✓ Address matches! Anchor is correct.'
+                    : '✗ Address mismatch! Update ANCHOR_WALLET_SEED with correct mnemonic.'}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Loading anchor info...</p>
+          )}
           
           <Button
             onClick={handleScanDerivations}

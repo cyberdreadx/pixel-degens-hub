@@ -38,11 +38,41 @@ serve(async (req) => {
 
     // Create anchor account
     const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0);
-    const anchorAddress = anchorAccount.publicKeyString.toString();
+    const anchorAddress = anchorAccount.publicKeyString.get();
+
+    console.log('Anchor address at index 0:', anchorAddress);
+    console.log('Seed conversion: bip39.mnemonicToSeedSync');
+    
+    // Get balances to verify
+    const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
+    const allBalances = await client.allBalances();
+    
+    const ktaBalance = allBalances.find((b: any) => {
+      const tokenInfo = JSON.parse(JSON.stringify(b, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
+      return tokenInfo.token === 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';
+    });
+    
+    const xrgeBalance = allBalances.find((b: any) => {
+      const tokenInfo = JSON.parse(JSON.stringify(b, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
+      return tokenInfo.token === 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
+    });
+    
+    const kta = ktaBalance 
+      ? (BigInt(JSON.parse(JSON.stringify(ktaBalance, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v)).balance) / BigInt(10 ** 18)).toString()
+      : '0';
+    
+    const xrge = xrgeBalance 
+      ? (BigInt(JSON.parse(JSON.stringify(xrgeBalance, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v)).balance) / BigInt(10 ** 18)).toString()
+      : '0';
+
+    console.log('Balances:', { kta, xrge });
 
     return new Response(
       JSON.stringify({ 
-        address: anchorAddress
+        address: anchorAddress,
+        ktaBalance: kta,
+        xrgeBalance: xrge,
+        method: 'bip39.mnemonicToSeedSync + fromSeed(index 0)'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
