@@ -55,16 +55,20 @@ serve(async (req) => {
 
     // Derive from user mnemonic using standard BIP39
     // BIP39 returns 64 bytes, but Keeta needs 32 bytes (first half)
-    const userSeedBuffer = bip39.mnemonicToSeedSync(userMnemonic.trim());
-    const userSeedConverted = userSeedBuffer.slice(0, 32).buffer;
+    const userFullSeed = bip39.mnemonicToSeedSync(userMnemonic.trim());
+    const userSeedBytes = new Uint8Array(32);
+    userSeedBytes.set(userFullSeed.subarray(0, 32));
+    const userSeedConverted = userSeedBytes.buffer;
     const userAccount = KeetaNet.lib.Account.fromSeed(userSeedConverted, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const userAddress = userAccount.publicKeyString.toString();
 
     console.log('User derived address:', userAddress);
 
     // Derive from ANCHOR_WALLET_SEED using standard BIP39
-    const anchorSeedBuffer = bip39.mnemonicToSeedSync(anchorSeed.trim());
-    const anchorSeedConverted = anchorSeedBuffer.slice(0, 32).buffer;
+    const anchorFullSeed = bip39.mnemonicToSeedSync(anchorSeed.trim());
+    const anchorSeedBytes = new Uint8Array(32);
+    anchorSeedBytes.set(anchorFullSeed.subarray(0, 32));
+    const anchorSeedConverted = anchorSeedBytes.buffer;
     const anchorAccount = KeetaNet.lib.Account.fromSeed(anchorSeedConverted, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const anchorAddress = anchorAccount.publicKeyString.toString();
 
