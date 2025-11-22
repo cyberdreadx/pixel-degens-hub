@@ -54,8 +54,9 @@ serve(async (req) => {
     console.log('ANCHOR_WALLET_SEED last word:', anchorSeed.trim().split(/\s+/).slice(-1)[0]);
 
     // Derive from user mnemonic using standard BIP39
+    // BIP39 returns 64 bytes, but Keeta needs 32 bytes (first half)
     const userSeedBuffer = bip39.mnemonicToSeedSync(userMnemonic.trim());
-    const userSeedConverted = Buffer.from(userSeedBuffer).toString('hex');
+    const userSeedConverted = Buffer.from(userSeedBuffer.slice(0, 32)).toString('hex');
     const userAccount = KeetaNet.lib.Account.fromSeed(userSeedConverted, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const userAddress = userAccount.publicKeyString.toString();
 
@@ -63,7 +64,7 @@ serve(async (req) => {
 
     // Derive from ANCHOR_WALLET_SEED using standard BIP39
     const anchorSeedBuffer = bip39.mnemonicToSeedSync(anchorSeed.trim());
-    const anchorSeedConverted = Buffer.from(anchorSeedBuffer).toString('hex');
+    const anchorSeedConverted = Buffer.from(anchorSeedBuffer.slice(0, 32)).toString('hex');
     const anchorAccount = KeetaNet.lib.Account.fromSeed(anchorSeedConverted, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const anchorAddress = anchorAccount.publicKeyString.toString();
 
