@@ -139,20 +139,18 @@ serve(async (req) => {
       // Create recipient account from user's public key
       const recipient = KeetaNet.lib.Account.fromPublicKeyString(userPublicKey);
       
-      // For KTA (base token), use client.baseToken
-      // For other tokens, create account from address
-      let tokenToSend;
-      if (toCurrency === 'KTA') {
-        tokenToSend = client.baseToken;
-      } else {
-        tokenToSend = KeetaNet.lib.Account.fromPublicKeyString(toToken);
-      }
-      
       // Calculate amount in smallest units (6 decimals for most tokens)
       const amountBigInt = BigInt(Math.floor(outputAmount * 1000000));
       
-      // Add send operation
-      builder.send(recipient, amountBigInt, tokenToSend);
+      // For KTA (base token), use client.baseToken
+      // For other tokens, use the token account
+      if (toCurrency === 'KTA') {
+        builder.send(recipient, amountBigInt, client.baseToken);
+      } else {
+        // Create token account from address for custom tokens
+        const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(toToken);
+        builder.send(recipient, amountBigInt, tokenAccount as any);
+      }
       
       // Compute transaction blocks
       const computed = await client.computeBuilderBlocks(builder);
@@ -163,6 +161,14 @@ serve(async (req) => {
       
       console.log('Transaction published:', result);
 
+      // Convert hash ArrayBuffer to hex string
+      const hashBuffer = computed.blocks?.[0]?.hash?.get();
+      const txHash = hashBuffer 
+        ? Array.from(new Uint8Array(hashBuffer))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('')
+        : 'pending';
+
       const response: SwapResponse = {
         success: true,
         fromAmount: inputAmount.toFixed(6),
@@ -170,7 +176,7 @@ serve(async (req) => {
         fromCurrency,
         toCurrency,
         rate,
-        transactionHash: computed.blocks?.[0]?.hash?.get() || 'pending',
+        transactionHash: txHash,
       };
 
       console.log('Swap executed:', response);
