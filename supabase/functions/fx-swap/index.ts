@@ -126,8 +126,8 @@ serve(async (req) => {
       actualSeed = Buffer.from(fullSeed.subarray(0, 32)).toString('hex');
     }
 
-    // Create anchor account and client
-    const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0);
+    // Create anchor account and client at index 1
+    const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 1);
     const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
 
     console.log('Anchor wallet:', anchorAccount.publicKeyString.get());
