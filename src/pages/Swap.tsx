@@ -25,6 +25,8 @@ const Swap = () => {
   const [anchorInfo, setAnchorInfo] = useState<any>(null);
   const [scanResults, setScanResults] = useState<any>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [compareResults, setCompareResults] = useState<any>(null);
+  const [compareMnemonic, setCompareMnemonic] = useState("");
 
   // Fetch anchor info on mount
   useEffect(() => {
@@ -118,6 +120,35 @@ const Swap = () => {
       setScanResults(data);
     } catch (error: any) {
       toast.error(`Debug failed: ${error.message}`);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleCompareMnemonic = async () => {
+    if (!compareMnemonic.trim()) {
+      toast.error("Please paste a mnemonic phrase first");
+      return;
+    }
+
+    setIsScanning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fx-anchor-compare', {
+        body: { userMnemonic: compareMnemonic }
+      });
+      
+      if (error) throw error;
+      
+      console.log('Compare results:', data);
+      setCompareResults(data);
+      
+      if (data.match) {
+        toast.success('✓ Perfect match! Both mnemonics derive the same address.');
+      } else {
+        toast.error('✗ Mismatch detected. See details below.');
+      }
+    } catch (error: any) {
+      toast.error(`Compare failed: ${error.message}`);
     } finally {
       setIsScanning(false);
     }
@@ -311,14 +342,63 @@ const Swap = () => {
             <p className="text-sm text-muted-foreground">Loading anchor info...</p>
           )}
           
-          <Button
-            onClick={handleDebugSeed}
-            disabled={isScanning}
-            variant="outline"
-            className="w-full"
-          >
-            {isScanning ? 'Testing...' : 'Test Seed Conversion Methods'}
-          </Button>
+          <div className="space-y-2 pt-2 border-t border-border">
+            <label className="text-xs text-muted-foreground">
+              PASTE YOUR WALLET MNEMONIC TO COMPARE WITH ANCHOR_WALLET_SEED:
+            </label>
+            <textarea
+              placeholder="Paste your 24-word phrase here..."
+              value={compareMnemonic}
+              onChange={(e) => setCompareMnemonic(e.target.value)}
+              className="w-full min-h-[80px] p-2 text-xs font-mono bg-muted border border-border rounded"
+            />
+            <Button
+              onClick={handleCompareMnemonic}
+              disabled={isScanning || !compareMnemonic.trim()}
+              variant="default"
+              className="w-full"
+              size="sm"
+            >
+              {isScanning ? 'Comparing...' : 'Compare with ANCHOR_WALLET_SEED'}
+            </Button>
+          </div>
+
+          {compareResults && (
+            <div className={`mt-4 p-3 rounded text-sm border ${
+              compareResults.match 
+                ? 'bg-green-500/10 border-green-500/20' 
+                : 'bg-destructive/10 border-destructive/20'
+            }`}>
+              <div className="font-semibold mb-2">
+                {compareResults.match ? '✅ MATCH!' : '✗ MISMATCH'}
+              </div>
+              
+              <div className="space-y-2 text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-muted-foreground">Your Mnemonic:</div>
+                    <div className="font-mono text-xs break-all">{compareResults.userAddress}</div>
+                    <div className="text-muted-foreground mt-1">Words: {compareResults.userMnemonicWordCount}</div>
+                    <div className="text-muted-foreground">First: {compareResults.userFirstWord}</div>
+                    <div className="text-muted-foreground">Last: {compareResults.userLastWord}</div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-muted-foreground">ANCHOR_WALLET_SEED:</div>
+                    <div className="font-mono text-xs break-all">{compareResults.anchorAddress}</div>
+                    <div className="text-muted-foreground mt-1">Words: {compareResults.anchorMnemonicWordCount}</div>
+                    <div className="text-muted-foreground">First: {compareResults.anchorFirstWord}</div>
+                    <div className="text-muted-foreground">Last: {compareResults.anchorLastWord}</div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-border/50">
+                  <div>Intermediate seeds match: {compareResults.seedsMatch ? '✓' : '✗'}</div>
+                  <div>Final addresses match: {compareResults.addressesMatch ? '✓' : '✗'}</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {scanResults && scanResults.matchFound && (
             <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded text-sm">
