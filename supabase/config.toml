@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.fx-anchor-info]
 verify_jwt = false
+
+[functions.fx-anchor-scan]
+verify_jwt = false
