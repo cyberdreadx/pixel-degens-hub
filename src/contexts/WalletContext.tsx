@@ -43,8 +43,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!client || !account) return;
     
     try {
-      console.log("Fetching balance for:", account.publicKeyString.get());
-      const balance = await client.balance(account.publicKeyString.get());
+      const accountPublicKey = account.publicKeyString.get();
+      const ktaTokenAddress = "keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg";
+      
+      console.log("Fetching KTA balance for:", accountPublicKey);
+      const balance = await client.balance(accountPublicKey, ktaTokenAddress);
       console.log("Balance (raw):", balance);
       
       if (balance !== undefined && balance !== null) {
