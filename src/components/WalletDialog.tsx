@@ -126,6 +126,8 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
       const account = KeetaNet.lib.Account.fromSeed(actualSeed, 0);
       const address = account.publicKeyString.toString();
       
+      console.log('Derived with default algorithm:', address);
+      
       setPreviewAddress(address);
       toast.info("Address preview generated");
     } catch (error) {
