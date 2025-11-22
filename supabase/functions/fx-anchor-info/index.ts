@@ -36,11 +36,11 @@ serve(async (req) => {
       actualSeed = Buffer.from(fullSeed.subarray(0, 32)).toString('hex');
     }
 
-    // Create anchor account
-    const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0);
+    // Create anchor account at index 1 (wallet might use index 1)
+    const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 1);
     const anchorAddress = anchorAccount.publicKeyString.get();
 
-    console.log('Anchor address at index 0:', anchorAddress);
+    console.log('Anchor address at index 1:', anchorAddress);
     console.log('Seed conversion: bip39.mnemonicToSeedSync');
     
     // Get balances to verify

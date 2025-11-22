@@ -122,14 +122,14 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
         actualSeed = fullSeed.subarray(0, 32).toString('hex');
       }
 
-      // Create account from seed
-      const account = KeetaNet.lib.Account.fromSeed(actualSeed, 0);
+      // Create account from seed at index 1
+      const account = KeetaNet.lib.Account.fromSeed(actualSeed, 1);
       const address = account.publicKeyString.toString();
       
-      console.log('Derived with default algorithm:', address);
+      console.log('Derived with default algorithm at index 1:', address);
       
       setPreviewAddress(address);
-      toast.info("Address preview generated");
+      toast.info("Address preview generated (index 1)");
     } catch (error) {
       console.error("Error previewing address:", error);
       setPreviewAddress("Error: Invalid seed format");
@@ -360,7 +360,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
             {previewAddress && (
               <div className="pixel-border bg-muted p-3 space-y-2">
-                <Label className="text-xs text-primary">DERIVED ADDRESS AT INDEX 0:</Label>
+                <Label className="text-xs text-primary">DERIVED ADDRESS AT INDEX 1:</Label>
                 <div className="font-mono text-xs break-all bg-background p-2 rounded">
                   {previewAddress}
                 </div>
