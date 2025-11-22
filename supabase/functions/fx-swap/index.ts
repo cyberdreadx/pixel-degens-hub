@@ -1,8 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Token addresses on Keeta Network
+const TOKENS = {
+  KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
+  XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
 };
 
 interface SwapRequest {
@@ -10,6 +17,7 @@ interface SwapRequest {
   toCurrency: string;
   amount: string;
   userPublicKey: string;
+  userSignedTx?: string; // Pre-signed transaction from user
 }
 
 interface SwapResponse {
@@ -75,27 +83,114 @@ serve(async (req) => {
     const inputAmount = parseFloat(amount);
     const outputAmount = inputAmount * rate;
 
-    // In production, this would:
-    // 1. Verify user has sufficient balance
-    // 2. Execute the swap transaction on Keeta Network
-    // 3. Return the transaction hash
-    
-    // For now, we simulate a successful swap
-    const response: SwapResponse = {
-      success: true,
-      fromAmount: inputAmount.toFixed(6),
-      toAmount: outputAmount.toFixed(6),
-      fromCurrency,
-      toCurrency,
-      rate,
-      transactionHash: `0x${Math.random().toString(16).substring(2, 66)}`, // Simulated tx hash
-    };
+    // Get token addresses
+    const fromToken = TOKENS[fromCurrency as keyof typeof TOKENS];
+    const toToken = TOKENS[toCurrency as keyof typeof TOKENS];
 
-    console.log('Swap executed:', response);
+    if (!fromToken || !toToken) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Invalid token: ${!fromToken ? fromCurrency : toCurrency}. Supported tokens: ${Object.keys(TOKENS).join(', ')}`
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
-    return new Response(JSON.stringify(response), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Connect to Keeta testnet
+    const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
+    if (!anchorSeed) {
+      console.error('ANCHOR_WALLET_SEED not configured');
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Anchor wallet not configured. Please set up anchor liquidity.'
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Create anchor account and client
+    const anchorAccount = KeetaNet.lib.Account.fromSeed(anchorSeed, 0);
+    const client = KeetaNet.UserClient.fromNetwork('test', anchorAccount);
+
+    console.log('Anchor wallet:', anchorAccount.publicKeyString.get());
+    console.log('Swap details:', { 
+      from: fromCurrency, 
+      to: toCurrency, 
+      amount: inputAmount,
+      calculated: outputAmount,
+      fromToken,
+      toToken
     });
+
+    // Build swap transaction
+    // User sends fromToken to anchor (done separately by user)
+    // Anchor sends toToken to user
+    try {
+      const builder = client.initBuilder();
+      
+      // Create recipient account from user's public key
+      const recipient = KeetaNet.lib.Account.fromPublicKeyString(userPublicKey);
+      
+      // For KTA (base token), use client.baseToken
+      // For other tokens, create account from address
+      let tokenToSend;
+      if (toCurrency === 'KTA') {
+        tokenToSend = client.baseToken;
+      } else {
+        tokenToSend = KeetaNet.lib.Account.fromPublicKeyString(toToken);
+      }
+      
+      // Calculate amount in smallest units (6 decimals for most tokens)
+      const amountBigInt = BigInt(Math.floor(outputAmount * 1000000));
+      
+      // Add send operation
+      builder.send(recipient, amountBigInt, tokenToSend);
+      
+      // Compute transaction blocks
+      const computed = await client.computeBuilderBlocks(builder);
+      console.log('Computed blocks:', computed.blocks);
+      
+      // Publish transaction
+      const result = await client.publishBuilder(builder);
+      
+      console.log('Transaction published:', result);
+
+      const response: SwapResponse = {
+        success: true,
+        fromAmount: inputAmount.toFixed(6),
+        toAmount: outputAmount.toFixed(6),
+        fromCurrency,
+        toCurrency,
+        rate,
+        transactionHash: computed.blocks?.[0]?.hash?.get() || 'pending',
+      };
+
+      console.log('Swap executed:', response);
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (txError: any) {
+      console.error('Transaction error:', txError);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Transaction failed: ${txError.message}. Make sure anchor has sufficient ${toCurrency} balance.`
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
   } catch (error: any) {
     console.error('Error in fx-swap function:', error);
     return new Response(
