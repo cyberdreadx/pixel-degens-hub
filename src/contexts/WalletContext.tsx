@@ -59,22 +59,29 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!client || !account) return;
     
     try {
-      const accountPublicKey = account.publicKeyString.get();
-      const ktaTokenAddress = "keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg";
+      // Get all balances (matches Keeta SDK pattern)
+      const allBalances = await client.allBalances();
       
-      console.log("Fetching KTA balance for:", accountPublicKey);
-      const balanceValue = await client.balance(accountPublicKey, ktaTokenAddress);
-      console.log("Balance (raw):", balanceValue);
+      // Get base token address for comparison
+      const baseTokenAddr = client.baseToken.publicKeyString.toString();
       
-      if (balanceValue !== undefined && balanceValue !== null) {
-        // Convert balance from smallest unit to KTA (18 decimals)
-        const balanceInKTA = Number(balanceValue) / Math.pow(10, 18);
-        console.log("Balance in KTA:", balanceInKTA);
-        setBalance(balanceInKTA.toFixed(6));
-      } else {
-        console.log("No balance found, setting to 0");
-        setBalance("0.000000");
+      // Find KTA balance from allBalances
+      let keetaBalance = BigInt(0);
+      if (Array.isArray(allBalances)) {
+        for (const balanceData of allBalances) {
+          const tokenInfo = JSON.parse(JSON.stringify(balanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
+          const tokenAddress = tokenInfo.token;
+          
+          if (tokenAddress === baseTokenAddr) {
+            keetaBalance = BigInt(tokenInfo.balance || 0);
+            break;
+          }
+        }
       }
+      
+      // Convert balance from smallest unit to KTA (18 decimals)
+      const balanceInKTA = Number(keetaBalance) / Math.pow(10, 18);
+      setBalance(balanceInKTA.toFixed(6));
     } catch (error) {
       console.error("Error fetching balance:", error);
       setBalance("0.000000");
