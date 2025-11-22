@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import * as KeetaNet from "@keetanetwork/keetanet-client";
 import { toast } from "sonner";
+import * as bip39 from "bip39";
 
 interface WalletContextType {
   isConnected: boolean;
@@ -55,8 +56,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const generateNewWallet = async (): Promise<string> => {
     try {
-      const seed = KeetaNet.lib.Account.generateRandomSeed({ asString: true });
-      return seed as string;
+      // Generate 24-word mnemonic (256 bits of entropy)
+      const mnemonic = bip39.generateMnemonic(256);
+      return mnemonic;
     } catch (error) {
       console.error("Error generating wallet:", error);
       toast.error("Failed to generate wallet");
@@ -64,17 +66,23 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const connectWallet = async (seed?: string) => {
+  const connectWallet = async (seedOrMnemonic?: string) => {
     try {
-      let walletSeed = seed;
+      let walletSeed = seedOrMnemonic;
       
       if (!walletSeed) {
         walletSeed = await generateNewWallet();
         toast.success("New wallet generated!");
       }
 
+      // Convert mnemonic to seed if it's a valid mnemonic phrase
+      let actualSeed = walletSeed;
+      if (bip39.validateMnemonic(walletSeed)) {
+        actualSeed = bip39.mnemonicToSeedSync(walletSeed).toString('hex');
+      }
+
       // Create account from seed
-      const newAccount = KeetaNet.lib.Account.fromSeed(walletSeed, 0);
+      const newAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0);
       const newPublicKey = newAccount.publicKeyString.toString();
 
       // Connect to test network
@@ -86,11 +94,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setClient(newClient);
       setIsConnected(true);
 
-      // Save seed to localStorage (with user awareness)
-      if (!seed) {
+      // Save mnemonic/seed to localStorage (with user awareness)
+      if (!seedOrMnemonic) {
         localStorage.setItem("keetaWalletSeed", walletSeed);
       } else {
-        localStorage.setItem("keetaWalletSeed", seed);
+        localStorage.setItem("keetaWalletSeed", seedOrMnemonic);
       }
 
       toast.success("Wallet connected!");
