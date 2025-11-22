@@ -22,6 +22,8 @@ const Swap = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rate, setRate] = useState<number | null>(null);
   const [anchorAddress, setAnchorAddress] = useState<string | null>(null);
+  const [scanResults, setScanResults] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   // Fetch anchor address on mount
   useEffect(() => {
@@ -81,6 +83,20 @@ const Swap = () => {
     setFromAmount(toAmount);
     setToAmount(fromAmount);
     setRate(null);
+  };
+
+  const handleScanDerivations = async () => {
+    setIsScanning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fx-anchor-scan');
+      if (error) throw error;
+      setScanResults(data);
+      toast.success('Scan complete!');
+    } catch (error: any) {
+      toast.error(`Scan failed: ${error.message}`);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleSwap = async () => {
@@ -235,14 +251,42 @@ const Swap = () => {
         </Card>
 
         {/* Info Section */}
-        <div className="mt-6 p-4 bg-muted rounded-lg">
+        <Card className="mt-6 p-4 bg-card border-border">
           <h3 className="font-semibold text-foreground mb-2">About FX Anchor</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mb-3">
             This is your own FX anchor running on Lovable Cloud. It enables
             seamless token swaps between KTA and XRGE using exchange rates
             calculated in real-time.
           </p>
-        </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            FX Anchor: <span className="font-mono text-xs">{anchorAddress || 'Loading...'}</span>
+          </p>
+          
+          <Button
+            onClick={handleScanDerivations}
+            disabled={isScanning}
+            variant="outline"
+            className="w-full"
+          >
+            {isScanning ? 'Scanning...' : 'Scan Derivation Paths'}
+          </Button>
+
+          {scanResults && (
+            <div className="mt-4 p-3 bg-muted rounded-lg text-sm">
+              <p className="font-semibold mb-2">{scanResults.recommendation}</p>
+              {scanResults.withBalance.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  {scanResults.withBalance.map((r: any, i: number) => (
+                    <div key={i} className="text-xs font-mono bg-background p-2 rounded">
+                      <div>Index {r.index}: {r.ktaBalance} KTA</div>
+                      <div className="text-muted-foreground truncate">{r.address}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );
