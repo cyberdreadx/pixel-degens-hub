@@ -91,6 +91,16 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
     }
   };
 
+  const handleExportConnectedWallet = () => {
+    const storedSeed = localStorage.getItem("keetaWalletSeed");
+    if (storedSeed) {
+      navigator.clipboard.writeText(storedSeed);
+      toast.success("Connected wallet phrase copied! Use this for ANCHOR_WALLET_SEED.");
+    } else {
+      toast.error("No seed found in localStorage");
+    }
+  };
+
   const handleDisconnect = () => {
     disconnectWallet();
     setGeneratedSeed("");
@@ -180,6 +190,15 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                 <img src={qrCode} alt="Address QR Code" className="w-48 h-48" />
               </div>
             )}
+
+            <Button
+              variant="outline"
+              className="w-full pixel-border text-xs bg-primary/10 border-primary/20"
+              onClick={handleExportConnectedWallet}
+            >
+              <Copy className="w-3 h-3 mr-2" />
+              COPY WALLET PHRASE (FOR ANCHOR_WALLET_SEED)
+            </Button>
 
             <div className="flex gap-2">
               <Button
