@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { toDataURL } from "qrcode";
 import * as KeetaNet from "@keetanetwork/keetanet-client";
 import * as bip39 from "bip39";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WalletDialogProps {
   open: boolean;
@@ -114,26 +115,29 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
     }
 
     try {
-      let actualSeed = importSeed.trim();
-      
-      // Convert mnemonic to seed using Keeta's seedFromPassphrase (not bip39!)
-      if (bip39.validateMnemonic(actualSeed)) {
-        actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(actualSeed, { asString: true }) as string;
+      // IMPORTANT: use the backend Keeta implementation so preview matches FX Anchor exactly
+      const { data, error } = await supabase.functions.invoke('fx-anchor-compare', {
+        body: { userMnemonic: importSeed.trim() }
+      });
+
+      if (error) throw error;
+
+      if (!data || !data.userAddress) {
+        throw new Error("Backend did not return a derived address");
       }
 
-      // Create account from seed using secp256k1 at index 0
-      const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
-      const account = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
-      const address = account.publicKeyString.toString();
-      
-      console.log('Derived with secp256k1 at index 0:', address);
-      
-      setPreviewAddress(address);
-      toast.info("Address preview generated (secp256k1, index 0)");
+      console.log('Preview derived via backend (secp256k1, index 0):', data.userAddress);
+      setPreviewAddress(data.userAddress as string);
+
+      if (data.match) {
+        toast.success("Preview matches ANCHOR_WALLET_SEED (same wallet)");
+      } else {
+        toast.info("Preview uses backend derivation but differs from current anchor");
+      }
     } catch (error) {
-      console.error("Error previewing address:", error);
-      setPreviewAddress("Error: Invalid seed format");
-      toast.error("Invalid seed format");
+      console.error("Error previewing address via backend:", error);
+      setPreviewAddress("Error: Invalid seed format or backend error");
+      toast.error("Failed to derive address via backend");
     }
   };
 
