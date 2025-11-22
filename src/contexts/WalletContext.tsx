@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import * as bip39 from "bip39";
 
 const { Account } = KeetaNet.lib;
+const { AccountKeyAlgorithm } = Account;
 
 interface WalletContextType {
   isConnected: boolean;
@@ -132,6 +133,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       // Generate 24-word mnemonic (256 bits of entropy)
       const mnemonic = bip39.generateMnemonic(256);
+      console.log('Generated new wallet mnemonic (will use secp256k1, index 0)');
       return mnemonic;
     } catch (error) {
       console.error("Error generating wallet:", error);
@@ -157,9 +159,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         actualSeed = fullSeed.subarray(0, 32).toString('hex');
       }
 
-      // Create account from seed
-      const newAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0);
+      // Create account from seed using secp256k1 algorithm at index 0
+      const newAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
       const newPublicKey = newAccount.publicKeyString.toString();
+
+      console.log('Connected wallet (secp256k1, index 0):', newPublicKey);
 
       // Connect to mainnet
       const newClient = KeetaNet.UserClient.fromNetwork("main", newAccount);
