@@ -114,17 +114,16 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
     }
 
     try {
-      let actualSeed = importSeed.trim().replace(/\s+/g, ' ');
+      // Normalize: trim and collapse whitespace (matches backend)
+      const normalizedInput = importSeed.trim().replace(/\s+/g, ' ');
       
-      // Convert mnemonic to seed using Keeta's seedFromPassphrase (not bip39!)
-      if (bip39.validateMnemonic(actualSeed)) {
-        actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(actualSeed, { asString: true }) as string;
-      }
+      // Convert mnemonic to seed using Keeta's seedFromPassphrase (same as backend)
+      const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(normalizedInput, { asString: true }) as string;
 
       // Create account from seed using secp256k1 at index 0
       const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
       const account = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
-      const address = account.publicKeyString.toString();
+      const address = account.publicKeyString.get();
       
       console.log('Derived with secp256k1 at index 0:', address);
       
