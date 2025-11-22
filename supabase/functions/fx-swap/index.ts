@@ -118,7 +118,7 @@ serve(async (req) => {
 
     // Create anchor account and client
     const anchorAccount = KeetaNet.lib.Account.fromSeed(anchorSeed, 0);
-    const client = KeetaNet.UserClient.fromNetwork('test', anchorAccount);
+    const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
 
     console.log('Anchor wallet:', anchorAccount.publicKeyString.get());
     console.log('Swap details:', { 
