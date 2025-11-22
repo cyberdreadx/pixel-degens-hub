@@ -125,7 +125,7 @@ serve(async (req) => {
     const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
 
-    console.log('Anchor wallet (secp256k1, index 0):', anchorAccount.publicKeyString.get());
+    console.log('Anchor wallet (secp256k1, index 0):', anchorAccount.publicKeyString.toString());
     console.log('Swap details:', { 
       from: fromCurrency, 
       to: toCurrency, 

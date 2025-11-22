@@ -35,7 +35,7 @@ serve(async (req) => {
       
       for (let index = 0; index < 5; index++) {
         const account = KeetaNet.lib.Account.fromSeed(actualSeed, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
-        const address = account.publicKeyString.get();
+        const address = account.publicKeyString.toString();
         const match = address === TARGET_ADDRESS;
         
         results.push({

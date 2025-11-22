@@ -54,14 +54,14 @@ serve(async (req) => {
     // Derive from user mnemonic
     const userSeedConverted = await KeetaNet.lib.Account.seedFromPassphrase(userMnemonic.trim(), { asString: true }) as string;
     const userAccount = KeetaNet.lib.Account.fromSeed(userSeedConverted, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
-    const userAddress = userAccount.publicKeyString.get();
+    const userAddress = userAccount.publicKeyString.toString();
 
     console.log('User derived address:', userAddress);
 
     // Derive from ANCHOR_WALLET_SEED
     const anchorSeedConverted = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed.trim(), { asString: true }) as string;
     const anchorAccount = KeetaNet.lib.Account.fromSeed(anchorSeedConverted, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
-    const anchorAddress = anchorAccount.publicKeyString.get();
+    const anchorAddress = anchorAccount.publicKeyString.toString();
 
     console.log('Anchor derived address:', anchorAddress);
 

@@ -33,7 +33,7 @@ serve(async (req) => {
 
     // Create anchor account using secp256k1 at index 0
     const anchorAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
-    const anchorAddress = anchorAccount.publicKeyString.get();
+    const anchorAddress = anchorAccount.publicKeyString.toString();
 
     console.log('Anchor address (secp256k1, index 0):', anchorAddress);
     console.log('Seed conversion: Account.seedFromPassphrase (Keeta CLI method)');
