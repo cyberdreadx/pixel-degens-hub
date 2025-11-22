@@ -150,13 +150,37 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
               </div>
             )}
 
-            <Button
-              variant="destructive"
-              className="w-full pixel-border text-xs"
-              onClick={handleDisconnect}
-            >
-              DISCONNECT WALLET
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 pixel-border text-xs"
+                onClick={() => {
+                  const walletData = {
+                    seed: localStorage.getItem("keetaWalletSeed"),
+                    publicKey: publicKey,
+                    network: "mainnet"
+                  };
+                  const dataStr = JSON.stringify(walletData, null, 2);
+                  const blob = new Blob([dataStr], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = `keeta-wallet-${publicKey?.substring(0, 8)}.json`;
+                  link.click();
+                  URL.revokeObjectURL(url);
+                  toast.success("Wallet exported!");
+                }}
+              >
+                EXPORT JSON
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1 pixel-border text-xs"
+                onClick={handleDisconnect}
+              >
+                DISCONNECT
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
