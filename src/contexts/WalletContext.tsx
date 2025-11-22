@@ -151,19 +151,18 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toast.success("New wallet generated!");
       }
 
-      // Convert mnemonic to seed if it's a valid mnemonic phrase
+      // Convert mnemonic to seed using Keeta's seedFromPassphrase (not bip39!)
       let actualSeed = walletSeed;
       if (bip39.validateMnemonic(walletSeed)) {
-        // Get 64-byte seed from mnemonic and take first 32 bytes for Keeta
-        const fullSeed = bip39.mnemonicToSeedSync(walletSeed);
-        actualSeed = fullSeed.subarray(0, 32).toString('hex');
+        // Use Keeta's native method to convert mnemonic to seed
+        actualSeed = await Account.seedFromPassphrase(walletSeed, { asString: true }) as string;
       }
 
       // Create account from seed using secp256k1 algorithm at index 0
       const newAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
       const newPublicKey = newAccount.publicKeyString.toString();
 
-      console.log('Connected wallet (secp256k1, index 0):', newPublicKey);
+      console.log('Connected wallet (secp256k1, index 0, Keeta CLI method):', newPublicKey);
 
       // Connect to mainnet
       const newClient = KeetaNet.UserClient.fromNetwork("main", newAccount);

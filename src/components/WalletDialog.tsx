@@ -107,7 +107,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
     onOpenChange(false);
   };
 
-  const handlePreviewAddress = () => {
+  const handlePreviewAddress = async () => {
     if (!importSeed.trim()) {
       setPreviewAddress(null);
       return;
@@ -116,10 +116,9 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
     try {
       let actualSeed = importSeed.trim();
       
-      // Convert mnemonic to seed if it's a valid mnemonic phrase
+      // Convert mnemonic to seed using Keeta's seedFromPassphrase (not bip39!)
       if (bip39.validateMnemonic(actualSeed)) {
-        const fullSeed = bip39.mnemonicToSeedSync(actualSeed);
-        actualSeed = fullSeed.subarray(0, 32).toString('hex');
+        actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(actualSeed, { asString: true }) as string;
       }
 
       // Create account from seed using secp256k1 at index 0

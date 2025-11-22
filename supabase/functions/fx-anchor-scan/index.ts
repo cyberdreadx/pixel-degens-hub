@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
-import * as bip39 from "npm:bip39@3.1.0";
-import { Buffer } from "node:buffer";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -27,16 +25,11 @@ serve(async (req) => {
       );
     }
 
-    // Convert mnemonic to seed using bip39 (same as WalletContext)
-    let actualSeed = anchorSeed;
-    if (bip39.validateMnemonic(anchorSeed)) {
-      // Get 64-byte seed from mnemonic and take first 32 bytes for Keeta
-      const fullSeed = bip39.mnemonicToSeedSync(anchorSeed);
-      actualSeed = Buffer.from(fullSeed.subarray(0, 32)).toString('hex');
-    }
+    // Convert mnemonic to seed using Keeta's seedFromPassphrase (same as CLI)
+    const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
 
     console.log('Scanning derivation paths for KTA balance...');
-    console.log('Seed conversion method: bip39.mnemonicToSeedSync (matches WalletContext)');
+    console.log('Seed conversion method: Account.seedFromPassphrase (Keeta CLI method)');
     console.log('Looking for target address:', 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq');
     
     const results = [];
