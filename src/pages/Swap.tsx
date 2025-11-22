@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { ArrowDownUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import * as KeetaNet from "@keetanetwork/keetanet-client";
+import * as bip39 from "bip39";
 
 // Token addresses
 const TOKENS = {
@@ -27,8 +29,9 @@ const Swap = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [compareResults, setCompareResults] = useState<any>(null);
   const [compareMnemonic, setCompareMnemonic] = useState("");
+  const [frontendAnchorAddress, setFrontendAnchorAddress] = useState<string | null>(null);
 
-  // Fetch anchor info on mount
+  // Fetch anchor info on mount - keep backend for balance checks
   useEffect(() => {
     const fetchAnchorInfo = async () => {
       try {
@@ -36,7 +39,7 @@ const Swap = () => {
         if (error) throw error;
         setAnchorAddress(data.address);
         setAnchorInfo(data);
-        console.log('Anchor info:', data);
+        console.log('Backend anchor info:', data);
       } catch (error) {
         console.error('Failed to fetch anchor info:', error);
         toast.error('Failed to connect to anchor');
@@ -44,6 +47,30 @@ const Swap = () => {
     };
     fetchAnchorInfo();
   }, []);
+
+  // Derive anchor address using frontend method (same as wallet preview)
+  const deriveFrontendAnchor = async (mnemonic: string) => {
+    try {
+      let actualSeed = mnemonic.trim();
+      
+      if (bip39.validateMnemonic(actualSeed)) {
+        actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(actualSeed, { asString: true }) as string;
+      }
+
+      const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
+      const account = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
+      const address = account.publicKeyString.toString();
+      
+      console.log('Frontend derived anchor (secp256k1, index 0):', address);
+      setFrontendAnchorAddress(address);
+      
+      return address;
+    } catch (error) {
+      console.error("Error deriving frontend anchor:", error);
+      toast.error("Invalid mnemonic format");
+      return null;
+    }
+  };
 
   // Fetch rate on mount and when currencies change
   useEffect(() => {
@@ -307,39 +334,67 @@ const Swap = () => {
 
         {/* Info Section */}
         <Card className="mt-6 p-4 bg-card border-border">
-          <h3 className="font-semibold text-foreground mb-2">FX Anchor Status</h3>
+          <h3 className="font-semibold text-foreground mb-2">FX Anchor Status (Frontend Derivation)</h3>
           
-          {anchorInfo ? (
+          <div className="space-y-2 text-sm mb-4">
+            <label className="text-xs text-muted-foreground">
+              PASTE ANCHOR SEED TO DERIVE ADDRESS (FRONTEND METHOD):
+            </label>
+            <textarea
+              placeholder="Paste 24-word anchor seed phrase..."
+              value={compareMnemonic}
+              onChange={(e) => setCompareMnemonic(e.target.value)}
+              className="w-full min-h-[80px] p-2 text-xs font-mono bg-muted border border-border rounded"
+            />
+            <Button
+              onClick={() => deriveFrontendAnchor(compareMnemonic)}
+              disabled={!compareMnemonic.trim()}
+              variant="default"
+              className="w-full"
+              size="sm"
+            >
+              Derive Address (Frontend Method)
+            </Button>
+          </div>
+
+          {frontendAnchorAddress && (
             <div className="space-y-2 text-sm">
               <div className="p-3 bg-muted rounded">
-                <div className="text-xs text-muted-foreground mb-1">Address (secp256k1, Index 0)</div>
-                <div className="font-mono text-xs break-all">{anchorInfo.address}</div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 bg-muted rounded">
-                  <div className="text-xs text-muted-foreground mb-1">KTA Balance</div>
-                  <div className="font-bold">{anchorInfo.ktaBalance || '0'} KTA</div>
-                </div>
-                <div className="p-3 bg-muted rounded">
-                  <div className="text-xs text-muted-foreground mb-1">XRGE Balance</div>
-                  <div className="font-bold">{anchorInfo.xrgeBalance || '0'} XRGE</div>
-                </div>
+                <div className="text-xs text-muted-foreground mb-1">Frontend Derived Address (secp256k1, Index 0)</div>
+                <div className="font-mono text-xs break-all">{frontendAnchorAddress}</div>
               </div>
               
               <div className="p-2 bg-primary/10 border border-primary/20 rounded text-xs">
                 <div className="font-semibold mb-1">Expected: keeta_aabky6l7...eaq</div>
-                <div className={anchorInfo.address === 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq' 
+                <div className={frontendAnchorAddress === 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq' 
                   ? 'text-green-600 dark:text-green-400' 
                   : 'text-destructive'}>
-                  {anchorInfo.address === 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq'
-                    ? '✓ Address matches! Anchor is correct.'
-                    : '✗ Address mismatch! Update ANCHOR_WALLET_SEED with correct mnemonic.'}
+                  {frontendAnchorAddress === 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq'
+                    ? '✓ Address matches expected wallet!'
+                    : '✗ Address mismatch - different seed or derivation.'}
                 </div>
               </div>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Loading anchor info...</p>
+          )}
+
+          {anchorInfo && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <h4 className="text-xs font-semibold text-muted-foreground mb-2">Backend Anchor (for balance reference):</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground mb-1">KTA Balance</div>
+                  <div className="font-bold text-xs">{anchorInfo.ktaBalance || '0'} KTA</div>
+                </div>
+                <div className="p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground mb-1">XRGE Balance</div>
+                  <div className="font-bold text-xs">{anchorInfo.xrgeBalance || '0'} XRGE</div>
+                </div>
+              </div>
+              <div className="mt-2 p-2 bg-muted rounded">
+                <div className="text-xs text-muted-foreground mb-1">Backend Address</div>
+                <div className="font-mono text-xs break-all">{anchorInfo.address}</div>
+              </div>
+            </div>
           )}
           
           <div className="space-y-2 pt-2 border-t border-border">
