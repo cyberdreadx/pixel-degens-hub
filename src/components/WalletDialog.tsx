@@ -15,7 +15,7 @@ interface WalletDialogProps {
 }
 
 const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
-  const { connectWallet, disconnectWallet, publicKey, isConnected, balance } = useWallet();
+  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, generateNewWallet } = useWallet();
   const [importSeed, setImportSeed] = useState("");
   const [showSeed, setShowSeed] = useState(false);
   const [generatedSeed, setGeneratedSeed] = useState("");
@@ -39,7 +39,6 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
   const handleGenerateWallet = async () => {
     try {
-      const { generateNewWallet } = useWallet();
       const newSeed = await generateNewWallet();
       setGeneratedSeed(newSeed);
       toast.success("Seed generated! Save it before connecting.");
