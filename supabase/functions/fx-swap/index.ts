@@ -139,8 +139,8 @@ serve(async (req) => {
       // Create recipient account from user's public key
       const recipient = KeetaNet.lib.Account.fromPublicKeyString(userPublicKey);
       
-      // Calculate amount in smallest units (6 decimals for most tokens)
-      const amountBigInt = BigInt(Math.floor(outputAmount * 1000000));
+      // Calculate amount in smallest units (18 decimals for KTA and XRGE)
+      const amountBigInt = BigInt(Math.floor(outputAmount * Math.pow(10, 18)));
       
       // For KTA (base token), use client.baseToken
       // For other tokens, use the token account

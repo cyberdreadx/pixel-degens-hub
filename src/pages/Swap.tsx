@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,14 +7,28 @@ import { ArrowDownUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+// Anchor wallet address (where users send tokens for swaps)
+const ANCHOR_ADDRESS = "keeta_aabk5bcvcrxddx4byht5grtx34iwnnraprsjh3ou7ytwvt6zwmcuivcxkcx73qa";
+
+// Token addresses
+const TOKENS = {
+  KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
+  XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
+};
+
 const Swap = () => {
-  const { isConnected, publicKey, balance } = useWallet();
+  const { isConnected, publicKey, balance, sendTokens } = useWallet();
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [fromCurrency, setFromCurrency] = useState("KTA");
   const [toCurrency, setToCurrency] = useState("XRGE");
   const [isLoading, setIsLoading] = useState(false);
   const [rate, setRate] = useState<number | null>(null);
+
+  // Fetch rate on mount and when currencies change
+  useEffect(() => {
+    fetchRate();
+  }, [fromCurrency, toCurrency]);
 
   const fetchRate = async () => {
     try {
@@ -57,7 +71,7 @@ const Swap = () => {
   };
 
   const handleSwap = async () => {
-    if (!isConnected) {
+    if (!isConnected || !publicKey) {
       toast.error("Please connect your wallet first");
       return;
     }
@@ -70,6 +84,21 @@ const Swap = () => {
     setIsLoading(true);
 
     try {
+      // Step 1: User sends tokens to anchor
+      toast.info(`Sending ${fromAmount} ${fromCurrency} to anchor...`);
+      
+      // Convert amount to smallest units (18 decimals)
+      const amountInSmallestUnits = (parseFloat(fromAmount) * Math.pow(10, 18)).toString();
+      
+      // Get the token address (undefined for KTA means use base token)
+      const fromTokenAddress = fromCurrency === 'KTA' ? undefined : TOKENS[fromCurrency as keyof typeof TOKENS];
+      
+      // Send tokens to anchor wallet
+      await sendTokens(ANCHOR_ADDRESS, amountInSmallestUnits, fromTokenAddress);
+      
+      toast.success("Tokens sent to anchor. Processing swap...");
+
+      // Step 2: Call edge function to have anchor send back swapped tokens
       const { data, error } = await supabase.functions.invoke('fx-swap', {
         body: {
           fromCurrency,
@@ -83,7 +112,7 @@ const Swap = () => {
 
       if (data.success) {
         toast.success(
-          `Swapped ${data.fromAmount} ${data.fromCurrency} for ${data.toAmount} ${data.toCurrency}`
+          `Swap complete! Received ${data.toAmount} ${data.toCurrency}`
         );
         setFromAmount("");
         setToAmount("");
