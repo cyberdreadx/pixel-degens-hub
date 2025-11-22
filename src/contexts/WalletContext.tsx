@@ -44,12 +44,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     try {
       console.log("Fetching balance for:", account.publicKeyString.get());
-      const accountInfo = await client.account(account.publicKeyString);
-      console.log("Account info:", accountInfo);
+      const balance = await client.balance(account.publicKeyString.get());
+      console.log("Balance (raw):", balance);
       
-      if (accountInfo && accountInfo.balance !== undefined) {
+      if (balance !== undefined && balance !== null) {
         // Convert balance from smallest unit to KTA (18 decimals)
-        const balanceInKTA = Number(accountInfo.balance) / Math.pow(10, 18);
+        const balanceInKTA = Number(balance) / Math.pow(10, 18);
         console.log("Balance in KTA:", balanceInKTA);
         setBalance(balanceInKTA.toFixed(6));
       } else {
