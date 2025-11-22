@@ -87,8 +87,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const newAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0);
       const newPublicKey = newAccount.publicKeyString.toString();
 
-      // Connect to test network
-      const newClient = KeetaNet.UserClient.fromNetwork("test", newAccount);
+      // Connect to mainnet
+      const newClient = KeetaNet.UserClient.fromNetwork("main", newAccount);
 
       // Save to state
       setAccount(newAccount);
