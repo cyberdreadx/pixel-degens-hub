@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.fx-swap]
 verify_jwt = false
+
+[functions.fx-anchor-info]
+verify_jwt = false
