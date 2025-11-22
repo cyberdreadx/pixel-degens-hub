@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import * as KeetaNet from "@keetanetwork/keetanet-client";
 import { toast } from "sonner";
 import * as bip39 from "bip39";
+
+const { Account } = KeetaNet.lib;
 
 interface WalletContextType {
   isConnected: boolean;
@@ -9,10 +11,22 @@ interface WalletContextType {
   account: any | null;
   client: any | null;
   balance: string | null;
+  tokens: KeetaToken[];
   connectWallet: (seed?: string) => Promise<void>;
   disconnectWallet: () => void;
   generateNewWallet: () => Promise<string>;
   refreshBalance: () => Promise<void>;
+  fetchTokens: () => Promise<void>;
+  sendTokens: (to: string, amount: string, tokenAddress?: string) => Promise<any>;
+}
+
+interface KeetaToken {
+  address: string;
+  symbol: string;
+  name: string;
+  balance: string;
+  decimals: number;
+  price?: number;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -23,6 +37,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [account, setAccount] = useState<any | null>(null);
   const [client, setClient] = useState<any | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
+  const [tokens, setTokens] = useState<KeetaToken[]>([]);
 
   // Load wallet from localStorage on mount
   useEffect(() => {
@@ -36,6 +51,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     if (client && account) {
       fetchBalance();
+      fetchTokensInternal();
     }
   }, [client, account]);
 
@@ -47,12 +63,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const ktaTokenAddress = "keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg";
       
       console.log("Fetching KTA balance for:", accountPublicKey);
-      const balance = await client.balance(accountPublicKey, ktaTokenAddress);
-      console.log("Balance (raw):", balance);
+      const balanceValue = await client.balance(accountPublicKey, ktaTokenAddress);
+      console.log("Balance (raw):", balanceValue);
       
-      if (balance !== undefined && balance !== null) {
+      if (balanceValue !== undefined && balanceValue !== null) {
         // Convert balance from smallest unit to KTA (18 decimals)
-        const balanceInKTA = Number(balance) / Math.pow(10, 18);
+        const balanceInKTA = Number(balanceValue) / Math.pow(10, 18);
         console.log("Balance in KTA:", balanceInKTA);
         setBalance(balanceInKTA.toFixed(6));
       } else {
@@ -62,6 +78,46 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error) {
       console.error("Error fetching balance:", error);
       setBalance("0.000000");
+    }
+  };
+
+  const fetchTokensInternal = async () => {
+    if (!client || !account) return;
+
+    try {
+      // Get all balances
+      const balances = await client.allBalances();
+      
+      // Get base token address for comparison
+      const baseTokenAddr = client.baseToken.publicKeyString.toString();
+      
+      // Convert to our token format
+      // Filter out the native KTA token since it's displayed separately
+      const tokenList: KeetaToken[] = balances
+        .filter((balanceData: any) => {
+          const tokenInfo = JSON.parse(JSON.stringify(balanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
+          const tokenAddress = tokenInfo.token;
+          
+          // Filter out native KTA token and zero balances
+          return tokenInfo.balance !== '0' && tokenInfo.balance !== 0 && tokenAddress !== baseTokenAddr;
+        })
+        .map((balanceData: any) => {
+          const tokenInfo = JSON.parse(JSON.stringify(balanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
+          const tokenAddress = tokenInfo.token;
+          
+          return {
+            address: tokenAddress,
+            symbol: 'UNKNOWN',
+            name: 'Unknown Token',
+            balance: tokenInfo.balance.toString(),
+            decimals: 18,
+            price: 0,
+          };
+        });
+      
+      setTokens(tokenList);
+    } catch (error) {
+      console.error('Failed to fetch Keeta tokens:', error);
     }
   };
 
@@ -107,7 +163,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setClient(newClient);
       setIsConnected(true);
 
-      // Save mnemonic/seed to localStorage (with user awareness)
+      // Save mnemonic/seed to localStorage
       if (!seedOrMnemonic) {
         localStorage.setItem("keetaWalletSeed", walletSeed);
       } else {
@@ -128,9 +184,57 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setClient(null);
     setIsConnected(false);
     setBalance(null);
+    setTokens([]);
     localStorage.removeItem("keetaWalletSeed");
     toast.success("Wallet disconnected");
   };
+
+  const fetchTokens = useCallback(async () => {
+    await fetchTokensInternal();
+  }, [client, account]);
+
+  const sendTokens = useCallback(async (to: string, amount: string, tokenAddress?: string) => {
+    if (!account || !client) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      // Start building a transaction
+      const builder = client.initBuilder();
+      
+      // Create recipient account from public key string
+      const recipientAccount = Account.fromPublicKeyString(to);
+      
+      // Convert amount to BigInt (assuming 18 decimals for KTA)
+      const amountBigInt = BigInt(Math.floor(parseFloat(amount) * Math.pow(10, 18)));
+      
+      // Get base token address
+      const baseTokenAddr = client.baseToken.publicKeyString.toString();
+      
+      if (tokenAddress && tokenAddress !== baseTokenAddr) {
+        // Send specific token
+        const tokenAccount = Account.fromPublicKeyString(tokenAddress);
+        builder.send(recipientAccount, amountBigInt, tokenAccount);
+      } else {
+        // Send native KTA (base token)
+        builder.send(recipientAccount, amountBigInt, client.baseToken);
+      }
+      
+      // Publish the transaction
+      const result = await builder.publish();
+      
+      // Refresh balances after sending
+      await fetchBalance();
+      await fetchTokensInternal();
+      
+      toast.success("Transaction sent!");
+      return result;
+    } catch (error) {
+      console.error('Failed to send tokens:', error);
+      toast.error("Failed to send transaction");
+      throw error;
+    }
+  }, [account, client]);
 
   return (
     <WalletContext.Provider
@@ -140,10 +244,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         account,
         client,
         balance,
+        tokens,
         connectWallet,
         disconnectWallet,
         generateNewWallet,
         refreshBalance: fetchBalance,
+        fetchTokens,
+        sendTokens,
       }}
     >
       {children}
