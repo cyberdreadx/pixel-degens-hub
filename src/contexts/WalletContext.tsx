@@ -12,6 +12,7 @@ interface WalletContextType {
   connectWallet: (seed?: string) => Promise<void>;
   disconnectWallet: () => void;
   generateNewWallet: () => Promise<string>;
+  refreshBalance: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -42,15 +43,22 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!client || !account) return;
     
     try {
+      console.log("Fetching balance for:", account.publicKeyString.get());
       const accountInfo = await client.account(account.publicKeyString);
+      console.log("Account info:", accountInfo);
+      
       if (accountInfo && accountInfo.balance !== undefined) {
-        // Convert balance from smallest unit to KTA
-        const balanceInKTA = Number(accountInfo.balance) / 1000000000000; // Adjust decimals as needed
-        setBalance(balanceInKTA.toFixed(4));
+        // Convert balance from smallest unit to KTA (6 decimals)
+        const balanceInKTA = Number(accountInfo.balance) / 1000000;
+        console.log("Balance in KTA:", balanceInKTA);
+        setBalance(balanceInKTA.toFixed(6));
+      } else {
+        console.log("No balance found, setting to 0");
+        setBalance("0.000000");
       }
     } catch (error) {
       console.error("Error fetching balance:", error);
-      setBalance("0.0000");
+      setBalance("0.000000");
     }
   };
 
@@ -132,6 +140,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         connectWallet,
         disconnectWallet,
         generateNewWallet,
+        refreshBalance: fetchBalance,
       }}
     >
       {children}

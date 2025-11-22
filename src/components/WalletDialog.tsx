@@ -15,7 +15,7 @@ interface WalletDialogProps {
 }
 
 const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
-  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, generateNewWallet } = useWallet();
+  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, generateNewWallet, refreshBalance } = useWallet();
   const [importSeed, setImportSeed] = useState("");
   const [showSeed, setShowSeed] = useState(false);
   const [generatedSeed, setGeneratedSeed] = useState("");
@@ -107,8 +107,18 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
           <div className="space-y-4">
             <div className="pixel-border bg-muted p-4 space-y-2">
-              <Label className="text-xs text-muted-foreground">BALANCE</Label>
-              <div className="text-2xl font-bold neon-glow">{balance || "0.0000"} KTA</div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">BALANCE</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={refreshBalance}
+                >
+                  REFRESH
+                </Button>
+              </div>
+              <div className="text-2xl font-bold neon-glow">{balance || "0.000000"} KTA</div>
             </div>
 
             <div className="space-y-2">
