@@ -48,8 +48,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.log("Account info:", accountInfo);
       
       if (accountInfo && accountInfo.balance !== undefined) {
-        // Convert balance from smallest unit to KTA (6 decimals)
-        const balanceInKTA = Number(accountInfo.balance) / 1000000;
+        // Convert balance from smallest unit to KTA (18 decimals)
+        const balanceInKTA = Number(accountInfo.balance) / Math.pow(10, 18);
         console.log("Balance in KTA:", balanceInKTA);
         setBalance(balanceInKTA.toFixed(6));
       } else {
