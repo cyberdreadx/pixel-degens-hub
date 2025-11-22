@@ -9,6 +9,7 @@ import Collection from "./pages/Collection";
 import NFTDetail from "./pages/NFTDetail";
 import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
+import Swap from "./pages/Swap";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/nft/:id" element={<NFTDetail />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/swap" element={<Swap />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
