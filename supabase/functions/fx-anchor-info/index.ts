@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
+import * as bip39 from "npm:bip39@3.1.0";
+import { Buffer } from "node:buffer";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,11 +28,12 @@ serve(async (req) => {
       );
     }
 
-    // Convert mnemonic to seed if needed (24 words separated by spaces)
+    // Convert mnemonic to seed using bip39 (same as WalletContext)
     let actualSeed = anchorSeed;
-    const words = anchorSeed.trim().split(/\s+/);
-    if (words.length === 24) {
-      actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
+    if (bip39.validateMnemonic(anchorSeed)) {
+      // Get 64-byte seed from mnemonic and take first 32 bytes for Keeta
+      const fullSeed = bip39.mnemonicToSeedSync(anchorSeed);
+      actualSeed = Buffer.from(fullSeed.subarray(0, 32)).toString('hex');
     }
 
     // Create anchor account
