@@ -114,7 +114,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
     }
 
     try {
-      let actualSeed = importSeed.trim();
+      let actualSeed = importSeed.trim().replace(/\s+/g, ' ');
       
       // Convert mnemonic to seed using Keeta's seedFromPassphrase (not bip39!)
       if (bip39.validateMnemonic(actualSeed)) {

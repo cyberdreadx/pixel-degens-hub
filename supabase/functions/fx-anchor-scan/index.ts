@@ -25,8 +25,11 @@ serve(async (req) => {
       );
     }
 
+    // Normalize mnemonic: trim and collapse internal whitespace (matches wallet preview behavior)
+    const anchorMnemonic = anchorSeed.trim().replace(/\s+/g, ' ');
+
     // Convert mnemonic to seed using Keeta's seedFromPassphrase (same as CLI)
-    const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
+    const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorMnemonic, { asString: true }) as string;
 
     console.log('Scanning derivation paths for KTA balance...');
     console.log('Seed conversion method: Account.seedFromPassphrase (Keeta CLI method)');

@@ -28,10 +28,13 @@ serve(async (req) => {
     const TARGET_ADDRESS = 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq';
     const results: any[] = [];
 
+    // Normalize mnemonic: trim and collapse internal whitespace (matches wallet preview behavior)
+    const anchorMnemonic = anchorSeed.trim().replace(/\s+/g, ' ');
+
     // Test Keeta CLI method: Account.seedFromPassphrase with secp256k1
     try {
       console.log('Testing Keeta CLI method: Account.seedFromPassphrase + secp256k1');
-      const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
+      const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorMnemonic, { asString: true }) as string;
       
       for (let index = 0; index < 5; index++) {
         const account = KeetaNet.lib.Account.fromSeed(actualSeed, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
