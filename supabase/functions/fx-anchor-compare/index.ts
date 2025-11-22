@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
-import * as bip39 from "npm:bip39@3.1.0";
-import { Buffer } from "https://deno.land/std@0.177.0/node/buffer.ts";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -53,22 +51,15 @@ serve(async (req) => {
     console.log('ANCHOR_WALLET_SEED first word:', anchorSeed.trim().split(/\s+/)[0]);
     console.log('ANCHOR_WALLET_SEED last word:', anchorSeed.trim().split(/\s+/).slice(-1)[0]);
 
-    // Derive from user mnemonic using standard BIP39
-    // BIP39 returns 64 bytes, but Keeta needs 32 bytes (first half)
-    const userFullSeed = bip39.mnemonicToSeedSync(userMnemonic.trim());
-    const userSeedBytes = new Uint8Array(32);
-    userSeedBytes.set(userFullSeed.subarray(0, 32));
-    const userSeedConverted = userSeedBytes.buffer;
+    // Derive from user mnemonic using backend's Account.seedFromPassphrase
+    const userSeedConverted = await KeetaNet.lib.Account.seedFromPassphrase(userMnemonic.trim(), { asString: true }) as string;
     const userAccount = KeetaNet.lib.Account.fromSeed(userSeedConverted, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const userAddress = userAccount.publicKeyString.toString();
 
     console.log('User derived address:', userAddress);
 
-    // Derive from ANCHOR_WALLET_SEED using standard BIP39
-    const anchorFullSeed = bip39.mnemonicToSeedSync(anchorSeed.trim());
-    const anchorSeedBytes = new Uint8Array(32);
-    anchorSeedBytes.set(anchorFullSeed.subarray(0, 32));
-    const anchorSeedConverted = anchorSeedBytes.buffer;
+    // Derive from ANCHOR_WALLET_SEED using backend's Account.seedFromPassphrase
+    const anchorSeedConverted = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed.trim(), { asString: true }) as string;
     const anchorAccount = KeetaNet.lib.Account.fromSeed(anchorSeedConverted, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const anchorAddress = anchorAccount.publicKeyString.toString();
 
