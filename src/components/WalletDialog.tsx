@@ -197,7 +197,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                 <div className="space-y-2">
                   <Label className="text-xs text-destructive">SAVE YOUR 24-WORD RECOVERY PHRASE</Label>
                   <div className="pixel-border bg-muted p-3 space-y-2">
-                    <div className={`text-xs font-mono ${showSeed ? 'block' : 'filter blur-sm'}`}>
+                    <div className={`text-xs font-mono ${showSeed ? '' : 'blur-sm select-none'}`}>
                       {generatedSeed}
                     </div>
                     <div className="flex gap-2">
