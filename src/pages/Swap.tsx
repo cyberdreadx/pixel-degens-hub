@@ -87,14 +87,11 @@ const Swap = () => {
       // Step 1: User sends tokens to anchor
       toast.info(`Sending ${fromAmount} ${fromCurrency} to anchor...`);
       
-      // Convert amount to smallest units (18 decimals)
-      const amountInSmallestUnits = (parseFloat(fromAmount) * Math.pow(10, 18)).toString();
-      
       // Get the token address (undefined for KTA means use base token)
       const fromTokenAddress = fromCurrency === 'KTA' ? undefined : TOKENS[fromCurrency as keyof typeof TOKENS];
       
-      // Send tokens to anchor wallet
-      await sendTokens(ANCHOR_ADDRESS, amountInSmallestUnits, fromTokenAddress);
+      // Send tokens to anchor wallet (sendTokens handles conversion to smallest units)
+      await sendTokens(ANCHOR_ADDRESS, fromAmount, fromTokenAddress);
       
       toast.success("Tokens sent to anchor. Processing swap...");
 
