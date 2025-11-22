@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
-import { Wallet, Home, Image, Users, Activity } from "lucide-react";
+import { Wallet, Home, Image, Users, Activity, ArrowDownUp } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import WalletDialog from "./WalletDialog";
 
@@ -61,7 +61,16 @@ const Navigation = () => {
               <span className="hidden sm:inline text-xs">PROFILE</span>
             </NavLink>
             
-            <Button 
+            <NavLink
+              to="/swap"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
+              activeClassName="bg-muted"
+            >
+              <ArrowDownUp className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs">SWAP</span>
+            </NavLink>
+            
+            <Button
               variant="default" 
               size="sm"
               className="pixel-border bg-primary hover:bg-primary/80 text-xs gap-2"

@@ -1,0 +1,7 @@
+project_id = "ghxfcasnlkgjefkogoio"
+
+[functions.fx-rates]
+verify_jwt = false
+
+[functions.fx-swap]
+verify_jwt = false
