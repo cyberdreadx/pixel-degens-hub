@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.fx-anchor-scan]
 verify_jwt = false
+
+[functions.fx-anchor-debug]
+verify_jwt = false
