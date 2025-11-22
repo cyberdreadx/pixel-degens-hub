@@ -102,6 +102,27 @@ const Swap = () => {
     }
   };
 
+  const handleDebugSeed = async () => {
+    setIsScanning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fx-anchor-debug');
+      if (error) throw error;
+      console.log('Debug results:', data);
+      
+      if (data.matchFound) {
+        toast.success(`Match found! Use ${data.matchFound.method} at index ${data.matchFound.index}`);
+      } else {
+        toast.error('No match found. Check mnemonic.');
+      }
+      
+      setScanResults(data);
+    } catch (error: any) {
+      toast.error(`Debug failed: ${error.message}`);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   const handleSwap = async () => {
     if (!isConnected || !publicKey) {
       toast.error("Please connect your wallet first");
@@ -291,33 +312,33 @@ const Swap = () => {
           )}
           
           <Button
-            onClick={handleScanDerivations}
+            onClick={handleDebugSeed}
             disabled={isScanning}
             variant="outline"
             className="w-full"
           >
-            {isScanning ? 'Scanning...' : 'Scan Derivation Paths'}
+            {isScanning ? 'Testing...' : 'Test Seed Conversion Methods'}
           </Button>
 
-          {scanResults && (
-            <div className="mt-4 p-3 bg-muted rounded-lg text-sm">
-              <p className="font-semibold mb-2">{scanResults.recommendation}</p>
-              {scanResults.targetFound && (
-                <div className="mt-2 p-2 bg-primary/10 border border-primary/20 rounded text-xs">
-                  <div className="font-semibold text-primary">✅ Anchor Found!</div>
-                  <div className="font-mono mt-1">Index: {scanResults.targetFound.index}</div>
-                  <div className="font-mono">{scanResults.targetFound.ktaBalance} KTA</div>
-                  <div className="font-mono">{scanResults.targetFound.xrgeBalance} XRGE</div>
-                </div>
-              )}
-              {!scanResults.targetFound && scanResults.withBalance.length > 0 && (
-                <div className="space-y-2 mt-2">
-                  {scanResults.withBalance.slice(0, 5).map((r: any, i: number) => (
-                    <div key={i} className="text-xs font-mono bg-background p-2 rounded">
-                      <div>Index {r.index}: {r.ktaBalance} KTA, {r.xrgeBalance} XRGE</div>
-                      <div className="text-muted-foreground truncate">{r.address}</div>
-                    </div>
-                  ))}
+          {scanResults && scanResults.matchFound && (
+            <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded text-sm">
+              <div className="font-semibold text-primary mb-2">✅ Match Found!</div>
+              <div className="text-xs space-y-1">
+                <div>Method: <span className="font-mono">{scanResults.matchFound.method}</span></div>
+                <div>Index: <span className="font-mono">{scanResults.matchFound.index}</span></div>
+                <div className="font-mono text-xs break-all">{scanResults.matchFound.address}</div>
+              </div>
+            </div>
+          )}
+          
+          {scanResults && !scanResults.matchFound && scanResults.results && (
+            <div className="mt-4 p-3 bg-muted rounded text-xs">
+              <div className="font-semibold mb-2">No match found in either method</div>
+              {scanResults.mnemonicInfo && (
+                <div className="space-y-1 text-muted-foreground">
+                  <div>Word count: {scanResults.mnemonicInfo.wordCount}</div>
+                  <div>First word: {scanResults.mnemonicInfo.firstWord}</div>
+                  <div>Last word: {scanResults.mnemonicInfo.lastWord}</div>
                 </div>
               )}
             </div>

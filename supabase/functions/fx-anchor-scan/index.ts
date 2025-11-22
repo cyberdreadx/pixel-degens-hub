@@ -42,7 +42,8 @@ serve(async (req) => {
     const XRGE_TOKEN = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
     const TARGET_ADDRESS = 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq';
 
-    for (let index = 0; index < 100; index++) {
+    // First, test index 0 to 9 quickly
+    for (let index = 0; index < 10; index++) {
       try {
         // Try to create account with this index
         const account = KeetaNet.lib.Account.fromSeed(actualSeed, index);
