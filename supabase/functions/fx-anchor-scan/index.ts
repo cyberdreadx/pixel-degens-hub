@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
+import * as bip39 from "npm:bip39@3.1.0";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -25,11 +26,15 @@ serve(async (req) => {
       );
     }
 
-    // Convert mnemonic to seed using Keeta's seedFromPassphrase (backend default)
-    const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
+    // Convert mnemonic to seed using BIP39 (CLI-compatible method)
+    const fullSeed = bip39.mnemonicToSeedSync(anchorSeed.trim());
+    const seed32Bytes = fullSeed.slice(0, 32);
+    const seedHex = Array.from(new Uint8Array(seed32Bytes))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
     
     console.log('Scanning derivation paths for KTA balance...');
-    console.log('Seed conversion method: Account.seedFromPassphrase (backend default)');
+    console.log('Seed conversion method: BIP39 mnemonicToSeedSync (CLI-compatible)');
     console.log('Looking for target address:', 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq');
     
     const results = [];
@@ -41,7 +46,7 @@ serve(async (req) => {
     for (let index = 0; index < 10; index++) {
       try {
         // Try to create account with secp256k1 at this index
-        const account = KeetaNet.lib.Account.fromSeed(actualSeed, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
+        const account = KeetaNet.lib.Account.fromSeed(seedHex, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
         const address = account.publicKeyString.toString();
         
         console.log(`Checking secp256k1 index ${index}: ${address}`);

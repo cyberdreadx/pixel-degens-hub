@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
+import * as bip39 from "npm:bip39@3.1.0";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -51,22 +52,30 @@ serve(async (req) => {
     console.log('ANCHOR_WALLET_SEED first word:', anchorSeed.trim().split(/\s+/)[0]);
     console.log('ANCHOR_WALLET_SEED last word:', anchorSeed.trim().split(/\s+/).slice(-1)[0]);
 
-    // Derive from user mnemonic using backend's Account.seedFromPassphrase
-    const userSeedConverted = await KeetaNet.lib.Account.seedFromPassphrase(userMnemonic.trim(), { asString: true }) as string;
-    const userAccount = KeetaNet.lib.Account.fromSeed(userSeedConverted, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
+    // Derive from user mnemonic using BIP39 (CLI-compatible)
+    const userFullSeed = bip39.mnemonicToSeedSync(userMnemonic.trim());
+    const userSeed32 = userFullSeed.slice(0, 32);
+    const userSeedHex = Array.from(new Uint8Array(userSeed32))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    const userAccount = KeetaNet.lib.Account.fromSeed(userSeedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const userAddress = userAccount.publicKeyString.toString();
 
     console.log('User derived address:', userAddress);
 
-    // Derive from ANCHOR_WALLET_SEED using backend's Account.seedFromPassphrase
-    const anchorSeedConverted = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed.trim(), { asString: true }) as string;
-    const anchorAccount = KeetaNet.lib.Account.fromSeed(anchorSeedConverted, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
+    // Derive from ANCHOR_WALLET_SEED using BIP39 (CLI-compatible)
+    const anchorFullSeed = bip39.mnemonicToSeedSync(anchorSeed.trim());
+    const anchorSeed32 = anchorFullSeed.slice(0, 32);
+    const anchorSeedHex = Array.from(new Uint8Array(anchorSeed32))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    const anchorAccount = KeetaNet.lib.Account.fromSeed(anchorSeedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const anchorAddress = anchorAccount.publicKeyString.toString();
 
     console.log('Anchor derived address:', anchorAddress);
 
     // Compare intermediate seeds (first 16 chars only for security)
-    const seedsMatch = userSeedConverted === anchorSeedConverted;
+    const seedsMatch = userSeedHex === anchorSeedHex;
     const addressesMatch = userAddress === anchorAddress;
 
     console.log('Seeds match:', seedsMatch);
