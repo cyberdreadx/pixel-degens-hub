@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
-import * as bip39 from "npm:bip39@3.1.0";
-import { Buffer } from "node:buffer";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -30,40 +28,13 @@ serve(async (req) => {
     const TARGET_ADDRESS = 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq';
     const results: any[] = [];
 
-    // Test Method 1: bip39.mnemonicToSeedSync with secp256k1
-    if (bip39.validateMnemonic(anchorSeed)) {
-      console.log('Testing Method 1: bip39.mnemonicToSeedSync + secp256k1');
-      const fullSeed = bip39.mnemonicToSeedSync(anchorSeed);
-      const actualSeed1 = Buffer.from(fullSeed.subarray(0, 32)).toString('hex');
-      
-      for (let index = 0; index < 5; index++) {
-        const account = KeetaNet.lib.Account.fromSeed(actualSeed1, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
-        const address = account.publicKeyString.get();
-        const match = address === TARGET_ADDRESS;
-        
-        results.push({
-          method: 'bip39+secp256k1',
-          index,
-          address,
-          match,
-          seedPreview: actualSeed1.substring(0, 16) + '...'
-        });
-        
-        if (match) {
-          console.log(`✅ MATCH FOUND: bip39+secp256k1 method, index ${index}`);
-        }
-      }
-    } else {
-      results.push({ method: 'bip39+secp256k1', error: 'Invalid mnemonic for bip39' });
-    }
-
-    // Test Method 2: KeetaNet.lib.Account.seedFromPassphrase with secp256k1
+    // Test Keeta CLI method: Account.seedFromPassphrase with secp256k1
     try {
-      console.log('Testing Method 2: KeetaNet seedFromPassphrase + secp256k1');
-      const actualSeed2 = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
+      console.log('Testing Keeta CLI method: Account.seedFromPassphrase + secp256k1');
+      const actualSeed = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed, { asString: true }) as string;
       
       for (let index = 0; index < 5; index++) {
-        const account = KeetaNet.lib.Account.fromSeed(actualSeed2, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
+        const account = KeetaNet.lib.Account.fromSeed(actualSeed, index, AccountKeyAlgorithm.ECDSA_SECP256K1);
         const address = account.publicKeyString.get();
         const match = address === TARGET_ADDRESS;
         
@@ -72,11 +43,11 @@ serve(async (req) => {
           index,
           address,
           match,
-          seedPreview: actualSeed2.substring(0, 16) + '...'
+          seedPreview: actualSeed.substring(0, 16) + '...'
         });
         
         if (match) {
-          console.log(`✅ MATCH FOUND: seedFromPassphrase+secp256k1 method, index ${index}`);
+          console.log(`✅ MATCH FOUND: Keeta CLI method, secp256k1, index ${index}`);
         }
       }
     } catch (error: any) {
@@ -97,7 +68,8 @@ serve(async (req) => {
           wordCount: anchorSeed.trim().split(/\s+/).length,
           firstWord: anchorSeed.trim().split(/\s+/)[0],
           lastWord: anchorSeed.trim().split(/\s+/).slice(-1)[0]
-        }
+        },
+        note: 'Now using Account.seedFromPassphrase (Keeta CLI method) instead of bip39'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
