@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import * as KeetaNet from "@keetanetwork/keetanet-client";
 import { toast } from "sonner";
 import * as bip39 from "bip39";
+import { Buffer } from "buffer";
 
 const { Account } = KeetaNet.lib;
 const { AccountKeyAlgorithm } = Account;
@@ -151,18 +152,19 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toast.success("New wallet generated!");
       }
 
-      // Convert mnemonic to seed using Keeta's seedFromPassphrase (not bip39!)
+      // Convert mnemonic to seed using standard BIP39 (matches CLI and backend)
       let actualSeed = walletSeed;
       if (bip39.validateMnemonic(walletSeed)) {
-        // Use Keeta's native method to convert mnemonic to seed
-        actualSeed = await Account.seedFromPassphrase(walletSeed, { asString: true }) as string;
+        // Use standard BIP39 method to convert mnemonic to seed
+        const seedBuffer = bip39.mnemonicToSeedSync(walletSeed);
+        actualSeed = Buffer.from(seedBuffer).toString('hex');
       }
 
       // Create account from seed using secp256k1 algorithm at index 0
       const newAccount = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
       const newPublicKey = newAccount.publicKeyString.toString();
 
-      console.log('Connected wallet (secp256k1, index 0, Keeta CLI method):', newPublicKey);
+      console.log('Connected wallet (secp256k1, index 0, BIP39 standard method):', newPublicKey);
 
       // Connect to mainnet
       const newClient = KeetaNet.UserClient.fromNetwork("main", newAccount);
