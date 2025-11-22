@@ -190,38 +190,37 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                 className="w-full pixel-border bg-primary hover:bg-primary/80 text-xs"
                 onClick={handleGenerateWallet}
               >
-                GENERATE NEW SEED
+                GENERATE 24-WORD PHRASE
               </Button>
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label className="text-xs text-destructive">SAVE YOUR SEED (IMPORTANT!)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type={showSeed ? "text" : "password"}
-                      value={generatedSeed}
-                      readOnly
-                      className="pixel-border bg-muted text-xs font-mono"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="pixel-border"
-                      onClick={() => setShowSeed(!showSeed)}
-                    >
-                      {showSeed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="pixel-border"
-                      onClick={handleCopySeed}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
+                  <Label className="text-xs text-destructive">SAVE YOUR 24-WORD RECOVERY PHRASE</Label>
+                  <div className="pixel-border bg-muted p-3 space-y-2">
+                    <div className={`text-xs font-mono ${showSeed ? 'block' : 'filter blur-sm'}`}>
+                      {generatedSeed}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="pixel-border flex-1 text-xs"
+                        onClick={() => setShowSeed(!showSeed)}
+                      >
+                        {showSeed ? <><EyeOff className="w-3 h-3 mr-1" /> HIDE</> : <><Eye className="w-3 h-3 mr-1" /> SHOW</>}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="pixel-border flex-1 text-xs"
+                        onClick={handleCopySeed}
+                      >
+                        <Copy className="w-3 h-3 mr-1" /> COPY
+                      </Button>
+                    </div>
                   </div>
                   <p className="text-xs text-destructive">
-                    ⚠️ Copy and store this seed safely. You'll need it to recover your wallet!
+                    ⚠️ Write down these 24 words in order. You'll need them to recover your wallet!
                   </p>
                 </div>
 
@@ -249,14 +248,16 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
           <TabsContent value="import" className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs">ENTER YOUR SEED</Label>
-              <Input
-                type="password"
-                placeholder="Enter your existing seed..."
+              <Label className="text-xs">ENTER YOUR 24-WORD RECOVERY PHRASE</Label>
+              <textarea
+                placeholder="Enter your 24-word recovery phrase..."
                 value={importSeed}
                 onChange={(e) => setImportSeed(e.target.value)}
-                className="pixel-border bg-muted text-xs font-mono"
+                className="pixel-border bg-muted text-xs font-mono w-full min-h-[100px] p-3 rounded-md resize-none"
               />
+              <p className="text-xs text-muted-foreground">
+                Separate words with spaces. Old hex seeds also supported.
+              </p>
             </div>
 
             <Button
