@@ -78,7 +78,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Convert mnemonic to seed if it's a valid mnemonic phrase
       let actualSeed = walletSeed;
       if (bip39.validateMnemonic(walletSeed)) {
-        actualSeed = bip39.mnemonicToSeedSync(walletSeed).toString('hex');
+        // Get 64-byte seed from mnemonic and take first 32 bytes for Keeta
+        const fullSeed = bip39.mnemonicToSeedSync(walletSeed);
+        actualSeed = fullSeed.subarray(0, 32).toString('hex');
       }
 
       // Create account from seed
