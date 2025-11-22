@@ -122,14 +122,15 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
         actualSeed = fullSeed.subarray(0, 32).toString('hex');
       }
 
-      // Create account from seed at index 1
-      const account = KeetaNet.lib.Account.fromSeed(actualSeed, 1);
+      // Create account from seed using secp256k1 at index 0
+      const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
+      const account = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
       const address = account.publicKeyString.toString();
       
-      console.log('Derived with default algorithm at index 1:', address);
+      console.log('Derived with secp256k1 at index 0:', address);
       
       setPreviewAddress(address);
-      toast.info("Address preview generated (index 1)");
+      toast.info("Address preview generated (secp256k1, index 0)");
     } catch (error) {
       console.error("Error previewing address:", error);
       setPreviewAddress("Error: Invalid seed format");
@@ -248,7 +249,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             CONNECT WALLET
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Connect to Keeta Chain testnet
+            Connect to Keeta Chain mainnet (secp256k1, index 0)
           </DialogDescription>
         </DialogHeader>
 
@@ -360,7 +361,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
             {previewAddress && (
               <div className="pixel-border bg-muted p-3 space-y-2">
-                <Label className="text-xs text-primary">DERIVED ADDRESS AT INDEX 1:</Label>
+                <Label className="text-xs text-primary">DERIVED ADDRESS (secp256k1, INDEX 0):</Label>
                 <div className="font-mono text-xs break-all bg-background p-2 rounded">
                   {previewAddress}
                 </div>
