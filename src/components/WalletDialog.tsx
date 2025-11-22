@@ -124,7 +124,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
       // Create account from seed using secp256k1 at index 0
       const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
       const account = KeetaNet.lib.Account.fromSeed(actualSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
-      const address = account.publicKeyString.toString();
+      const address = account.publicKeyString.get();
       
       console.log('Derived with secp256k1 at index 0:', address);
       
