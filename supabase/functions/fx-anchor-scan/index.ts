@@ -25,24 +25,19 @@ serve(async (req) => {
       );
     }
 
-    // Auto-detect if ANCHOR_WALLET_SEED is a mnemonic or hex seed
     const trimmedSeed = anchorSeed.trim();
-    let seedHex: string;
-    
-    if (/^[0-9a-f]{64}$/i.test(trimmedSeed)) {
-      seedHex = trimmedSeed;
-      console.log('Using direct hex seed');
-    } else if (trimmedSeed.split(/\s+/).length >= 12) {
-      console.log('WARNING: Using mnemonic - address may not match browser!');
-      seedHex = await KeetaNet.lib.Account.seedFromPassphrase(trimmedSeed, { asString: true });
-    } else {
+
+    if (!/^[0-9a-f]{64}$/i.test(trimmedSeed)) {
       return new Response(
-        JSON.stringify({ error: 'ANCHOR_WALLET_SEED format invalid' }),
+        JSON.stringify({ error: 'ANCHOR_WALLET_SEED must be a 64-character hex seed. Use "COPY SEED HEX" from the wallet dialog.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const seedHex = trimmedSeed;
     
     console.log('Scanning derivation paths for KTA balance...');
+    console.log('Seed source: Direct HEX (browser-derived)');
     console.log('Looking for target address:', 'keeta_aabky6l7q6znyl4mqougwr63pecljbq7zdb7xqvwqd3sftvxzzkdxstiect4eaq');
     
     const results = [];
