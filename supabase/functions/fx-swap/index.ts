@@ -118,9 +118,29 @@ serve(async (req) => {
       );
     }
 
-    // IMPORTANT: ANCHOR_WALLET_SEED should now be the SEED HEX (not mnemonic)
-    // Get it by clicking "COPY SEED HEX" button in connected wallet
-    const seedHex = anchorSeed.trim();
+    // Auto-detect if ANCHOR_WALLET_SEED is a mnemonic or hex seed
+    const trimmedSeed = anchorSeed.trim();
+    let seedHex: string;
+    
+    if (/^[0-9a-f]{64}$/i.test(trimmedSeed)) {
+      // It's already a hex seed
+      seedHex = trimmedSeed;
+    } else if (trimmedSeed.split(/\s+/).length >= 12) {
+      // It's a mnemonic phrase
+      console.log('WARNING: Using mnemonic - address may not match browser wallet!');
+      seedHex = await KeetaNet.lib.Account.seedFromPassphrase(trimmedSeed, { asString: true });
+    } else {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'ANCHOR_WALLET_SEED format invalid'
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
     
     // Create anchor account using secp256k1 at index 0
     const anchorAccount = KeetaNet.lib.Account.fromSeed(seedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
