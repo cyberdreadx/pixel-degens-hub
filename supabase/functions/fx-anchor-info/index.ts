@@ -28,15 +28,17 @@ serve(async (req) => {
       );
     }
 
-    // Convert mnemonic to seed using CLI-compatible method (seedFromPassphrase)
-    const seedHex = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed.trim(), { asString: true });
-
+    // IMPORTANT: ANCHOR_WALLET_SEED should now be the SEED HEX (not mnemonic)
+    // Get it by clicking "COPY SEED HEX" button in connected wallet
+    // This bypasses environment-specific mnemonic derivation
+    const seedHex = anchorSeed.trim();
+    
     // Create anchor account using secp256k1 at index 0
     const anchorAccount = KeetaNet.lib.Account.fromSeed(seedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const anchorAddress = anchorAccount.publicKeyString.toString();
 
     console.log('Anchor address (secp256k1, index 0):', anchorAddress);
-    console.log('Seed conversion: seedFromPassphrase (CLI-compatible)');
+    console.log('Seed source: Direct HEX (browser-derived, no mnemonic conversion)');
     
     // Get balances to verify
     const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);

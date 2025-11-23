@@ -118,8 +118,9 @@ serve(async (req) => {
       );
     }
 
-    // Convert mnemonic to seed using CLI-compatible method (seedFromPassphrase)
-    const seedHex = await KeetaNet.lib.Account.seedFromPassphrase(anchorSeed.trim(), { asString: true });
+    // IMPORTANT: ANCHOR_WALLET_SEED should now be the SEED HEX (not mnemonic)
+    // Get it by clicking "COPY SEED HEX" button in connected wallet
+    const seedHex = anchorSeed.trim();
     
     // Create anchor account using secp256k1 at index 0
     const anchorAccount = KeetaNet.lib.Account.fromSeed(seedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);

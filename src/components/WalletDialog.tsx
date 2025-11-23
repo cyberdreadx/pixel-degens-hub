@@ -101,6 +101,22 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
     }
   };
 
+  const handleExportSeedHex = async () => {
+    const storedSeed = localStorage.getItem("keetaWalletSeed");
+    if (storedSeed) {
+      try {
+        const seedHex = await KeetaNet.lib.Account.seedFromPassphrase(storedSeed, { asString: true });
+        await navigator.clipboard.writeText(seedHex);
+        toast.success("Seed HEX copied! Use this DIRECTLY in backend edge functions (no mnemonic conversion)");
+      } catch (error) {
+        console.error("Failed to derive seed hex:", error);
+        toast.error("Failed to derive seed hex");
+      }
+    } else {
+      toast.error("No seed found in localStorage");
+    }
+  };
+
   const handleDisconnect = () => {
     disconnectWallet();
     setGeneratedSeed("");
@@ -200,6 +216,15 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             >
               <Copy className="w-3 h-3 mr-2" />
               COPY WALLET PHRASE (FOR ANCHOR_WALLET_SEED)
+            </Button>
+
+            <Button
+              variant="secondary"
+              className="w-full pixel-border text-xs bg-accent/10 border-accent/20"
+              onClick={handleExportSeedHex}
+            >
+              <Copy className="w-3 h-3 mr-2" />
+              COPY SEED HEX (Browser-Derived - Use DIRECTLY in Backend)
             </Button>
 
             <div className="flex gap-2">
