@@ -19,7 +19,7 @@ interface NFTAttribute {
 }
 
 const MintNFT = () => {
-  const { client, account, isConnected, network } = useWallet();
+  const { client, account, isConnected, network, balance } = useWallet();
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
   const [description, setDescription] = useState("");
@@ -106,6 +106,12 @@ const MintNFT = () => {
 
     if (!name || !ticker) {
       toast.error("Name and ticker are required");
+      return;
+    }
+
+    // Check if wallet has sufficient KTA balance
+    if (!balance || parseFloat(balance) < 0.1) {
+      toast.error("Insufficient KTA balance. You need at least 0.1 KTA to mint an NFT (for transaction fees).");
       return;
     }
 
@@ -411,10 +417,11 @@ const MintNFT = () => {
 
           {/* Info */}
           <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
-            <p>• NFTs are created as tokens with supply=1 and decimals=0</p>
+            <p>• NFTs are created as tokens with supply=1</p>
             <p>• Metadata includes NFT_KTA_ANCHOR_[ID] identifier for auto-detection</p>
             <p>• Use IPFS for permanent image storage (recommended)</p>
-            <p>• Token address: keeta_nft_kta_anchor_[timestamp]</p>
+            <p>• <strong>Transaction fee:</strong> ~0.05-0.1 KTA</p>
+            <p>• Your balance: <strong>{balance || "0.000"} KTA</strong></p>
           </div>
         </Card>
       </div>
