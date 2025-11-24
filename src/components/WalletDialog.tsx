@@ -17,7 +17,7 @@ interface WalletDialogProps {
 }
 
 const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
-  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, generateNewWallet, refreshBalance } = useWallet();
+  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, tokens, generateNewWallet, refreshBalance } = useWallet();
   const [importSeed, setImportSeed] = useState("");
   const [showSeed, setShowSeed] = useState(false);
   const [generatedSeed, setGeneratedSeed] = useState("");
@@ -165,9 +165,9 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="pixel-border bg-muted p-4 space-y-2">
+            <div className="pixel-border bg-muted p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">BALANCE</Label>
+                <Label className="text-xs text-muted-foreground">BALANCES</Label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -177,7 +177,14 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                   REFRESH
                 </Button>
               </div>
-              <div className="text-2xl font-bold neon-glow">{balance || "0.000000"} KTA</div>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold neon-glow">{balance || "0.000000"} KTA</div>
+                {tokens.map((token) => (
+                  <div key={token.address} className="text-lg font-semibold text-accent">
+                    {(Number(token.balance) / Math.pow(10, token.decimals)).toFixed(6)} {token.symbol}
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-2">

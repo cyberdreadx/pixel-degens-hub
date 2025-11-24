@@ -114,10 +114,20 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const tokenInfo = JSON.parse(JSON.stringify(balanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
           const tokenAddress = tokenInfo.token;
           
+          // Identify known tokens
+          const XRGE_ADDRESS = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
+          let symbol = 'UNKNOWN';
+          let name = 'Unknown Token';
+          
+          if (tokenAddress === XRGE_ADDRESS) {
+            symbol = 'XRGE';
+            name = 'XRGE Token';
+          }
+          
           return {
             address: tokenAddress,
-            symbol: 'UNKNOWN',
-            name: 'Unknown Token',
+            symbol,
+            name,
             balance: tokenInfo.balance.toString(),
             decimals: 18,
             price: 0,
