@@ -179,39 +179,66 @@ const Swap = () => {
           Token Swap
         </h1>
 
-        {/* Market Data */}
-        {marketData && (marketData.kta || marketData.xrge) && (
-          <Card className="mb-4 p-4 bg-card border-border">
-            <h3 className="font-semibold text-sm text-foreground mb-3">Market Data</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {marketData.kta && (
-                <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">KTA Price</div>
-                  <div className="font-bold text-foreground">
-                    ${marketData.kta.price.toFixed(6)}
+        {/* Market Data and Pool Rates */}
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          {/* BASE Chain Prices */}
+          {marketData && (marketData.kta || marketData.xrge) && (
+            <Card className="p-4 bg-card border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="font-semibold text-sm text-foreground">BASE Chain Prices</h3>
+                <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">External Market</span>
+              </div>
+              <div className="space-y-3">
+                {marketData.kta && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">KTA</div>
+                    <div className="font-bold text-foreground">
+                      ${marketData.kta.price.toFixed(6)}
+                    </div>
+                    <div className={`text-xs ${marketData.kta.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {marketData.kta.priceChange24h >= 0 ? '↑' : '↓'} {Math.abs(marketData.kta.priceChange24h).toFixed(2)}%
+                    </div>
                   </div>
-                  <div className={`text-xs ${marketData.kta.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {marketData.kta.priceChange24h >= 0 ? '↑' : '↓'} {Math.abs(marketData.kta.priceChange24h).toFixed(2)}%
+                )}
+                {marketData.xrge && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">XRGE</div>
+                    <div className="font-bold text-foreground">
+                      ${marketData.xrge.price.toFixed(6)}
+                    </div>
+                    <div className={`text-xs ${marketData.xrge.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {marketData.xrge.priceChange24h >= 0 ? '↑' : '↓'} {Math.abs(marketData.xrge.priceChange24h).toFixed(2)}%
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Keeta Pool Rate */}
+          {rate && anchorInfo && (
+            <Card className="p-4 bg-card border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="font-semibold text-sm text-foreground">Keeta Pool Rate</h3>
+                <span className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded-full">Your Swap Rate</span>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Exchange Rate</div>
+                  <div className="font-bold text-foreground">
+                    1 {fromCurrency} = {rate.toFixed(6)} {toCurrency}
                   </div>
                 </div>
-              )}
-              {marketData.xrge && (
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">XRGE Price</div>
-                  <div className="font-bold text-foreground">
-                    ${marketData.xrge.price.toFixed(6)}
-                  </div>
-                  <div className={`text-xs ${marketData.xrge.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {marketData.xrge.priceChange24h >= 0 ? '↑' : '↓'} {Math.abs(marketData.xrge.priceChange24h).toFixed(2)}%
+                  <div className="text-xs text-muted-foreground">Pool Liquidity</div>
+                  <div className="text-xs font-medium text-foreground">
+                    {parseFloat(anchorInfo.ktaBalance || '0').toFixed(2)} KTA / {parseFloat(anchorInfo.xrgeBalance || '0').toFixed(2)} XRGE
                   </div>
                 </div>
-              )}
-            </div>
-            {marketData.error && (
-              <p className="text-xs text-muted-foreground mt-2">{marketData.error}</p>
-            )}
-          </Card>
-        )}
+              </div>
+            </Card>
+          )}
+        </div>
 
         <Card className="p-4 md:p-6 bg-card border-border">
           {/* From Section */}
@@ -278,14 +305,6 @@ const Swap = () => {
             )}
           </div>
 
-          {/* Rate Display */}
-          {rate && (
-            <div className="mb-6 p-3 bg-muted rounded-md">
-              <p className="text-sm text-muted-foreground">
-                Rate: 1 {fromCurrency} = {rate} {toCurrency}
-              </p>
-            </div>
-          )}
 
           {/* Swap Action Button */}
           <Button
