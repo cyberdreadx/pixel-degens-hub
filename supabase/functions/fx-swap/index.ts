@@ -418,7 +418,7 @@ serve(async (req) => {
                 rate: 1 / currentRate,  // Inverted rate
                 kta_balance: ktaBalance,
                 xrge_balance: xrgeBalance,
-                volume_24h: inputAmount
+                volume_24h: outputAmount // Use output amount for reverse direction
               }
             ];
             
@@ -531,25 +531,25 @@ serve(async (req) => {
             }
           }
 
-          // Insert swap record into price_history (both directions for chart flexibility)
-          const swapRecords = [
-            {
-              from_token: fromCurrency,
-              to_token: toCurrency,
-              rate: currentRate,
-              kta_balance: ktaBalance,
-              xrge_balance: xrgeBalance,
-              volume_24h: inputAmount
-            },
-            {
-              from_token: toCurrency,
-              to_token: fromCurrency,
-              rate: 1 / currentRate,  // Inverted rate
-              kta_balance: ktaBalance,
-              xrge_balance: xrgeBalance,
-              volume_24h: inputAmount
-            }
-          ];
+              // Insert swap record into price_history (both directions for chart flexibility)
+              const swapRecords = [
+                {
+                  from_token: fromCurrency,
+                  to_token: toCurrency,
+                  rate: currentRate,
+                  kta_balance: ktaBalance,
+                  xrge_balance: xrgeBalance,
+                  volume_24h: inputAmount
+                },
+                {
+                  from_token: toCurrency,
+                  to_token: fromCurrency,
+                  rate: 1 / currentRate,  // Inverted rate
+                  kta_balance: ktaBalance,
+                  xrge_balance: xrgeBalance,
+                  volume_24h: outputAmount // Use output amount for reverse direction
+                }
+              ];
           
           await supabaseClient.from('price_history').insert(swapRecords);
 
