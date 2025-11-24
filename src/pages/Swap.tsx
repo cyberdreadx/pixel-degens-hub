@@ -14,7 +14,7 @@ const TOKENS = {
 };
 
 const Swap = () => {
-  const { isConnected, publicKey, balance, sendTokens } = useWallet();
+  const { isConnected, publicKey, balance, tokens, sendTokens, refreshBalance } = useWallet();
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [fromCurrency, setFromCurrency] = useState("KTA");
@@ -142,6 +142,12 @@ const Swap = () => {
         );
         setFromAmount("");
         setToAmount("");
+        
+        // Refresh balances after successful swap
+        await refreshBalance();
+        
+        // Also refresh anchor info to show updated liquidity
+        await fetchAnchorInfo();
       } else {
         toast.error(data.error || "Swap failed");
       }
@@ -178,9 +184,9 @@ const Swap = () => {
                 <span className="font-bold text-foreground">{fromCurrency}</span>
               </div>
             </div>
-            {isConnected && balance && (
+            {isConnected && (
               <p className="text-xs text-muted-foreground mt-1">
-                Balance: {balance} KTA
+                Balance: {balance || "0.000000"} {fromCurrency}
               </p>
             )}
           </div>
@@ -214,6 +220,15 @@ const Swap = () => {
                 <span className="font-bold text-foreground">{toCurrency}</span>
               </div>
             </div>
+            {isConnected && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Balance: {
+                  toCurrency === 'KTA' 
+                    ? (balance || "0.000000")
+                    : (tokens.find(t => t.symbol === toCurrency)?.balance || "0.000000")
+                } {toCurrency}
+              </p>
+            )}
           </div>
 
           {/* Rate Display */}
