@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
+import { TOKEN_DECIMALS } from "../_shared/tokenDecimals.ts";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -116,11 +117,11 @@ serve(async (req) => {
     console.log('Found XRGE balance:', xrgeBalance);
     
     const kta = ktaBalance 
-      ? (Number(BigInt(ktaBalance.balance)) / Math.pow(10, 18)).toFixed(6)
+      ? (Number(BigInt(ktaBalance.balance)) / Math.pow(10, TOKEN_DECIMALS.KTA)).toFixed(6)
       : '0';
     
     const xrge = xrgeBalance 
-      ? (Number(BigInt(xrgeBalance.balance)) / Math.pow(10, 18)).toFixed(6)
+      ? (Number(BigInt(xrgeBalance.balance)) / Math.pow(10, TOKEN_DECIMALS.XRGE)).toFixed(6)
       : '0';
 
     console.log('Backend-derived address balances:', { kta, xrge });

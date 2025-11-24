@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
+import { TOKEN_DECIMALS } from "../_shared/tokenDecimals.ts";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -53,9 +54,9 @@ async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddre
 
     for (const balance of allBalances) {
       if (balance.token === TOKENS.KTA) {
-        ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+        ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.KTA);
       } else if (balance.token === TOKENS.XRGE) {
-        xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+        xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.XRGE);
       }
     }
 
@@ -208,8 +209,10 @@ serve(async (req) => {
     const userAccount = KeetaNet.lib.Account.fromPublicKeyString(userPublicKey);
     
     // Convert amounts to smallest units (18 decimals)
-    const fromAmountBigInt = BigInt(Math.floor(inputAmount * Math.pow(10, 18)));
-    const toAmountBigInt = BigInt(Math.floor(outputAmount * Math.pow(10, 18)));
+    const fromDecimals = fromCurrency === 'KTA' ? TOKEN_DECIMALS.KTA : TOKEN_DECIMALS.XRGE;
+    const toDecimals = toCurrency === 'KTA' ? TOKEN_DECIMALS.KTA : TOKEN_DECIMALS.XRGE;
+    const fromAmountBigInt = BigInt(Math.floor(inputAmount * Math.pow(10, fromDecimals)));
+    const toAmountBigInt = BigInt(Math.floor(outputAmount * Math.pow(10, toDecimals)));
     
     // ATOMIC SWAP OPERATIONS (both in same block):
     

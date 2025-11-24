@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import * as bip39 from "bip39";
 import { Buffer } from "buffer";
 import { getTokenAddresses } from "@/utils/keetaApi";
+import { TOKEN_DECIMALS } from "@/utils/tokenDecimals";
 
 const { Account } = KeetaNet.lib;
 const { AccountKeyAlgorithm } = Account;
@@ -129,9 +130,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         );
       }
       
-      // KTA uses 7 decimals (not 18) based on keeta-cli observation
-      // Raw balance example: 2490090104486200 with 7 decimals = 249009010.4486200
-      const decimals = 7;
+      // KTA uses 6 decimals based on actual testnet balance observation
+      // Raw balance example: 249007609393930 with 6 decimals = 249007609.393930
+      const decimals = TOKEN_DECIMALS.KTA;
       const divisor = Math.pow(10, decimals);
       const balanceNum = Number(ktaBalance) / divisor;
       const balanceStr = balanceNum.toFixed(6);
@@ -190,14 +191,16 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           
           let symbol = 'UNKNOWN';
           let name = info?.name || 'Unknown Token';
-          let decimals = 18;
+          let decimals = 18; // Default
           
           if (tokenAddress === XRGE_MAINNET || tokenAddress === XRGE_TESTNET) {
             symbol = 'XRGE';
             name = 'XRGE Token';
+            decimals = TOKEN_DECIMALS.XRGE; // 18
           } else if (tokenAddress === KTA_MAINNET || tokenAddress === KTA_TESTNET) {
             symbol = 'KTA';
             name = 'Keeta Token';
+            decimals = TOKEN_DECIMALS.KTA; // 7
           }
           
           // Check if this is an NFT (supply=1, decimals=0)
@@ -337,11 +340,19 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Create recipient account from public key string
       const recipientAccount = Account.fromPublicKeyString(to);
       
-      // Convert amount to BigInt (assuming 18 decimals for KTA)
-      const amountBigInt = BigInt(Math.floor(parseFloat(amount) * Math.pow(10, 18)));
-      
-      // Get base token address
+      // Determine decimals based on token (KTA uses 6, others may use 18)
       const baseTokenAddr = client.baseToken.publicKeyString.toString();
+      const isKTA = !tokenAddress || tokenAddress === baseTokenAddr;
+      const decimals = isKTA ? TOKEN_DECIMALS.KTA : 18; // Default to 18 for other tokens
+      
+      console.log('[sendTokens] Input amount:', amount);
+      console.log('[sendTokens] Is KTA:', isKTA);
+      console.log('[sendTokens] Decimals:', decimals);
+      console.log('[sendTokens] Parsed amount:', parseFloat(amount));
+      console.log('[sendTokens] Multiplier:', Math.pow(10, decimals));
+      
+      const amountBigInt = BigInt(Math.floor(parseFloat(amount) * Math.pow(10, decimals)));
+      console.log('[sendTokens] Final bigint amount:', amountBigInt.toString());
       
       if (tokenAddress && tokenAddress !== baseTokenAddr) {
         // Send specific token

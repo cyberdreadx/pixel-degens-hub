@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
+import { TOKEN_DECIMALS } from "../_shared/tokenDecimals.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,8 +56,8 @@ async function getAnchorBalances() {
   const xrgeBalance = allBalances.find((b: any) => b.token === TOKENS.XRGE);
 
   return {
-    ktaBalance: ktaBalance ? Number(BigInt(ktaBalance.balance)) / Math.pow(10, 18) : 0,
-    xrgeBalance: xrgeBalance ? Number(BigInt(xrgeBalance.balance)) / Math.pow(10, 18) : 0,
+    ktaBalance: ktaBalance ? Number(BigInt(ktaBalance.balance)) / Math.pow(10, TOKEN_DECIMALS.KTA) : 0,
+    xrgeBalance: xrgeBalance ? Number(BigInt(xrgeBalance.balance)) / Math.pow(10, TOKEN_DECIMALS.XRGE) : 0,
   };
 }
 

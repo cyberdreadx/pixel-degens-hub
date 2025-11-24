@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { TOKEN_DECIMALS } from "../_shared/tokenDecimals.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,9 +76,9 @@ async function getAnchorBalances(network: string) {
 
     for (const balance of allBalances) {
       if (balance.token === TOKENS.KTA) {
-        ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+        ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.KTA);
       } else if (balance.token === TOKENS.XRGE) {
-        xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+        xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.XRGE);
       }
     }
 

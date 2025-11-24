@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
+import { TOKEN_DECIMALS } from "../_shared/tokenDecimals.ts";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -68,9 +69,9 @@ async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddre
 
     for (const balance of allBalances) {
       if (balance.token === TOKENS.KTA) {
-        ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+        ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.KTA);
       } else if (balance.token === TOKENS.XRGE) {
-        xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+        xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.XRGE);
       }
     }
 
@@ -288,9 +289,9 @@ serve(async (req) => {
 
       for (const balance of allBalances) {
         if (balance.token === TOKENS.KTA) {
-          ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+          ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.KTA);
         } else if (balance.token === TOKENS.XRGE) {
-          xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+          xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.XRGE);
         }
       }
 
@@ -366,7 +367,8 @@ serve(async (req) => {
         
         // Anchor sends toCurrency to user
         const recipient = KeetaNet.lib.Account.fromPublicKeyString(userPublicKey);
-        const toAmountBigInt = BigInt(Math.floor(outputAmount * Math.pow(10, 18)));
+        const toDecimals = toCurrency === 'KTA' ? TOKEN_DECIMALS.KTA : TOKEN_DECIMALS.XRGE;
+        const toAmountBigInt = BigInt(Math.floor(outputAmount * Math.pow(10, toDecimals)));
         
         if (toCurrency === 'KTA') {
           builder.send(recipient, toAmountBigInt, client.baseToken);
@@ -376,7 +378,8 @@ serve(async (req) => {
         }
         
         // Anchor expects to receive fromCurrency from user
-        const fromAmountBigInt = BigInt(Math.floor(inputAmount * Math.pow(10, 18)));
+        const fromDecimals = fromCurrency === 'KTA' ? TOKEN_DECIMALS.KTA : TOKEN_DECIMALS.XRGE;
+        const fromAmountBigInt = BigInt(Math.floor(inputAmount * Math.pow(10, fromDecimals)));
         
         if (fromCurrency === 'KTA') {
           builder.receive(recipient, fromAmountBigInt, client.baseToken, true);
@@ -418,9 +421,9 @@ serve(async (req) => {
 
             for (const balance of allBalances) {
               if (balance.token === TOKENS.KTA) {
-                ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+                ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.KTA);
               } else if (balance.token === TOKENS.XRGE) {
-                xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+                xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.XRGE);
               }
             }
 
@@ -501,8 +504,9 @@ serve(async (req) => {
       // Create recipient account from user's public key
       const recipient = KeetaNet.lib.Account.fromPublicKeyString(userPublicKey);
       
-      // Calculate amount in smallest units (18 decimals for KTA and XRGE)
-      const amountBigInt = BigInt(Math.floor(outputAmount * Math.pow(10, 18)));
+      // Calculate amount in smallest units (6 decimals for KTA, 18 for XRGE)
+      const toDecimals = toCurrency === 'KTA' ? TOKEN_DECIMALS.KTA : TOKEN_DECIMALS.XRGE;
+      const amountBigInt = BigInt(Math.floor(outputAmount * Math.pow(10, toDecimals)));
       
       // For KTA (base token), use client.baseToken
       // For other tokens, use the token account
@@ -550,9 +554,9 @@ serve(async (req) => {
 
           for (const balance of allBalances) {
             if (balance.token === TOKENS.KTA) {
-              ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+              ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.KTA);
             } else if (balance.token === TOKENS.XRGE) {
-              xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+              xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, TOKEN_DECIMALS.XRGE);
             }
           }
 
