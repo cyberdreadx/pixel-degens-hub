@@ -245,8 +245,78 @@ serve(async (req) => {
       console.log(`Slippage check passed: ${rateChange.toFixed(2)}% <= ${slippageTolerance}%`);
     }
 
-    // Calculate output amount using current rate
-    const outputAmount = inputAmount * currentRate;
+    // Calculate output amount using constant product formula (x * y = k)
+    // This ensures we never try to give more than what's in the pool
+    let outputAmount: number;
+    
+    try {
+      // Fetch current pool balances
+      const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+      const balanceResponse = await fetch(
+        `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
+      );
+      
+      if (!balanceResponse.ok) {
+        throw new Error('Failed to fetch pool balances');
+      }
+      
+      const balanceData = await balanceResponse.json();
+      const allBalances = balanceData.balances || [];
+      
+      let ktaBalance = 0;
+      let xrgeBalance = 0;
+
+      for (const balance of allBalances) {
+        if (balance.token === TOKENS.KTA) {
+          ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+        } else if (balance.token === TOKENS.XRGE) {
+          xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+        }
+      }
+
+      const fromPoolBalance = fromCurrency === 'KTA' ? ktaBalance : xrgeBalance;
+      const toPoolBalance = toCurrency === 'KTA' ? ktaBalance : xrgeBalance;
+
+      console.log('Pool balances:', { ktaBalance, xrgeBalance, fromPoolBalance, toPoolBalance });
+
+      // Constant product formula: k = x * y
+      const k = fromPoolBalance * toPoolBalance;
+      
+      // After adding inputAmount: new_from = from + inputAmount
+      const newFromBalance = fromPoolBalance + inputAmount;
+      
+      // new_to = k / new_from
+      const newToBalance = k / newFromBalance;
+      
+      // Output amount = current_to - new_to
+      outputAmount = toPoolBalance - newToBalance;
+
+      console.log('AMM calculation:', {
+        k,
+        newFromBalance,
+        newToBalance,
+        outputAmount
+      });
+
+      // Verify we have enough liquidity
+      if (outputAmount > toPoolBalance) {
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: `Insufficient pool liquidity. Pool has ${toPoolBalance.toFixed(6)} ${toCurrency}, but swap requires ${outputAmount.toFixed(6)} ${toCurrency}.`
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+    } catch (balanceError: any) {
+      console.error('Error calculating swap amount:', balanceError);
+      // Fallback to simple rate calculation (legacy behavior)
+      outputAmount = inputAmount * currentRate;
+    }
 
     console.log('Swap details:', { 
       from: fromCurrency, 
