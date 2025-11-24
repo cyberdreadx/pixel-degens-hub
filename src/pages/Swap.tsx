@@ -779,7 +779,7 @@ const Swap = () => {
                     <TableHead className="animate-fade-in">Time</TableHead>
                     <TableHead className="animate-fade-in">Type</TableHead>
                     <TableHead className="text-right animate-fade-in">Amount</TableHead>
-                    <TableHead className="text-right animate-fade-in">Rate</TableHead>
+                    <TableHead className="text-right animate-fade-in">XRGE/KTA</TableHead>
                     <TableHead className="text-right animate-fade-in">USD Value</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -792,6 +792,11 @@ const Swap = () => {
                     const label = isBuyingXRGE ? "BUY XRGE" : "SELL XRGE";
                     const inputAmount = tx.volume_24h || 0;
                     const outputAmount = inputAmount * (tx.rate || 0);
+                    
+                    // Normalize rate to always show XRGE per KTA for consistency
+                    // If from_token is KTA, rate is already XRGE/KTA
+                    // If from_token is XRGE, rate is KTA/XRGE, so invert it
+                    const normalizedRate = isBuyingXRGE ? tx.rate : (1 / tx.rate);
                     
                     // Calculate USD value
                     let usdValue = 0;
@@ -827,7 +832,7 @@ const Swap = () => {
                           {inputAmount.toFixed(4)} {tx.from_token} → {outputAmount.toFixed(4)} {tx.to_token}
                         </TableCell>
                         <TableCell className="text-right font-mono text-xs animate-fade-in">
-                          {tx.rate.toFixed(6)}
+                          {normalizedRate.toFixed(2)}
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm animate-fade-in text-green-400">
                           {usdValue > 0 ? `$${usdValue.toFixed(2)}` : '-'}
