@@ -33,63 +33,47 @@ interface BuildSwapResponse {
   error?: string;
 }
 
-// Contract addresses for market price fetching
-const KTA_CONTRACT = '0xc0634090F2Fe6c6d75e61Be2b949464aBB498973';
-const XRGE_CONTRACT = '0x147120faEC9277ec02d957584CFCD92B56A24317';
-
-// Fallback exchange rates if DexScreener unavailable
-const FALLBACK_RATES: Record<string, number> = {
-  'KTA_XRGE': 0.85,
-  'XRGE_KTA': 1.18,
-};
-
-async function fetchRealRate(fromCurrency: string, toCurrency: string): Promise<number> {
+async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddress: string): Promise<number> {
   try {
-    // Fetch prices from DexScreener
-    const ktaResponse = await fetch(
-      `https://api.dexscreener.com/latest/dex/search?q=${KTA_CONTRACT}`,
-      { headers: { 'Accept': 'application/json' } }
+    // Fetch balances directly from API
+    const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+    const balanceResponse = await fetch(
+      `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
     );
-    const xrgeResponse = await fetch(
-      `https://api.dexscreener.com/latest/dex/search?q=${XRGE_CONTRACT}`,
-      { headers: { 'Accept': 'application/json' } }
-    );
+    
+    if (!balanceResponse.ok) {
+      throw new Error(`Failed to fetch balance: ${balanceResponse.statusText}`);
+    }
+    
+    const balanceData = await balanceResponse.json();
+    const allBalances = balanceData.balances || [];
+    
+    let ktaBalance = 0;
+    let xrgeBalance = 0;
 
-    let ktaPrice = null;
-    let xrgePrice = null;
-
-    if (ktaResponse.ok) {
-      const ktaData = await ktaResponse.json();
-      if (ktaData.pairs && ktaData.pairs.length > 0) {
-        const basePair = ktaData.pairs.find((p: any) => p.chainId === 'base') || ktaData.pairs[0];
-        ktaPrice = parseFloat(basePair.priceUsd || '0');
+    for (const balance of allBalances) {
+      if (balance.token === TOKENS.KTA) {
+        ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+      } else if (balance.token === TOKENS.XRGE) {
+        xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
       }
     }
 
-    if (xrgeResponse.ok) {
-      const xrgeData = await xrgeResponse.json();
-      if (xrgeData.pairs && xrgeData.pairs.length > 0) {
-        const basePair = xrgeData.pairs.find((p: any) => p.chainId === 'base') || xrgeData.pairs[0];
-        xrgePrice = parseFloat(basePair.priceUsd || '0');
-      }
-    }
+    console.log(`Pool liquidity: ${ktaBalance} KTA, ${xrgeBalance} XRGE`);
 
-    // Calculate rate from real prices
-    if (ktaPrice && ktaPrice > 0 && xrgePrice && xrgePrice > 0) {
+    // Calculate rate from pool ratio
+    if (ktaBalance > 0 && xrgeBalance > 0) {
       if (fromCurrency === 'KTA' && toCurrency === 'XRGE') {
-        return ktaPrice / xrgePrice;
+        return xrgeBalance / ktaBalance;
       } else if (fromCurrency === 'XRGE' && toCurrency === 'KTA') {
-        return xrgePrice / ktaPrice;
+        return ktaBalance / xrgeBalance;
       }
     }
 
-    // Fallback to static rate
-    const rateKey = `${fromCurrency}_${toCurrency}`;
-    return FALLBACK_RATES[rateKey] || 0;
+    return 0;
   } catch (error) {
-    console.error('Error fetching real rate:', error);
-    const rateKey = `${fromCurrency}_${toCurrency}`;
-    return FALLBACK_RATES[rateKey] || 0;
+    console.error('Error calculating pool rate:', error);
+    return 0;
   }
 }
 
@@ -103,24 +87,6 @@ serve(async (req) => {
     const { fromCurrency, toCurrency, amount, userPublicKey }: BuildSwapRequest = await req.json();
 
     console.log('Build swap request:', { fromCurrency, toCurrency, amount, userPublicKey });
-
-    // Fetch real exchange rate
-    const rate = await fetchRealRate(fromCurrency, toCurrency);
-    
-    if (!rate || rate <= 0) {
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: `Exchange rate not available for ${fromCurrency}_${toCurrency}`
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    console.log(`Using rate: 1 ${fromCurrency} = ${rate} ${toCurrency}`);
 
     // Validate input
     if (!fromCurrency || !toCurrency || !amount || !userPublicKey) {
@@ -150,9 +116,6 @@ serve(async (req) => {
         }
       );
     }
-
-    // Calculate output amount
-    const outputAmount = inputAmount * rate;
 
     // Get token addresses
     const fromToken = TOKENS[fromCurrency as keyof typeof TOKENS];
@@ -206,6 +169,27 @@ serve(async (req) => {
     const anchorAccount = KeetaNet.lib.Account.fromSeed(trimmedSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
     const anchorAddress = anchorAccount.publicKeyString.toString();
+
+    console.log('Anchor wallet:', anchorAddress);
+
+    // Calculate rate from liquidity pool
+    const rate = await getPoolRate(fromCurrency, toCurrency, anchorAddress);
+    
+    if (!rate || rate <= 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Insufficient liquidity in pool for ${fromCurrency}_${toCurrency}. Please fund the anchor wallet.`
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Calculate output amount
+    const outputAmount = inputAmount * rate;
 
     console.log('Building atomic swap:', {
       anchor: anchorAddress,
