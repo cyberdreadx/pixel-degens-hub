@@ -73,6 +73,40 @@ All colors MUST be HSL.
     --input: 260 30% 20%;
     --ring: 180 100% 50%;
   }
+
+  .colecovision {
+    --background: 30 25% 12%;
+    --foreground: 40 30% 85%;
+
+    --card: 25 22% 18%;
+    --card-foreground: 40 30% 85%;
+
+    --popover: 30 25% 15%;
+    --popover-foreground: 40 30% 85%;
+
+    --primary: 25 85% 55%;
+    --primary-foreground: 30 25% 12%;
+
+    --secondary: 35 45% 45%;
+    --secondary-foreground: 40 30% 95%;
+
+    --muted: 28 20% 25%;
+    --muted-foreground: 40 25% 65%;
+
+    --accent: 45 90% 55%;
+    --accent-foreground: 30 25% 12%;
+
+    --destructive: 10 80% 50%;
+    --destructive-foreground: 40 30% 95%;
+
+    --border: 25 85% 55%;
+    --input: 28 20% 22%;
+    --ring: 25 85% 55%;
+
+    --neon-cyan: 25 85% 55%;
+    --neon-magenta: 10 75% 50%;
+    --neon-lime: 45 90% 55%;
+  }
 }
 
 @layer base {
