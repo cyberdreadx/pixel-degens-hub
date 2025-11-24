@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
-import { Wallet, Home, Image, Users, Activity, ArrowDownUp, Menu, X } from "lucide-react";
+import { Wallet, Home, Image, Users, Activity, ArrowDownUp, ArrowLeftRight, Menu, X } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import WalletDialog from "./WalletDialog";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -22,6 +22,7 @@ const Navigation = () => {
     { to: "/feed", icon: Activity, label: "FEED" },
     { to: "/profile", icon: Users, label: "PROFILE" },
     { to: "/swap", icon: ArrowDownUp, label: "SWAP" },
+    { to: "/bridge", icon: ArrowLeftRight, label: "BRIDGE" },
   ];
 
   return (
