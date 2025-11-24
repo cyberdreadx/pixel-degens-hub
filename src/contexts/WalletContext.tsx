@@ -3,6 +3,7 @@ import * as KeetaNet from "@keetanetwork/keetanet-client";
 import { toast } from "sonner";
 import * as bip39 from "bip39";
 import { Buffer } from "buffer";
+import { getTokenAddresses } from "@/utils/keetaApi";
 
 const { Account } = KeetaNet.lib;
 const { AccountKeyAlgorithm } = Account;
@@ -84,22 +85,27 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
       
-      // Find largest balance
-      let maxBalance = BigInt(0);
+      // Get the correct KTA token address for current network
+      const tokenAddrs = getTokenAddresses(network);
+      const ktaAddress = tokenAddrs.KTA;
+      
+      // Find KTA balance by matching the token address
+      let ktaBalance = BigInt(0);
       
       for (let i = 0; i < allBalances.length; i++) {
         const item = allBalances[i];
-        const balStr = String(item.balance || 0);
-        const bal = BigInt(balStr);
+        const tokenAddr = String(item.token || '');
         
-        if (bal > maxBalance) {
-          maxBalance = bal;
+        if (tokenAddr === ktaAddress) {
+          const balStr = String(item.balance || 0);
+          ktaBalance = BigInt(balStr);
+          break;
         }
       }
       
       // Convert to decimal (18 decimals)
       const divisor = Math.pow(10, 18);
-      const balanceNum = Number(maxBalance) / divisor;
+      const balanceNum = Number(ktaBalance) / divisor;
       const balanceStr = balanceNum.toFixed(6);
       
       setBalance(balanceStr);
@@ -109,7 +115,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setBalance("0.000000");
       toast.error("Failed to refresh balance");
     }
-  }, [client, account]);
+  }, [client, account, network]);
 
   const fetchTokensInternal = useCallback(async () => {
     if (!client || !account) return;
