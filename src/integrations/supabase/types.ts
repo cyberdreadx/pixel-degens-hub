@@ -19,6 +19,7 @@ export type Database = {
           from_token: string
           id: string
           kta_balance: number | null
+          network: string
           rate: number
           timestamp: string
           to_token: string
@@ -29,6 +30,7 @@ export type Database = {
           from_token: string
           id?: string
           kta_balance?: number | null
+          network?: string
           rate: number
           timestamp?: string
           to_token: string
@@ -39,6 +41,7 @@ export type Database = {
           from_token?: string
           id?: string
           kta_balance?: number | null
+          network?: string
           rate?: number
           timestamp?: string
           to_token?: string
