@@ -23,6 +23,7 @@ const MintNFT = () => {
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
   const [description, setDescription] = useState("");
+  const [supply, setSupply] = useState("1000");
   const [imageUrl, setImageUrl] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
   const [attributes, setAttributes] = useState<NFTAttribute[]>([]);
@@ -167,30 +168,36 @@ const MintNFT = () => {
       // Format ticker for Keeta SDK (strict A-Z only, max 4 characters)
       const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '').substring(0, 4);
 
-      // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
-      builder.modifyTokenSupply(1n, { account: tokenAccount });
+      // Parse supply amount
+      const supplyAmount = BigInt(supply);
 
-      // Set token info - Keeta SDK has confusing param names
+      // Set token info first
       builder.setInfo(
         {
           name: formattedSymbol, // YODA (this is the symbol/ticker, requires strict format)
-          description: name, // "Yoda#1" (this is the actual NFT name)
+          description: name, // "Yoda #1" (this is the token name)
           metadata: metadataBase64, // Contains description and other metadata
           defaultPermission: new KeetaNet.lib.Permissions(['ACCESS'], []),
         },
         { account: tokenAccount }
       );
 
-      // Compute and publish the transaction
-      await client.computeBuilderBlocks(builder);
-      await client.publishBuilder(builder);
+      // Increase total token supply
+      builder.modifyTokenSupply(supplyAmount, { account: tokenAccount });
+      
+      // Distribute tokens from unallocated supply to user's wallet
+      builder.send(client.account, supplyAmount, tokenAccount, undefined, { account: tokenAccount });
+
+      // Publish the transaction
+      await builder.publish();
 
       const tokenAddress = tokenAccount.publicKeyString.get();
-      toast.success(`NFT minted successfully! Token: ${tokenAddress}`);
+      toast.success(`Token minted successfully! Token: ${tokenAddress}`);
       
       // Reset form
       setName("");
       setTicker("");
+      setSupply("1000");
       setDescription("");
       setImageUrl("");
       setExternalUrl("");
@@ -201,8 +208,8 @@ const MintNFT = () => {
         fileInputRef.current.value = "";
       }
     } catch (error: any) {
-      console.error("Error minting NFT:", error);
-      toast.error(`Failed to mint NFT: ${error.message || "Unknown error"}`);
+      console.error("Error minting token:", error);
+      toast.error(`Failed to mint token: ${error.message || "Unknown error"}`);
     } finally {
       setIsMinting(false);
     }
@@ -212,10 +219,10 @@ const MintNFT = () => {
     <div className="relative min-h-screen pt-24 pb-16">
       <div className="container mx-auto px-4 max-w-2xl">
         <div className="mb-8 space-y-4">
-          <h1 className="text-3xl md:text-5xl font-bold neon-glow">MINT NFT</h1>
+          <h1 className="text-3xl md:text-5xl font-bold neon-glow">MINT TOKEN</h1>
           <div className="flex items-center gap-3">
             <p className="text-xs md:text-sm text-muted-foreground">
-              CREATE YOUR 8-BIT MASTERPIECE ON KEETA CHAIN
+              CREATE YOUR TOKEN ON KEETA CHAIN
             </p>
             <div className="px-3 py-1 pixel-border bg-muted rounded text-xs font-bold">
               {network === "main" ? "MAINNET" : "TESTNET"}
@@ -226,16 +233,16 @@ const MintNFT = () => {
         <Card className="p-6 pixel-border-thick bg-card/80 backdrop-blur space-y-6">
           {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-xs font-bold">NFT NAME *</Label>
+            <Label htmlFor="name" className="text-xs font-bold">TOKEN NAME *</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="CYBER ROBOT #001"
+              placeholder="My Awesome Token"
               className="pixel-border text-xs"
             />
             <p className="text-xs text-muted-foreground">
-              Your NFT's display name (can include anything - letters, numbers, symbols, spaces)
+              Your token's display name (can include anything - letters, numbers, symbols, spaces)
             </p>
           </div>
 
@@ -252,6 +259,23 @@ const MintNFT = () => {
             />
             <p className="text-xs text-muted-foreground">
               Letters only, max 4 characters (special characters removed automatically)
+            </p>
+          </div>
+
+          {/* Supply */}
+          <div className="space-y-2">
+            <Label htmlFor="supply" className="text-xs font-bold">SUPPLY *</Label>
+            <Input
+              id="supply"
+              type="number"
+              value={supply}
+              onChange={(e) => setSupply(e.target.value)}
+              placeholder="1000"
+              min="1"
+              className="pixel-border text-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              Total token supply (how many tokens to mint)
             </p>
           </div>
 
@@ -408,17 +432,17 @@ const MintNFT = () => {
           {/* Mint Button */}
           <Button
             onClick={mintNFT}
-            disabled={!isConnected || isMinting || isUploading || !name || !ticker || (!imageUrl && !selectedFile)}
+            disabled={!isConnected || isMinting || isUploading || !name || !ticker || !supply || (!imageUrl && !selectedFile)}
             className="w-full pixel-border-thick text-xs"
             size="lg"
           >
-            {isMinting ? "MINTING..." : isUploading ? "UPLOADING IMAGE..." : isConnected ? "MINT NFT" : "CONNECT WALLET FIRST"}
+            {isMinting ? "MINTING..." : isUploading ? "UPLOADING IMAGE..." : isConnected ? "MINT TOKEN" : "CONNECT WALLET FIRST"}
           </Button>
 
           {/* Info */}
           <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
-            <p>• NFTs are created as tokens with supply=1</p>
-            <p>• Metadata includes NFT_KTA_ANCHOR_[ID] identifier for auto-detection</p>
+            <p>• Tokens are created with your specified supply</p>
+            <p>• All tokens will be distributed to your wallet</p>
             <p>• Use IPFS for permanent image storage (recommended)</p>
             <p>• <strong>Transaction fee:</strong> ~0.05-0.1 KTA</p>
             <p>• Your balance: <strong>{balance || "0.000"} KTA</strong></p>
