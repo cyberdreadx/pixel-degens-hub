@@ -57,7 +57,7 @@ serve(async (req) => {
       );
     }
 
-    // Create anchor account from seed (this is what backend can actually use for transactions)
+    // Create anchor account from seed (for transaction signing)
     const anchorAccount = KeetaNet.lib.Account.fromSeed(trimmedSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const backendDerivedAddress = anchorAccount.publicKeyString.toString();
 
@@ -65,42 +65,49 @@ serve(async (req) => {
     console.log('Backend-derived address (from seed):', backendDerivedAddress);
     console.log('Addresses match:', trimmedAddress === backendDerivedAddress);
     
-    // Get balances of the backend-derived address (the one we can actually transact with)
-    const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
-    const allBalances = await client.allBalances();
+    // Fetch balances directly from the Keeta API for the intended address
+    const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+    const balanceResponse = await fetch(
+      `${apiEndpoint}/node/ledger/account/${trimmedAddress}/balance`
+    );
+    
+    if (!balanceResponse.ok) {
+      throw new Error(`Failed to fetch balance: ${balanceResponse.statusText}`);
+    }
+    
+    const balanceData = await balanceResponse.json();
+    const allBalances = balanceData.balances || [];
     
     const ktaBalance = allBalances.find((b: any) => {
-      const tokenInfo = JSON.parse(JSON.stringify(b, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
-      return tokenInfo.token === 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';
+      return b.token === 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';
     });
     
     const xrgeBalance = allBalances.find((b: any) => {
-      const tokenInfo = JSON.parse(JSON.stringify(b, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
-      return tokenInfo.token === 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
+      return b.token === 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
     });
     
     const kta = ktaBalance 
-      ? (BigInt(JSON.parse(JSON.stringify(ktaBalance, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v)).balance) / BigInt(10 ** 18)).toString()
+      ? (BigInt(ktaBalance.balance) / BigInt(10 ** 18)).toString()
       : '0';
     
     const xrge = xrgeBalance 
-      ? (BigInt(JSON.parse(JSON.stringify(xrgeBalance, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v)).balance) / BigInt(10 ** 18)).toString()
+      ? (BigInt(xrgeBalance.balance) / BigInt(10 ** 18)).toString()
       : '0';
 
-    console.log('Backend address balances:', { kta, xrge });
+    console.log('Intended address balances:', { kta, xrge });
 
     return new Response(
       JSON.stringify({ 
-        // For existing frontend code
-        address: backendDerivedAddress,
+        // Display the intended address and its balances
+        address: trimmedAddress,
         ktaBalance: kta,
         xrgeBalance: xrge,
-        method: 'Backend-derived from ANCHOR_WALLET_SEED',
+        method: 'Querying ANCHOR_WALLET_ADDRESS',
         // Extra debug fields
         intendedAddress: trimmedAddress,
         backendAddress: backendDerivedAddress,
         addressMatch: trimmedAddress === backendDerivedAddress,
-        note: 'Due to SDK incompatibility, backend address may differ from intended. Fund backendAddress for swaps.'
+        note: 'Balances are from ANCHOR_WALLET_ADDRESS. Backend uses ANCHOR_WALLET_SEED for transaction signing.'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
