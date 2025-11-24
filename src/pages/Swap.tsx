@@ -263,7 +263,11 @@ const Swap = () => {
             </div>
             {isConnected && (
               <p className="text-xs text-muted-foreground mt-1">
-                Balance: {balance || "0.000000"} {fromCurrency}
+                Balance: {
+                  fromCurrency === 'KTA' 
+                    ? (balance || "0.000000")
+                    : (tokens.find(t => t.symbol === fromCurrency)?.balance || "0.000000")
+                } {fromCurrency}
               </p>
             )}
           </div>
