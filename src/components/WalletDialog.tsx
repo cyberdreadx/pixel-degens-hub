@@ -495,9 +495,9 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             )}
           </TabsContent>
 
-          <TabsContent value="import" className="space-y-4 sm:space-y-5 mt-4 sm:mt-6">
-            <div className="space-y-2 sm:space-y-3">
-              <Label className="text-xs sm:text-xs font-bold tracking-wider">ENTER YOUR 24-WORD PHRASE</Label>
+          <TabsContent value="import" className="space-y-4 sm:space-y-5 mt-4 sm:mt-6 overflow-x-hidden">
+            <div className="space-y-2 sm:space-y-3 w-full">
+              <Label className="text-xs sm:text-xs font-bold tracking-wider break-words">ENTER YOUR 24-WORD PHRASE</Label>
               <textarea
                 placeholder="word1 word2 word3 ... word24"
                 value={importSeed}
@@ -505,39 +505,39 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                   setImportSeed(e.target.value);
                   setPreviewAddress(null);
                 }}
-                className="pixel-border-thick bg-muted/30 text-[11px] sm:text-xs font-mono w-full min-h-[120px] p-3 sm:p-4 rounded-md resize-none border-2 border-muted hover:border-primary/50 focus:border-primary transition-colors"
+                className="pixel-border-thick bg-muted/30 text-[11px] sm:text-xs font-mono w-full max-w-full min-h-[120px] p-3 sm:p-4 rounded-md resize-none border-2 border-muted hover:border-primary/50 focus:border-primary transition-colors box-border"
               />
-              <p className="text-[11px] sm:text-[10px] text-muted-foreground leading-relaxed">
+              <p className="text-[11px] sm:text-[10px] text-muted-foreground leading-relaxed break-words">
                 💡 Separate words with spaces. Old 64-character hex seeds are also supported.
               </p>
             </div>
 
             <Button
               variant="outline"
-              className="w-full pixel-border-thick text-xs sm:text-xs hover:bg-primary/10 hover:border-primary transition-all h-12 sm:h-11"
+              className="w-full max-w-full pixel-border-thick text-[10px] sm:text-xs hover:bg-primary/10 hover:border-primary transition-all h-12 sm:h-11 whitespace-normal leading-tight py-2"
               onClick={handlePreviewAddress}
               disabled={!importSeed.trim()}
             >
-              👁️ PREVIEW ADDRESS (DON'T CONNECT YET)
+              👁️ PREVIEW ADDRESS
             </Button>
 
             {previewAddress && (
-              <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/30 p-3 sm:p-4 space-y-2 sm:space-y-3">
-                <Label className="text-[11px] sm:text-[10px] tracking-wider text-primary font-bold flex items-center gap-2">
-                  <span className="w-2 h-2 bg-primary rounded-full" />
+              <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/30 p-3 sm:p-4 space-y-2 sm:space-y-3 w-full overflow-hidden">
+                <Label className="text-[11px] sm:text-[10px] tracking-wider text-primary font-bold flex items-center gap-2 break-words">
+                  <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
                   DERIVED ADDRESS
                 </Label>
-                <div className="font-mono text-[11px] sm:text-[10px] break-all bg-background/50 p-2 sm:p-3 rounded pixel-border leading-relaxed">
+                <div className="font-mono text-[11px] sm:text-[10px] break-all bg-background/50 p-2 sm:p-3 rounded pixel-border leading-relaxed overflow-wrap-anywhere w-full">
                   {previewAddress}
                 </div>
-                <p className="text-[10px] sm:text-[9px] text-muted-foreground leading-relaxed">
-                  Compare this address with the FX Anchor Status on the swap page. They should match if using the same seed phrase.
+                <p className="text-[10px] sm:text-[9px] text-muted-foreground leading-relaxed break-words">
+                  Compare this with FX Anchor Status on swap page.
                 </p>
               </div>
             )}
 
             <Button
-              className="w-full pixel-border-thick bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary text-xs sm:text-xs h-12 sm:h-12 neon-glow-secondary transition-all"
+              className="w-full max-w-full pixel-border-thick bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary text-xs sm:text-xs h-12 sm:h-12 neon-glow-secondary transition-all"
               onClick={handleImportWallet}
               disabled={!importSeed.trim()}
             >
