@@ -488,7 +488,7 @@ const Swap = () => {
                       </div>
                       {fromCurrency === 'KTA' && toCurrency === 'XRGE' && rate > 0 && (
                         <div className="text-xs text-muted-foreground">
-                          1 XRGE = {(1 / rate).toFixed(6)} KTA
+                          1 XRGE = {(1 / rate).toFixed(8)} KTA
                         </div>
                       )}
                       {fromCurrency === 'XRGE' && toCurrency === 'KTA' && rate > 0 && (
@@ -509,6 +509,36 @@ const Swap = () => {
                         )}
                       </div>
                     </div>
+                    {marketData?.xrge && fromCurrency === 'XRGE' && toCurrency === 'KTA' && rate > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">XRGE Keeta MCap</div>
+                        <div className="text-xs font-medium text-accent">
+                          {(() => {
+                            // Calculate XRGE price based on Keeta pool rate
+                            // 1 XRGE = rate KTA, and we know KTA BASE price
+                            const xrgeKeetaPrice = rate * (marketData.kta?.price || 0);
+                            const xrgeSupply = marketData.xrge.marketCap / marketData.xrge.price;
+                            const keetaMarketCap = xrgeKeetaPrice * xrgeSupply;
+                            return `$${(keetaMarketCap / 1000).toFixed(1)}K`;
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                    {marketData?.xrge && fromCurrency === 'KTA' && toCurrency === 'XRGE' && rate > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">XRGE Keeta MCap</div>
+                        <div className="text-xs font-medium text-accent">
+                          {(() => {
+                            // Calculate XRGE price based on Keeta pool rate
+                            // 1 XRGE = (1/rate) KTA, and we know KTA BASE price
+                            const xrgeKeetaPrice = (1 / rate) * (marketData.kta?.price || 0);
+                            const xrgeSupply = marketData.xrge.marketCap / marketData.xrge.price;
+                            const keetaMarketCap = xrgeKeetaPrice * xrgeSupply;
+                            return `$${(keetaMarketCap / 1000).toFixed(1)}K`;
+                          })()}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </Card>
               ) : null}
