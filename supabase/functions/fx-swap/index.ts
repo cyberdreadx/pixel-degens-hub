@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
@@ -303,6 +304,51 @@ serve(async (req) => {
         const result = await client.publishBuilder(builder);
         console.log('Atomic swap published:', result);
 
+        // Record the swap in price history for chart display
+        try {
+          const supabaseClient = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+          );
+
+          // Get current pool balances after swap
+          const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+          const balanceResponse = await fetch(
+            `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
+          );
+          
+          if (balanceResponse.ok) {
+            const balanceData = await balanceResponse.json();
+            const allBalances = balanceData.balances || [];
+            
+            let ktaBalance = 0;
+            let xrgeBalance = 0;
+
+            for (const balance of allBalances) {
+              if (balance.token === TOKENS.KTA) {
+                ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+              } else if (balance.token === TOKENS.XRGE) {
+                xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+              }
+            }
+
+            // Insert swap record into price_history
+            await supabaseClient.from('price_history').insert({
+              from_token: fromCurrency,
+              to_token: toCurrency,
+              rate: currentRate,
+              kta_balance: ktaBalance,
+              xrge_balance: xrgeBalance,
+              volume_24h: inputAmount
+            });
+
+            console.log('Atomic swap recorded in price history');
+          }
+        } catch (dbError: any) {
+          console.error('Failed to record swap in database:', dbError);
+          // Don't fail the swap if logging fails
+        }
+
         // Get transaction hash
         const hashBuffer = computed.blocks?.[0]?.hash?.get();
         const txHash = hashBuffer 
@@ -372,6 +418,53 @@ serve(async (req) => {
       const result = await client.publishBuilder(builder);
       
       console.log('Transaction published:', result);
+
+      // Record the swap in price history for chart display
+      try {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+
+        // Get current pool balances after swap
+        const postSwapRate = await getPoolRate(fromCurrency, toCurrency, anchorAddress);
+        
+        const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+        const balanceResponse = await fetch(
+          `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
+        );
+        
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json();
+          const allBalances = balanceData.balances || [];
+          
+          let ktaBalance = 0;
+          let xrgeBalance = 0;
+
+          for (const balance of allBalances) {
+            if (balance.token === TOKENS.KTA) {
+              ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+            } else if (balance.token === TOKENS.XRGE) {
+              xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+            }
+          }
+
+          // Insert swap record into price_history
+          await supabaseClient.from('price_history').insert({
+            from_token: fromCurrency,
+            to_token: toCurrency,
+            rate: currentRate,
+            kta_balance: ktaBalance,
+            xrge_balance: xrgeBalance,
+            volume_24h: inputAmount
+          });
+
+          console.log('Swap recorded in price history');
+        }
+      } catch (dbError: any) {
+        console.error('Failed to record swap in database:', dbError);
+        // Don't fail the swap if logging fails
+      }
 
       // Convert hash ArrayBuffer to hex string
       const hashBuffer = computed.blocks?.[0]?.hash?.get();
