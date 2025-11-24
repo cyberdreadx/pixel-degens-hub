@@ -15,11 +15,25 @@ serve(async (req) => {
   }
 
   try {
+    const anchorAddress = Deno.env.get('ANCHOR_WALLET_ADDRESS');
     const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
+    
+    if (!anchorAddress) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'ANCHOR_WALLET_ADDRESS not configured.'
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     if (!anchorSeed) {
       return new Response(
         JSON.stringify({ 
-          error: 'Anchor wallet not configured'
+          error: 'ANCHOR_WALLET_SEED not configured.'
         }),
         {
           status: 500,
@@ -28,15 +42,13 @@ serve(async (req) => {
       );
     }
 
+    const trimmedAddress = anchorAddress.trim();
     const trimmedSeed = anchorSeed.trim();
 
-    // STRICT MODE: backend now ONLY accepts a 64-char hex seed here.
-    // Get this by clicking "COPY SEED HEX" in the wallet dialog.
     if (!/^[0-9a-f]{64}$/i.test(trimmedSeed)) {
-      console.error('ANCHOR_WALLET_SEED is not a 64-char hex string');
       return new Response(
         JSON.stringify({ 
-          error: 'ANCHOR_WALLET_SEED must be a 64-character hex seed. In the app, open Wallet → COPY SEED HEX and paste that value as the secret.'
+          error: 'ANCHOR_WALLET_SEED must be 64-character hex.'
         }),
         {
           status: 500,
@@ -45,16 +57,15 @@ serve(async (req) => {
       );
     }
 
-    const seedHex = trimmedSeed;
-    
-    // Create anchor account using secp256k1 at index 0
-    const anchorAccount = KeetaNet.lib.Account.fromSeed(seedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
-    const anchorAddress = anchorAccount.publicKeyString.toString();
+    // Create anchor account from seed (this is what backend can actually use for transactions)
+    const anchorAccount = KeetaNet.lib.Account.fromSeed(trimmedSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
+    const backendDerivedAddress = anchorAccount.publicKeyString.toString();
 
-    console.log('Anchor address (secp256k1, index 0):', anchorAddress);
-    console.log('Seed source: Direct HEX (browser-derived, no mnemonic conversion)');
+    console.log('Intended address (ANCHOR_WALLET_ADDRESS):', trimmedAddress);
+    console.log('Backend-derived address (from seed):', backendDerivedAddress);
+    console.log('Addresses match:', trimmedAddress === backendDerivedAddress);
     
-    // Get balances to verify
+    // Get balances of the backend-derived address (the one we can actually transact with)
     const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
     const allBalances = await client.allBalances();
     
@@ -76,14 +87,16 @@ serve(async (req) => {
       ? (BigInt(JSON.parse(JSON.stringify(xrgeBalance, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v)).balance) / BigInt(10 ** 18)).toString()
       : '0';
 
-    console.log('Balances:', { kta, xrge });
+    console.log('Backend address balances:', { kta, xrge });
 
     return new Response(
       JSON.stringify({ 
-        address: anchorAddress,
+        intendedAddress: trimmedAddress,
+        backendAddress: backendDerivedAddress,
+        addressMatch: trimmedAddress === backendDerivedAddress,
         ktaBalance: kta,
         xrgeBalance: xrge,
-        method: 'seedFromPassphrase + secp256k1 index 0 (CLI-compatible)'
+        note: 'Due to SDK incompatibility, backend derives a different address. Transfer funds to backendAddress for swaps to work.'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
