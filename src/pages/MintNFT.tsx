@@ -165,23 +165,22 @@ const MintNFT = () => {
       const tokenAccount = pendingTokenAccount.account;
 
       // Format for Keeta SDK
-      // Name field: strip special chars, keep only letters (no underscores)
-      const formattedName = name.toUpperCase().replace(/[^A-Z]/g, '');
-      // Symbol: the ticker
-      const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
+      // Name: can be anything, no formatting needed
+      // Symbol: strict validation (A-Z only)
+      const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '').substring(0, 4);
 
       console.log('Token Info Mapping:', {
-        'name (on-chain Name)': formattedName,
+        'name (on-chain Name)': name,
         'symbol (on-chain Symbol)': formattedSymbol,
         'description (in metadata only)': description
       });
 
-      // Set token info - DO NOT include description in setInfo, only in metadata
+      // Set token info - description only in metadata
       builder.setInfo(
         {
-          name: formattedName, // YODA (from "Yoda #1", no underscores)
+          name: name, // "Yoda #1" as is
           symbol: formattedSymbol, // YODA
-          metadata: metadataBase64, // Contains description inside
+          metadata: metadataBase64,
           defaultPermission: new KeetaNet.lib.Permissions(['ACCESS']),
         },
         { account: tokenAccount }
@@ -246,7 +245,7 @@ const MintNFT = () => {
               className="pixel-border text-xs"
             />
             <p className="text-xs text-muted-foreground">
-              Your NFT's display name (will be shown in description with full details)
+              Your NFT's display name (can include numbers, spaces, special characters)
             </p>
           </div>
 
