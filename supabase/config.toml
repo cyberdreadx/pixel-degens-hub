@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.fx-market-data]
 verify_jwt = false
+
+[functions.fx-record-price]
+verify_jwt = false
