@@ -41,6 +41,15 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [balance, setBalance] = useState<string | null>(null);
   const [tokens, setTokens] = useState<KeetaToken[]>([]);
 
+  // Expose wallet context to window for atomic swap signing
+  useEffect(() => {
+    if (client && account) {
+      (window as any).__walletContext = { client, account };
+    } else {
+      (window as any).__walletContext = null;
+    }
+  }, [client, account]);
+
   // Load wallet from localStorage on mount
   useEffect(() => {
     const savedSeed = localStorage.getItem("keetaWalletSeed");
