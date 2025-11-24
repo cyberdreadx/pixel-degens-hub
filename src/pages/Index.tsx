@@ -2,7 +2,7 @@ const Index = () => {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background">
       {/* Coming Soon Overlay */}
-      <div className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-background/60">
+      <div className="absolute inset-x-0 bottom-0 top-0 z-50 flex items-center justify-center backdrop-blur-sm bg-background/60">
         <div className="text-center space-y-4">
           <h1 className="text-4xl md:text-6xl font-bold neon-glow">COMING SOON</h1>
           <p className="text-sm md:text-base text-muted-foreground">
