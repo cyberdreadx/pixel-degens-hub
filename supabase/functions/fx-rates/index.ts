@@ -1,4 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
+
+const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,10 +35,6 @@ async function getAnchorBalances() {
       console.error('ANCHOR_WALLET_SEED is not a 64-char hex string');
       return { ktaBalance: null, xrgeBalance: null };
     }
-
-    // Import KeetaNet SDK
-    const KeetaNet = await import("npm:@keetanetwork/keetanet-client@0.14.12");
-    const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
     // Create anchor account using secp256k1 at index 0
     const anchorAccount = KeetaNet.lib.Account.fromSeed(trimmedSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
