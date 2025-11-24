@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
-import { Wallet, Home, Image, Users, Activity, ArrowDownUp, ArrowLeftRight, Menu, X } from "lucide-react";
+import { Wallet, Home, Image, Users, Activity, ArrowDownUp, ArrowLeftRight, Menu, X, Palette } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import WalletDialog from "./WalletDialog";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -11,6 +11,20 @@ const Navigation = () => {
   const { isConnected, publicKey, balance } = useWallet();
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "colecovision">(() => {
+    return (localStorage.getItem("theme") as "dark" | "colecovision") || "dark";
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("dark", "colecovision");
+    root.classList.add(theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === "dark" ? "colecovision" : "dark");
+  };
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -55,6 +69,16 @@ const Navigation = () => {
             ))}
             
             <Button
+              variant="outline"
+              size="sm"
+              className="pixel-border text-xs"
+              onClick={toggleTheme}
+              title={`Switch to ${theme === "dark" ? "Colecovision" : "8-bit"} theme`}
+            >
+              <Palette className="w-4 h-4" />
+            </Button>
+            
+            <Button
               variant="default" 
               size="sm"
               className="pixel-border bg-primary hover:bg-primary/80 text-xs gap-2"
@@ -74,6 +98,15 @@ const Navigation = () => {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="pixel-border text-xs"
+              onClick={toggleTheme}
+            >
+              <Palette className="w-4 h-4" />
+            </Button>
+            
             <Button
               variant="default" 
               size="sm"
