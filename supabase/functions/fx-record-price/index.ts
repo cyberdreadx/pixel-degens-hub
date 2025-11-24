@@ -14,6 +14,7 @@ interface PriceSnapshot {
   rate: number;
   kta_balance: number;
   xrge_balance: number;
+  network: string;
 }
 
 // Token addresses
@@ -77,6 +78,9 @@ serve(async (req) => {
 
     // Calculate rate (KTA to XRGE)
     const rate = xrgeBalance / ktaBalance;
+    
+    // Get network from environment (defaults to 'main')
+    const network = Deno.env.get('KEETA_NETWORK') || 'main';
 
     // Record both directions
     const snapshots: PriceSnapshot[] = [
@@ -86,6 +90,7 @@ serve(async (req) => {
         rate: rate,
         kta_balance: ktaBalance,
         xrge_balance: xrgeBalance,
+        network: network,
       },
       {
         from_token: 'XRGE',
@@ -93,6 +98,7 @@ serve(async (req) => {
         rate: 1 / rate,
         kta_balance: ktaBalance,
         xrge_balance: xrgeBalance,
+        network: network,
       }
     ];
 

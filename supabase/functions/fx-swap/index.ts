@@ -435,7 +435,8 @@ serve(async (req) => {
                 rate: currentRate,
                 kta_balance: ktaBalance,
                 xrge_balance: xrgeBalance,
-                volume_24h: inputAmount
+                volume_24h: inputAmount,
+                network: network
               },
               {
                 from_token: toCurrency,
@@ -443,7 +444,8 @@ serve(async (req) => {
                 rate: 1 / currentRate,  // Inverted rate
                 kta_balance: ktaBalance,
                 xrge_balance: xrgeBalance,
-                volume_24h: outputAmount // Use output amount for reverse direction
+                volume_24h: outputAmount, // Use output amount for reverse direction
+                network: network
               }
             ];
             

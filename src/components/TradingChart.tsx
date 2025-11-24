@@ -58,6 +58,7 @@ const TradingChart = ({ fromToken, toToken, network }: TradingChartProps) => {
         .select('*')
         .eq('from_token', toToken)  // Inverted: we want "to" token price in "from" token terms
         .eq('to_token', fromToken)  // So query is reversed
+        .eq('network', network)  // Filter by current network
         .gte('timestamp', startTime.toISOString())
         .order('timestamp', { ascending: true });
 

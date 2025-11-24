@@ -75,10 +75,11 @@ const Swap = () => {
   const fetchTransactions = async () => {
     setIsLoadingTx(true);
     try {
-      // Fetch all swap records from price_history
+      // Fetch all swap records from price_history for current network
       const { data, error } = await supabase
         .from("price_history")
         .select("*")
+        .eq("network", network)  // Filter by current network
         .gt("volume_24h", 0)
         .order("timestamp", { ascending: false })
         .limit(20);
