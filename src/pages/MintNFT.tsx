@@ -166,20 +166,24 @@ const MintNFT = () => {
 
       // Format for Keeta SDK
       // The "name" field has strict validation (A-Z_ only), so use the ticker there
-      const formattedName = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '').substring(0, 50);
+      const formattedName = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '');
       // Symbol is the same as the formatted ticker
       const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
-      // Use the actual name in the description
+      // Put the actual name + description in the description field
       const fullDescription = description ? `${name} - ${description}` : name;
 
-      console.log('Formatting:', { name, ticker, formattedName, formattedSymbol, fullDescription });
+      console.log('Token Info Mapping:', {
+        'On-chain name field (strict A-Z_)': formattedName,
+        'On-chain symbol field': formattedSymbol,
+        'On-chain description field': fullDescription
+      });
 
       // Set token info with metadata
       builder.setInfo(
         {
-          name: formattedName, // Use ticker for the strict name field
-          symbol: formattedSymbol,
-          description: fullDescription, // Use actual name + description here
+          name: formattedName, // On-chain: YODA
+          symbol: formattedSymbol, // On-chain: YODA
+          description: fullDescription, // On-chain: Yoda#1 - USE THE FORCE
           metadata: metadataBase64,
           defaultPermission: new KeetaNet.lib.Permissions(['ACCESS']), // Public token
         },
