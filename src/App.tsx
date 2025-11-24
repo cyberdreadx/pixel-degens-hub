@@ -23,7 +23,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div>
+          <div className="overflow-x-hidden w-full">
             <Navigation />
             <Routes>
               <Route path="/" element={<Home />} />
