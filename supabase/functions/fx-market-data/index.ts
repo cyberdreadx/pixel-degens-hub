@@ -33,12 +33,10 @@ serve(async (req) => {
   try {
     console.log('Fetching market data from DexScreener...');
 
-    // KTA contract address on BASE chain
+    // Contract addresses on BASE chain
     const KTA_CONTRACT = '0xc0634090F2Fe6c6d75e61Be2b949464aBB498973';
+    const XRGE_CONTRACT = '0x147120faEC9277ec02d957584CFCD92B56A24317';
     const CHAIN = 'base'; // BASE chain identifier for DexScreener
-    
-    // Note: XRGE address to be added when available
-    const XRGE_CONTRACT = null;
 
     // Fetch data from DexScreener (adjust endpoint when Keeta is listed)
     let ktaData = null;
@@ -73,7 +71,7 @@ serve(async (req) => {
     }
 
     try {
-      // Try to fetch XRGE data (if contract address available)
+      // Try to fetch XRGE data
       if (XRGE_CONTRACT) {
         const xrgeResponse = await fetch(
           `https://api.dexscreener.com/latest/dex/tokens/${CHAIN}/${XRGE_CONTRACT}`,
