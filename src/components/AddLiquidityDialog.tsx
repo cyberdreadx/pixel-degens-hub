@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,15 @@ export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: Add
   const [isLoading, setIsLoading] = useState(false);
   const [matchRatio, setMatchRatio] = useState(false);
 
-  const xrgeBalance = tokens.find(t => t.symbol === 'XRGE')?.balance || '0';
+  const xrgeToken = tokens.find(t => t.symbol === 'XRGE');
+  const xrgeBalance = xrgeToken?.balance || '0';
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('[AddLiquidityDialog] KTA Balance:', balance);
+    console.log('[AddLiquidityDialog] XRGE Token:', xrgeToken);
+    console.log('[AddLiquidityDialog] All Tokens:', tokens);
+  }, [balance, xrgeToken, tokens]);
   
   // Calculate pool ratio (XRGE per KTA)
   const poolRatio = anchorInfo ? 
@@ -137,6 +145,9 @@ export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: Add
       <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">Add Liquidity to Pool</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Add KTA and/or XRGE tokens to the liquidity pool to enable swaps.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           {/* Match Pool Ratio Toggle */}
@@ -183,6 +194,7 @@ export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: Add
             </div>
             <div className="text-xs text-muted-foreground">
               Available: {balance || '0'} KTA
+              {!balance && <span className="text-amber-500 ml-2">(Loading...)</span>}
             </div>
           </div>
 
@@ -207,6 +219,7 @@ export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: Add
             </div>
             <div className="text-xs text-muted-foreground">
               Available: {xrgeBalance} XRGE
+              {xrgeBalance === '0' && tokens.length === 0 && <span className="text-amber-500 ml-2">(Loading...)</span>}
             </div>
           </div>
 
