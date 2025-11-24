@@ -11,12 +11,7 @@ import xrgeLogo from "@/assets/xrge-logo.webp";
 import ktaLogo from "@/assets/kta-logo.jpg";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-// Token addresses
-const TOKENS = {
-  KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
-  XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
-};
+import { getTokenAddresses } from "@/utils/keetaApi";
 
 const ANCHOR_ADDRESS = 'keeta_aab4yyxf3mw5mi6coye4zm6ovk2e36b2g6xxhfpa4ol4eh22vumrp4kjtbyckla';
 
@@ -323,7 +318,8 @@ const Swap = () => {
       toast.info(`Sending ${fromAmount} ${fromCurrency} to anchor...`);
       
       // Get the token address (undefined for KTA means use base token)
-      const fromTokenAddress = fromCurrency === 'KTA' ? undefined : TOKENS[fromCurrency as keyof typeof TOKENS];
+      const tokenAddrs = getTokenAddresses(network);
+      const fromTokenAddress = fromCurrency === 'KTA' ? undefined : tokenAddrs[fromCurrency as keyof typeof tokenAddrs];
       
       // User sends tokens to anchor wallet
       await sendTokens(anchorAddress, fromAmount, fromTokenAddress);

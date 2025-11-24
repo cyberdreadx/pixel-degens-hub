@@ -145,15 +145,22 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             console.log('Could not fetch info for token:', tokenAddress);
           }
           
-          // Identify known tokens
-          const XRGE_ADDRESS = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
+          // Identify known tokens (mainnet and testnet)
+          const XRGE_MAINNET = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
+          const XRGE_TESTNET = 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s';
+          const KTA_MAINNET = 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';
+          const KTA_TESTNET = 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52';
+          
           let symbol = 'UNKNOWN';
           let name = info?.name || 'Unknown Token';
           let decimals = 18;
           
-          if (tokenAddress === XRGE_ADDRESS) {
+          if (tokenAddress === XRGE_MAINNET || tokenAddress === XRGE_TESTNET) {
             symbol = 'XRGE';
             name = 'XRGE Token';
+          } else if (tokenAddress === KTA_MAINNET || tokenAddress === KTA_TESTNET) {
+            symbol = 'KTA';
+            name = 'Keeta Token';
           }
           
           // Check if this is an NFT (supply=1, decimals=0)
