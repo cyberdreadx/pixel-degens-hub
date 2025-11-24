@@ -29,6 +29,8 @@ interface KeetaToken {
   balance: string;
   decimals: number;
   price?: number;
+  isNFT?: boolean;
+  metadata?: any;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -111,9 +113,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Get base token address for comparison
       const baseTokenAddr = client.baseToken.publicKeyString.toString();
       
-      // Convert to our token format
-      // Filter out the native KTA token since it's displayed separately
-      const tokenList: KeetaToken[] = balances
+      // Fetch token info for each balance to detect NFTs and metadata
+      const tokenPromises = balances
         .filter((balanceData: any) => {
           const tokenInfo = JSON.parse(JSON.stringify(balanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
           const tokenAddress = tokenInfo.token;
@@ -121,34 +122,70 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           // Filter out native KTA token and zero balances
           return tokenInfo.balance !== '0' && tokenInfo.balance !== 0 && tokenAddress !== baseTokenAddr;
         })
-        .map((balanceData: any) => {
+        .map(async (balanceData: any) => {
           const tokenInfo = JSON.parse(JSON.stringify(balanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
           const tokenAddress = tokenInfo.token;
+          
+          // Try to get token info from blockchain
+          let info: any = null;
+          let isNFT = false;
+          let metadata: any = null;
+          
+          try {
+            info = await client.getInfo(tokenAddress);
+          } catch (e) {
+            console.log('Could not fetch info for token:', tokenAddress);
+          }
           
           // Identify known tokens
           const XRGE_ADDRESS = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
           let symbol = 'UNKNOWN';
-          let name = 'Unknown Token';
+          let name = info?.name || 'Unknown Token';
+          let decimals = 18;
           
           if (tokenAddress === XRGE_ADDRESS) {
             symbol = 'XRGE';
             name = 'XRGE Token';
           }
           
-          // Convert balance from smallest unit to human-readable (18 decimals)
+          // Check if this is an NFT (supply=1, decimals=0)
+          // Note: We'll need to check token supply from info if available
+          if (info && info.metadata) {
+            try {
+              const metadataJson = atob(info.metadata);
+              metadata = JSON.parse(metadataJson);
+              
+              // Check if this is a Degen 8bit NFT
+              if (metadata.platform === "degen8bit") {
+                isNFT = true;
+                symbol = 'NFT';
+                name = metadata.name || name;
+                decimals = 0;
+              }
+            } catch (e) {
+              // Not valid metadata, ignore
+            }
+          }
+          
+          // Convert balance (NFTs have decimals=0, regular tokens have 18)
           const rawBalance = BigInt(tokenInfo.balance);
-          const readableBalance = Number(rawBalance) / Math.pow(10, 18);
+          const readableBalance = decimals === 0 
+            ? Number(rawBalance).toString() 
+            : (Number(rawBalance) / Math.pow(10, decimals)).toFixed(6);
           
           return {
             address: tokenAddress,
             symbol,
             name,
-            balance: readableBalance.toFixed(6),
-            decimals: 18,
+            balance: readableBalance,
+            decimals,
             price: 0,
+            isNFT,
+            metadata,
           };
         });
       
+      const tokenList = await Promise.all(tokenPromises);
       setTokens(tokenList);
     } catch (error) {
       console.error('Failed to fetch Keeta tokens:', error);
