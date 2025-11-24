@@ -26,6 +26,8 @@ const Swap = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [marketData, setMarketData] = useState<any>(null);
   const [slippage, setSlippage] = useState(1); // Default 1% slippage tolerance
+  const [isLoadingMarket, setIsLoadingMarket] = useState(true);
+  const [isLoadingRate, setIsLoadingRate] = useState(false);
 
   // Fetch anchor info
   const fetchAnchorInfo = async () => {
@@ -46,12 +48,15 @@ const Swap = () => {
 
   // Fetch market data from DexScreener
   const fetchMarketData = async () => {
+    setIsLoadingMarket(true);
     try {
       const { data, error } = await supabase.functions.invoke('fx-market-data');
       if (error) throw error;
       setMarketData(data);
     } catch (error) {
       console.error('Failed to fetch market data:', error);
+    } finally {
+      setIsLoadingMarket(false);
     }
   };
 
@@ -67,6 +72,7 @@ const Swap = () => {
   }, [fromCurrency, toCurrency]);
 
   const fetchRate = async () => {
+    setIsLoadingRate(true);
     try {
       const { data, error } = await supabase.functions.invoke('fx-rates', {
         body: { from: fromCurrency, to: toCurrency }
@@ -80,6 +86,8 @@ const Swap = () => {
       console.error('Error fetching rate:', error);
       toast.error('Failed to fetch exchange rate');
       return null;
+    } finally {
+      setIsLoadingRate(false);
     }
   };
 
@@ -185,7 +193,26 @@ const Swap = () => {
         {/* Market Data and Pool Rates */}
         <div className="grid md:grid-cols-2 gap-4 mb-4">
           {/* BASE Chain Prices */}
-          {marketData && (marketData.kta || marketData.xrge) && (
+          {isLoadingMarket ? (
+            <Card className="p-4 bg-card border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-4 w-32 bg-muted animate-pulse rounded"></div>
+                <div className="h-5 w-24 bg-muted animate-pulse rounded-full"></div>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="h-3 w-16 bg-muted animate-pulse rounded"></div>
+                  <div className="h-6 w-24 bg-muted animate-pulse rounded"></div>
+                  <div className="h-3 w-20 bg-muted animate-pulse rounded"></div>
+                </div>
+                <div className="space-y-1">
+                  <div className="h-3 w-16 bg-muted animate-pulse rounded"></div>
+                  <div className="h-6 w-24 bg-muted animate-pulse rounded"></div>
+                  <div className="h-3 w-20 bg-muted animate-pulse rounded"></div>
+                </div>
+              </div>
+            </Card>
+          ) : marketData && (marketData.kta || marketData.xrge) ? (
             <Card className="p-4 bg-card border-border">
               <div className="flex items-center gap-2 mb-3">
                 <h3 className="font-semibold text-sm text-foreground">BASE Chain Prices</h3>
@@ -216,10 +243,27 @@ const Swap = () => {
                 )}
               </div>
             </Card>
-          )}
+          ) : null}
 
           {/* Keeta Pool Rate */}
-          {rate && anchorInfo && (
+          {isLoadingRate ? (
+            <Card className="p-4 bg-card border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-4 w-32 bg-muted animate-pulse rounded"></div>
+                <div className="h-5 w-24 bg-muted animate-pulse rounded-full"></div>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="h-3 w-24 bg-muted animate-pulse rounded"></div>
+                  <div className="h-6 w-40 bg-muted animate-pulse rounded"></div>
+                </div>
+                <div className="space-y-1">
+                  <div className="h-3 w-20 bg-muted animate-pulse rounded"></div>
+                  <div className="h-4 w-32 bg-muted animate-pulse rounded"></div>
+                </div>
+              </div>
+            </Card>
+          ) : rate && anchorInfo ? (
             <Card className="p-4 bg-card border-border">
               <div className="flex items-center gap-2 mb-3">
                 <h3 className="font-semibold text-sm text-foreground">Keeta Pool Rate</h3>
@@ -240,7 +284,7 @@ const Swap = () => {
                 </div>
               </div>
             </Card>
-          )}
+          ) : null}
         </div>
 
         <Card className="p-4 md:p-6 bg-card border-border">
@@ -357,7 +401,30 @@ const Swap = () => {
         </Card>
 
         {/* Anchor Liquidity Status */}
-        {anchorInfo && (
+        {isRefreshing ? (
+          <Card className="mt-4 md:mt-6 p-4 md:p-6 bg-card border-border">
+            <div className="flex items-center justify-between mb-4">
+              <div className="h-5 w-48 bg-muted animate-pulse rounded"></div>
+              <div className="h-8 w-8 bg-muted animate-pulse rounded-full"></div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="h-3 w-20 bg-muted-foreground/20 animate-pulse rounded mb-2"></div>
+                <div className="h-6 w-24 bg-muted-foreground/20 animate-pulse rounded"></div>
+              </div>
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="h-3 w-20 bg-muted-foreground/20 animate-pulse rounded mb-2"></div>
+                <div className="h-6 w-24 bg-muted-foreground/20 animate-pulse rounded"></div>
+              </div>
+            </div>
+            
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <div className="h-3 w-24 bg-muted-foreground/20 animate-pulse rounded mb-2"></div>
+              <div className="h-4 w-full bg-muted-foreground/20 animate-pulse rounded"></div>
+            </div>
+          </Card>
+        ) : anchorInfo ? (
           <Card className="mt-4 md:mt-6 p-4 md:p-6 bg-card border-border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-base md:text-lg text-foreground">
@@ -390,7 +457,7 @@ const Swap = () => {
               <div className="font-mono text-xs break-all">{anchorInfo.address}</div>
             </div>
           </Card>
-        )}
+        ) : null}
       </div>
     </div>
   );
