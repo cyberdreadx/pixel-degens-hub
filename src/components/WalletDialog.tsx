@@ -197,7 +197,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                 {tokens.map((token) => (
                   <div key={token.address} className="flex items-baseline gap-2 pl-2 border-l-2 border-accent/50">
                     <div className="text-xl font-bold text-accent leading-none">
-                      {(Number(token.balance) / Math.pow(10, token.decimals)).toFixed(6)}
+                      {token.balance}
                     </div>
                     <div className="text-xs text-accent/70">{token.symbol}</div>
                   </div>
@@ -244,7 +244,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                       <SelectItem value="KTA" className="text-xs">KTA (Balance: {balance || "0.000000"})</SelectItem>
                       {tokens.map((token) => (
                         <SelectItem key={token.address} value={token.address} className="text-xs">
-                          {token.symbol} (Balance: {(Number(token.balance) / Math.pow(10, token.decimals)).toFixed(6)})
+                          {token.symbol} (Balance: {token.balance})
                         </SelectItem>
                       ))}
                     </SelectContent>
