@@ -5,6 +5,7 @@ import { Wallet, Home, Image, Users, Activity, ArrowDownUp, Menu, X } from "luci
 import { useWallet } from "@/contexts/WalletContext";
 import WalletDialog from "./WalletDialog";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import logo from "@/assets/logo.png";
 
 const Navigation = () => {
   const { isConnected, publicKey, balance } = useWallet();
@@ -28,10 +29,14 @@ const Navigation = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <NavLink to="/" className="flex items-center gap-2">
-            <div className="w-12 h-12 bg-primary pixel-border-thick flex items-center justify-center">
-              <span className="text-2xl">🎮</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
+              <img 
+                src={logo} 
+                alt="DEGEN Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
-            <span className="text-lg neon-glow hidden sm:inline">DEGEN</span>
+            <span className="text-base sm:text-lg neon-glow hidden sm:inline font-bold">DEGEN</span>
           </NavLink>
 
           {/* Desktop Navigation */}
