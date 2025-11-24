@@ -660,7 +660,7 @@ const Swap = () => {
 
       {/* Right column: Trading Chart */}
       <div className="w-full lg:min-w-0 animate-fade-in">
-        <TradingChart fromToken={fromCurrency} toToken={toCurrency} />
+        <TradingChart fromToken={fromCurrency} toToken={toCurrency} network={network} />
       </div>
     </div>
 

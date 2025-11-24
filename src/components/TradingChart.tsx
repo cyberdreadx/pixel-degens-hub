@@ -16,9 +16,10 @@ interface ChartData {
 interface TradingChartProps {
   fromToken: string;
   toToken: string;
+  network: "main" | "test";
 }
 
-const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
+const TradingChart = ({ fromToken, toToken, network }: TradingChartProps) => {
   const [timeframe, setTimeframe] = useState<Timeframe>('24H');
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,7 +35,7 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchPriceHistory, 30000);
     return () => clearInterval(interval);
-  }, [fromToken, toToken, timeframe]);
+  }, [fromToken, toToken, timeframe, network]);
 
   const getTimeframeHours = (tf: Timeframe): number => {
     switch (tf) {
@@ -120,10 +121,10 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3">
           <div>
             <h3 className="text-base md:text-xl font-bold text-foreground">
-              {toToken}/{fromToken} Chart
+              {toToken}/{fromToken} Chart {network === "test" && <span className="text-xs text-yellow-500">(TESTNET)</span>}
             </h3>
             <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
-              Price of {toToken} in {fromToken} terms
+              Price of {toToken} in {fromToken} terms • {network === "main" ? "Mainnet" : "Testnet"} data
             </p>
           </div>
           
@@ -171,8 +172,10 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : chartData.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-muted-foreground text-xs md:text-sm">
-            No price data available for this timeframe
+          <div className="h-full flex items-center justify-center text-center text-muted-foreground text-xs md:text-sm px-4">
+            {network === "test" 
+              ? "No testnet price data available. Testnet requires separate liquidity and trading activity."
+              : "No price data available for this timeframe"}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
