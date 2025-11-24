@@ -33,11 +33,65 @@ interface BuildSwapResponse {
   error?: string;
 }
 
-// Static exchange rates (matches fx-rates function)
-const EXCHANGE_RATES: Record<string, number> = {
+// Contract addresses for market price fetching
+const KTA_CONTRACT = '0xc0634090F2Fe6c6d75e61Be2b949464aBB498973';
+const XRGE_CONTRACT = '0x147120faEC9277ec02d957584CFCD92B56A24317';
+
+// Fallback exchange rates if DexScreener unavailable
+const FALLBACK_RATES: Record<string, number> = {
   'KTA_XRGE': 0.85,
   'XRGE_KTA': 1.18,
 };
+
+async function fetchRealRate(fromCurrency: string, toCurrency: string): Promise<number> {
+  try {
+    // Fetch prices from DexScreener
+    const ktaResponse = await fetch(
+      `https://api.dexscreener.com/latest/dex/search?q=${KTA_CONTRACT}`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+    const xrgeResponse = await fetch(
+      `https://api.dexscreener.com/latest/dex/search?q=${XRGE_CONTRACT}`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+
+    let ktaPrice = null;
+    let xrgePrice = null;
+
+    if (ktaResponse.ok) {
+      const ktaData = await ktaResponse.json();
+      if (ktaData.pairs && ktaData.pairs.length > 0) {
+        const basePair = ktaData.pairs.find((p: any) => p.chainId === 'base') || ktaData.pairs[0];
+        ktaPrice = parseFloat(basePair.priceUsd || '0');
+      }
+    }
+
+    if (xrgeResponse.ok) {
+      const xrgeData = await xrgeResponse.json();
+      if (xrgeData.pairs && xrgeData.pairs.length > 0) {
+        const basePair = xrgeData.pairs.find((p: any) => p.chainId === 'base') || xrgeData.pairs[0];
+        xrgePrice = parseFloat(basePair.priceUsd || '0');
+      }
+    }
+
+    // Calculate rate from real prices
+    if (ktaPrice && ktaPrice > 0 && xrgePrice && xrgePrice > 0) {
+      if (fromCurrency === 'KTA' && toCurrency === 'XRGE') {
+        return ktaPrice / xrgePrice;
+      } else if (fromCurrency === 'XRGE' && toCurrency === 'KTA') {
+        return xrgePrice / ktaPrice;
+      }
+    }
+
+    // Fallback to static rate
+    const rateKey = `${fromCurrency}_${toCurrency}`;
+    return FALLBACK_RATES[rateKey] || 0;
+  } catch (error) {
+    console.error('Error fetching real rate:', error);
+    const rateKey = `${fromCurrency}_${toCurrency}`;
+    return FALLBACK_RATES[rateKey] || 0;
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -49,6 +103,24 @@ serve(async (req) => {
     const { fromCurrency, toCurrency, amount, userPublicKey }: BuildSwapRequest = await req.json();
 
     console.log('Build swap request:', { fromCurrency, toCurrency, amount, userPublicKey });
+
+    // Fetch real exchange rate
+    const rate = await fetchRealRate(fromCurrency, toCurrency);
+    
+    if (!rate || rate <= 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Exchange rate not available for ${fromCurrency}_${toCurrency}`
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    console.log(`Using rate: 1 ${fromCurrency} = ${rate} ${toCurrency}`);
 
     // Validate input
     if (!fromCurrency || !toCurrency || !amount || !userPublicKey) {
@@ -71,23 +143,6 @@ serve(async (req) => {
         JSON.stringify({ 
           success: false,
           error: 'Invalid amount. Must be a positive number.' 
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const rateKey = `${fromCurrency}_${toCurrency}`;
-    const rate = EXCHANGE_RATES[rateKey];
-
-    if (!rate) {
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: `Exchange pair ${rateKey} not supported`,
-          availablePairs: Object.keys(EXCHANGE_RATES)
         }),
         {
           status: 400,
