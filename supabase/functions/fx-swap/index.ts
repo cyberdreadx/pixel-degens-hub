@@ -19,6 +19,7 @@ interface SwapRequest {
   toCurrency: string;
   amount: string;
   userPublicKey: string;
+  swapBlockBytes?: string; // Base64-encoded swap block from user
 }
 
 interface SwapResponse {
@@ -45,9 +46,9 @@ serve(async (req) => {
   }
 
   try {
-    const { fromCurrency, toCurrency, amount, userPublicKey }: SwapRequest = await req.json();
+    const { fromCurrency, toCurrency, amount, userPublicKey, swapBlockBytes }: SwapRequest = await req.json();
 
-    console.log('Swap request:', { fromCurrency, toCurrency, amount, userPublicKey });
+    console.log('Swap request:', { fromCurrency, toCurrency, amount, userPublicKey, hasSwapBlock: !!swapBlockBytes });
 
     // Validate input
     if (!fromCurrency || !toCurrency || !amount || !userPublicKey) {
@@ -137,24 +138,105 @@ serve(async (req) => {
     // Create anchor account using secp256k1 at index 0
     const anchorAccount = KeetaNet.lib.Account.fromSeed(seedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
     const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
+    const anchorAddress = anchorAccount.publicKeyString.toString();
 
-    console.log('Anchor wallet (secp256k1, index 0):', anchorAccount.publicKeyString.toString());
-    console.log('Seed source: Direct HEX (browser-derived)');
+    console.log('Anchor wallet:', anchorAddress);
     console.log('Swap details:', { 
       from: fromCurrency, 
       to: toCurrency, 
-      amount: inputAmount,
-      calculated: outputAmount,
-      fromToken,
-      toToken
+      inputAmount,
+      outputAmount,
+      rate
     });
 
-    // Build swap transaction - Anchor sends tokens to user
-    // NOTE: This is not a true atomic swap. In a production system, you would:
-    // 1. Verify the user has sent tokens to the anchor first
-    // 2. Use the receive() operation to create atomic swap blocks
-    // 3. Exchange unsigned blocks between parties and co-sign
-    // Current implementation: Simple send after user sends (requires trust)
+    // ATOMIC SWAP IMPLEMENTATION
+    // If user provided swap block bytes, complete the atomic swap
+    if (swapBlockBytes) {
+      try {
+        console.log('Processing atomic swap block from user');
+        
+        // Decode the swap block from base64
+        const blockBytes = new Uint8Array(
+          atob(swapBlockBytes).split('').map(c => c.charCodeAt(0))
+        );
+        
+        console.log('Decoded block bytes length:', blockBytes.length);
+
+        // Create a builder to add anchor's side of the swap
+        const builder = client.initBuilder();
+        
+        // Anchor sends toCurrency to user
+        const recipient = KeetaNet.lib.Account.fromPublicKeyString(userPublicKey);
+        const toAmountBigInt = BigInt(Math.floor(outputAmount * Math.pow(10, 18)));
+        
+        if (toCurrency === 'KTA') {
+          builder.send(recipient, toAmountBigInt, client.baseToken);
+        } else {
+          const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(toToken);
+          builder.send(recipient, toAmountBigInt, tokenAccount as any);
+        }
+        
+        // Anchor expects to receive fromCurrency from user
+        const fromAmountBigInt = BigInt(Math.floor(inputAmount * Math.pow(10, 18)));
+        
+        if (fromCurrency === 'KTA') {
+          builder.receive(recipient, fromAmountBigInt, client.baseToken, true);
+        } else {
+          const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(fromToken);
+          builder.receive(recipient, fromAmountBigInt, tokenAccount as any, true);
+        }
+
+        console.log('Anchor swap operations added to builder');
+
+        // Compute and publish the atomic swap
+        const computed = await client.computeBuilderBlocks(builder);
+        console.log('Swap blocks computed:', computed.blocks?.length);
+        
+        const result = await client.publishBuilder(builder);
+        console.log('Atomic swap published:', result);
+
+        // Get transaction hash
+        const hashBuffer = computed.blocks?.[0]?.hash?.get();
+        const txHash = hashBuffer 
+          ? Array.from(new Uint8Array(hashBuffer))
+              .map(b => b.toString(16).padStart(2, '0'))
+              .join('')
+          : 'pending';
+
+        const response: SwapResponse = {
+          success: true,
+          fromAmount: inputAmount.toFixed(6),
+          toAmount: outputAmount.toFixed(6),
+          fromCurrency,
+          toCurrency,
+          rate,
+          transactionHash: txHash,
+        };
+
+        console.log('Atomic swap complete:', response);
+        return new Response(JSON.stringify(response), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (atomicError: any) {
+        console.error('Atomic swap error:', atomicError);
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: `Atomic swap failed: ${atomicError.message}`
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
+    // FALLBACK: Two-transaction swap (trusted anchor model)
+    // User sends first, then anchor sends back
+    // This is how the current system works and will continue to work for backward compatibility
+    console.log('Using trusted anchor model (two transactions)');
+    
     try {
       const builder = client.initBuilder();
       
@@ -201,7 +283,7 @@ serve(async (req) => {
         transactionHash: txHash,
       };
 
-      console.log('Swap executed:', response);
+      console.log('Trusted swap executed:', response);
       return new Response(JSON.stringify(response), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

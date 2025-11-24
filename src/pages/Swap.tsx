@@ -104,7 +104,11 @@ const Swap = () => {
     setIsLoading(true);
 
     try {
-      // Step 1: User sends tokens to anchor
+      // FALLBACK: Use trusted anchor model (two separate transactions)
+      // This is the current working implementation where:
+      // 1. User sends tokens to anchor first
+      // 2. Anchor verifies and sends tokens back
+      
       toast.info(`Sending ${fromAmount} ${fromCurrency} to anchor...`);
       
       // Get the token address (undefined for KTA means use base token)
@@ -115,7 +119,7 @@ const Swap = () => {
       
       toast.success("Tokens sent to anchor. Processing swap...");
 
-      // Step 2: Call edge function to have anchor send back swapped tokens
+      // Call edge function to have anchor send back swapped tokens
       const { data, error } = await supabase.functions.invoke('fx-swap', {
         body: {
           fromCurrency,
