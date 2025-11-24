@@ -66,7 +66,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [client, account]);
 
-  const fetchBalance = async () => {
+  const fetchBalance = useCallback(async () => {
     if (!client || !account) return;
     
     try {
@@ -93,13 +93,15 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Convert balance from smallest unit to KTA (18 decimals)
       const balanceInKTA = Number(keetaBalance) / Math.pow(10, 18);
       setBalance(balanceInKTA.toFixed(6));
+      toast.success("Balance refreshed!");
     } catch (error) {
       console.error("Error fetching balance:", error);
       setBalance("0.000000");
+      toast.error("Failed to refresh balance");
     }
-  };
+  }, [client, account]);
 
-  const fetchTokensInternal = async () => {
+  const fetchTokensInternal = useCallback(async () => {
     if (!client || !account) return;
 
     try {
@@ -151,7 +153,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error) {
       console.error('Failed to fetch Keeta tokens:', error);
     }
-  };
+  }, [client, account]);
 
   const generateNewWallet = async (): Promise<string> => {
     try {
@@ -219,9 +221,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     toast.success("Wallet disconnected");
   };
 
-  const fetchTokens = useCallback(async () => {
-    await fetchTokensInternal();
-  }, [client, account]);
+  const refreshBalance = useCallback(async () => {
+    await Promise.all([fetchBalance(), fetchTokensInternal()]);
+  }, [fetchBalance, fetchTokensInternal]);
 
   const sendTokens = useCallback(async (to: string, amount: string, tokenAddress?: string) => {
     if (!account || !client) {
@@ -278,8 +280,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         connectWallet,
         disconnectWallet,
         generateNewWallet,
-        refreshBalance: fetchBalance,
-        fetchTokens,
+        refreshBalance,
+        fetchTokens: fetchTokensInternal,
         sendTokens,
       }}
     >
