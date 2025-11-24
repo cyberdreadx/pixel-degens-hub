@@ -3,7 +3,7 @@ import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ArrowDownUp, Loader2 } from "lucide-react";
+import { ArrowDownUp, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,20 +23,27 @@ const Swap = () => {
   const [rate, setRate] = useState<number | null>(null);
   const [anchorAddress, setAnchorAddress] = useState<string | null>(null);
   const [anchorInfo, setAnchorInfo] = useState<any>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Fetch anchor info
+  const fetchAnchorInfo = async () => {
+    setIsRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fx-anchor-info');
+      if (error) throw error;
+      setAnchorAddress(data.address);
+      setAnchorInfo(data);
+      toast.success('Anchor info refreshed');
+    } catch (error) {
+      console.error('Failed to fetch anchor info:', error);
+      toast.error('Failed to connect to anchor');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Fetch anchor info on mount
   useEffect(() => {
-    const fetchAnchorInfo = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('fx-anchor-info');
-        if (error) throw error;
-        setAnchorAddress(data.address);
-        setAnchorInfo(data);
-      } catch (error) {
-        console.error('Failed to fetch anchor info:', error);
-        toast.error('Failed to connect to anchor');
-      }
-    };
     fetchAnchorInfo();
   }, []);
 
@@ -241,9 +248,20 @@ const Swap = () => {
         {/* Anchor Liquidity Status */}
         {anchorInfo && (
           <Card className="mt-4 md:mt-6 p-4 md:p-6 bg-card border-border">
-            <h3 className="font-semibold text-base md:text-lg text-foreground mb-4">
-              FX Anchor Liquidity
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-base md:text-lg text-foreground">
+                FX Anchor Liquidity
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={fetchAnchorInfo}
+                disabled={isRefreshing}
+                className="h-8 w-8"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
             
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="p-3 bg-muted rounded-lg">
