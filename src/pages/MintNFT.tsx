@@ -104,16 +104,19 @@ const MintNFT = () => {
       return;
     }
 
+    let finalImageUrl = imageUrl;
+
     // If file selected but not uploaded, upload it first
-    if (selectedFile && !imageUrl) {
+    if (selectedFile && !finalImageUrl) {
       try {
-        await uploadToIPFS();
+        const uploadedUrl = await uploadToIPFS();
+        finalImageUrl = uploadedUrl || imageUrl;
       } catch {
         return; // Upload failed, stop minting
       }
     }
 
-    if (!imageUrl) {
+    if (!finalImageUrl) {
       toast.error("Image is required");
       return;
     }
@@ -133,7 +136,7 @@ const MintNFT = () => {
         nft_id: nftId,
         name,
         description,
-        image: imageUrl,
+        image: finalImageUrl,
         attributes,
         ...(externalUrl && { external_url: externalUrl }),
       };
