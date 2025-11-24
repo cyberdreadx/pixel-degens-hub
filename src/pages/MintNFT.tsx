@@ -164,9 +164,13 @@ const MintNFT = () => {
       await builder.computeBlocks();
       const tokenAccount = pendingTokenAccount.account;
 
-      // Format name and symbol for Keeta SDK (only uppercase letters and underscores)
+      // Format name and symbol for Keeta SDK
+      // Name: only uppercase letters, numbers, and underscores (for spaces/special chars)
       const formattedName = name.toUpperCase().replace(/[^A-Z0-9]/g, '_');
-      const formattedSymbol = ticker.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      // Symbol: only uppercase letters and numbers, trim any underscores
+      const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
+
+      console.log('Formatting:', { name, ticker, formattedName, formattedSymbol });
 
       // Set token info with metadata
       builder.setInfo(
