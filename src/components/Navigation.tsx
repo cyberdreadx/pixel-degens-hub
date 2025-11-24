@@ -140,13 +140,13 @@ const Navigation = () => {
                   ))}
                   
                   {isConnected && (
-                    <div className="mt-4 px-4 py-3 pixel-border bg-muted rounded space-y-2">
-                      <div className="text-xs text-muted-foreground">BALANCE</div>
-                      <div className="text-sm font-bold">{balance || "0.0000"} KTA</div>
+                    <div className="mt-4 px-4 py-3 pixel-border bg-muted rounded space-y-1.5">
+                      <div className="text-[10px] text-muted-foreground">BALANCE</div>
+                      <div className="text-xs font-bold">{balance || "0.0000"} KTA</div>
                       {xrgeToken && (
-                        <div className="text-sm font-bold">{xrgeToken.balance} XRGE</div>
+                        <div className="text-xs font-bold">{xrgeToken.balance} XRGE</div>
                       )}
-                      <div className="text-xs text-muted-foreground break-all">
+                      <div className="text-[10px] text-muted-foreground break-all">
                         {publicKey && formatAddress(publicKey)}
                       </div>
                     </div>
