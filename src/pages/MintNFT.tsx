@@ -165,9 +165,9 @@ const MintNFT = () => {
       const tokenAccount = pendingTokenAccount.account;
 
       // Format name and symbol for Keeta SDK
-      // Name: only uppercase letters, numbers, and underscores (for spaces/special chars)
-      const formattedName = name.toUpperCase().replace(/[^A-Z0-9]/g, '_');
-      // Symbol: only uppercase letters and numbers, trim any underscores
+      // Name: ONLY uppercase letters and underscores (numbers become underscores too)
+      const formattedName = name.toUpperCase().replace(/[^A-Z]/g, '_');
+      // Symbol: uppercase letters and numbers allowed
       const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
 
       console.log('Formatting:', { name, ticker, formattedName, formattedSymbol });
@@ -243,7 +243,7 @@ const MintNFT = () => {
               className="pixel-border text-xs"
             />
             <p className="text-xs text-muted-foreground">
-              Name will be formatted: letters/numbers only, special chars → underscores (e.g., "Yoda #1" → "YODA__1")
+              Name: uppercase letters only, all other chars → underscores (e.g., "Yoda #1" → "YODA___")
             </p>
           </div>
 
