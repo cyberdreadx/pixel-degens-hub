@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import TradingChart from "@/components/TradingChart";
 import xrgeLogo from "@/assets/xrge-logo.webp";
+import ktaLogo from "@/assets/kta-logo.jpg";
 
 // Token addresses
 const TOKENS = {
@@ -372,7 +373,10 @@ const Swap = () => {
                   <div className="space-y-3">
                     {marketData.kta && (
                       <div className="space-y-1">
-                        <div className="text-xs text-muted-foreground">KTA</div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <img src={ktaLogo} alt="KTA" className="w-4 h-4 rounded-full" />
+                          KTA
+                        </div>
                         <div className="font-bold text-foreground">
                           ${marketData.kta.price.toFixed(6)}
                         </div>
@@ -457,6 +461,7 @@ const Swap = () => {
                 className="flex-1"
               />
               <div className="px-4 py-2 bg-muted rounded-md flex items-center gap-2 min-w-[80px] justify-center">
+                {fromCurrency === 'KTA' && <img src={ktaLogo} alt="KTA" className="w-5 h-5 rounded-full" />}
                 {fromCurrency === 'XRGE' && <img src={xrgeLogo} alt="XRGE" className="w-5 h-5 rounded-full" />}
                 <span className="font-bold text-foreground">{fromCurrency}</span>
               </div>
@@ -505,6 +510,7 @@ const Swap = () => {
                 className="flex-1"
               />
               <div className="px-4 py-2 bg-muted rounded-md flex items-center gap-2 min-w-[80px] justify-center">
+                {toCurrency === 'KTA' && <img src={ktaLogo} alt="KTA" className="w-5 h-5 rounded-full" />}
                 {toCurrency === 'XRGE' && <img src={xrgeLogo} alt="XRGE" className="w-5 h-5 rounded-full" />}
                 <span className="font-bold text-foreground">{toCurrency}</span>
               </div>
