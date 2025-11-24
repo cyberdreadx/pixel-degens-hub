@@ -17,6 +17,7 @@ interface NFTAttribute {
 const MintNFT = () => {
   const { client, account, isConnected, network } = useWallet();
   const [name, setName] = useState("");
+  const [ticker, setTicker] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
@@ -99,8 +100,8 @@ const MintNFT = () => {
       return;
     }
 
-    if (!name) {
-      toast.error("Name is required");
+    if (!name || !ticker) {
+      toast.error("Name and ticker are required");
       return;
     }
 
@@ -160,6 +161,7 @@ const MintNFT = () => {
       // Set token info with metadata
       builder.setInfo(tokenAddress, {
         name,
+        symbol: ticker.toUpperCase(),
         description: description || `${name} - Degen 8bit NFT`,
         defaultPermission: "read",
         metadata: metadataBase64,
@@ -173,6 +175,7 @@ const MintNFT = () => {
       
       // Reset form
       setName("");
+      setTicker("");
       setDescription("");
       setImageUrl("");
       setExternalUrl("");
@@ -214,6 +217,19 @@ const MintNFT = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="CYBER ROBOT #001"
+              className="pixel-border text-xs"
+            />
+          </div>
+
+          {/* Ticker */}
+          <div className="space-y-2">
+            <Label htmlFor="ticker" className="text-xs font-bold">TICKER / SYMBOL *</Label>
+            <Input
+              id="ticker"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value.toUpperCase())}
+              placeholder="ROBOT"
+              maxLength={10}
               className="pixel-border text-xs"
             />
           </div>
@@ -371,7 +387,7 @@ const MintNFT = () => {
           {/* Mint Button */}
           <Button
             onClick={mintNFT}
-            disabled={!isConnected || isMinting || isUploading || !name || (!imageUrl && !selectedFile)}
+            disabled={!isConnected || isMinting || isUploading || !name || !ticker || (!imageUrl && !selectedFile)}
             className="w-full pixel-border-thick text-xs"
             size="lg"
           >
