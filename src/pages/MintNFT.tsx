@@ -164,20 +164,22 @@ const MintNFT = () => {
       await builder.computeBlocks();
       const tokenAccount = pendingTokenAccount.account;
 
-      // Format name and symbol for Keeta SDK
-      // Name: ONLY uppercase letters and underscores (numbers become underscores too)
-      const formattedName = name.toUpperCase().replace(/[^A-Z]/g, '_');
-      // Symbol: uppercase letters and numbers allowed
+      // Format for Keeta SDK
+      // The "name" field has strict validation (A-Z_ only), so use the ticker there
+      const formattedName = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '').substring(0, 50);
+      // Symbol is the same as the formatted ticker
       const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
+      // Use the actual name in the description
+      const fullDescription = description ? `${name} - ${description}` : name;
 
-      console.log('Formatting:', { name, ticker, formattedName, formattedSymbol });
+      console.log('Formatting:', { name, ticker, formattedName, formattedSymbol, fullDescription });
 
       // Set token info with metadata
       builder.setInfo(
         {
-          name: formattedName,
+          name: formattedName, // Use ticker for the strict name field
           symbol: formattedSymbol,
-          description: description || `${name} - Degen 8bit NFT`,
+          description: fullDescription, // Use actual name + description here
           metadata: metadataBase64,
           defaultPermission: new KeetaNet.lib.Permissions(['ACCESS']), // Public token
         },
@@ -243,7 +245,7 @@ const MintNFT = () => {
               className="pixel-border text-xs"
             />
             <p className="text-xs text-muted-foreground">
-              Name: uppercase letters only, all other chars → underscores (e.g., "Yoda #1" → "YODA___")
+              Your NFT's display name (will be shown in description with full details)
             </p>
           </div>
 
