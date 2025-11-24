@@ -402,15 +402,27 @@ serve(async (req) => {
               }
             }
 
-            // Insert swap record into price_history
-            await supabaseClient.from('price_history').insert({
-              from_token: fromCurrency,
-              to_token: toCurrency,
-              rate: currentRate,
-              kta_balance: ktaBalance,
-              xrge_balance: xrgeBalance,
-              volume_24h: inputAmount
-            });
+            // Insert swap record into price_history (both directions for chart flexibility)
+            const swapRecords = [
+              {
+                from_token: fromCurrency,
+                to_token: toCurrency,
+                rate: currentRate,
+                kta_balance: ktaBalance,
+                xrge_balance: xrgeBalance,
+                volume_24h: inputAmount
+              },
+              {
+                from_token: toCurrency,
+                to_token: fromCurrency,
+                rate: 1 / currentRate,  // Inverted rate
+                kta_balance: ktaBalance,
+                xrge_balance: xrgeBalance,
+                volume_24h: inputAmount
+              }
+            ];
+            
+            await supabaseClient.from('price_history').insert(swapRecords);
 
             console.log('Atomic swap recorded in price history');
           }
@@ -519,15 +531,27 @@ serve(async (req) => {
             }
           }
 
-          // Insert swap record into price_history
-          await supabaseClient.from('price_history').insert({
-            from_token: fromCurrency,
-            to_token: toCurrency,
-            rate: currentRate,
-            kta_balance: ktaBalance,
-            xrge_balance: xrgeBalance,
-            volume_24h: inputAmount
-          });
+          // Insert swap record into price_history (both directions for chart flexibility)
+          const swapRecords = [
+            {
+              from_token: fromCurrency,
+              to_token: toCurrency,
+              rate: currentRate,
+              kta_balance: ktaBalance,
+              xrge_balance: xrgeBalance,
+              volume_24h: inputAmount
+            },
+            {
+              from_token: toCurrency,
+              to_token: fromCurrency,
+              rate: 1 / currentRate,  // Inverted rate
+              kta_balance: ktaBalance,
+              xrge_balance: xrgeBalance,
+              volume_24h: inputAmount
+            }
+          ];
+          
+          await supabaseClient.from('price_history').insert(swapRecords);
 
           console.log('Swap recorded in price history');
         }
