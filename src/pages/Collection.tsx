@@ -68,51 +68,12 @@ const mockNFTs = [
 
 const Collection = () => {
   return (
-    <div className="min-h-screen pt-24 pb-16">
-      <div className="container mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8 space-y-4">
-          <h1 className="text-3xl md:text-5xl font-bold neon-glow">NFT COLLECTION</h1>
-          <p className="text-xs md:text-sm text-muted-foreground">
-            EXPLORE THE DOPEST 8-BIT DROPS
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="mb-8 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="SEARCH NFTS..." 
-              className="pl-10 pixel-border bg-card text-xs"
-            />
-          </div>
-          <Button 
-            variant="outline" 
-            className="pixel-border gap-2 text-xs"
-          >
-            <Filter className="w-4 h-4" />
-            FILTER
-          </Button>
-        </div>
-
-        {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockNFTs.map((nft) => (
-            <NFTCard key={nft.id} {...nft} />
-          ))}
-        </div>
-
-        {/* Load More */}
-        <div className="mt-12 text-center">
-          <Button 
-            variant="outline" 
-            size="lg"
-            className="pixel-border-thick text-xs"
-          >
-            LOAD MORE NFTS
-          </Button>
-        </div>
+    <div className="flex min-h-screen items-center justify-center pt-24 pb-16">
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl md:text-6xl font-bold neon-glow">COMING SOON</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
+          THIS PAGE IS UNDER CONSTRUCTION
+        </p>
       </div>
     </div>
   );
