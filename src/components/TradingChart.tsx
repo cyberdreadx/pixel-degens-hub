@@ -114,28 +114,28 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
   };
 
   return (
-    <Card className="p-4 md:p-6 bg-card border-border overflow-hidden">
-        <div className="space-y-4">
+    <Card className="p-3 md:p-6 bg-card border-border overflow-hidden">
+        <div className="space-y-3 md:space-y-4">
         {/* Header with title */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3">
           <div>
-            <h3 className="text-lg md:text-xl font-bold text-foreground">
+            <h3 className="text-base md:text-xl font-bold text-foreground">
               {toToken}/{fromToken} Chart
             </h3>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
               Price of {toToken} in {fromToken} terms
             </p>
           </div>
           
           {/* Timeframe buttons */}
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1.5 md:gap-2 flex-wrap">
             {(['1H', '24H', '7D', '30D'] as Timeframe[]).map((tf) => (
               <Button
                 key={tf}
                 variant={timeframe === tf ? "default" : "outline"}
                 size="sm"
                 onClick={() => setTimeframe(tf)}
-                className="min-w-[50px] flex-1 sm:flex-none"
+                className="min-w-[50px] flex-1 sm:flex-none text-xs md:text-sm px-2 md:px-4"
               >
                 {tf}
               </Button>
@@ -145,40 +145,40 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
 
         {/* Stats row */}
         {chartData.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 md:gap-4 text-xs md:text-sm">
+          <div className="grid grid-cols-3 gap-2 md:gap-4 text-[10px] md:text-sm">
             <div className="bg-muted/50 rounded-lg p-2 md:p-3">
-              <span className="text-muted-foreground block mb-1">24h Change</span>
-              <span className={`font-bold ${stats.change >= 0 ? "text-green-500" : "text-red-500"}`}>
+              <span className="text-muted-foreground block mb-0.5 md:mb-1">24h Change</span>
+              <span className={`font-bold text-xs md:text-base ${stats.change >= 0 ? "text-green-500" : "text-red-500"}`}>
                 {stats.change >= 0 ? '+' : ''}{stats.change.toFixed(2)}%
               </span>
             </div>
             <div className="bg-muted/50 rounded-lg p-2 md:p-3">
-              <span className="text-muted-foreground block mb-1">High</span>
-              <span className="text-foreground font-bold">{formatRate(stats.high)}</span>
+              <span className="text-muted-foreground block mb-0.5 md:mb-1">High</span>
+              <span className="text-foreground font-bold text-xs md:text-base break-all">{formatRate(stats.high)}</span>
             </div>
             <div className="bg-muted/50 rounded-lg p-2 md:p-3">
-              <span className="text-muted-foreground block mb-1">Low</span>
-              <span className="text-foreground font-bold">{formatRate(stats.low)}</span>
+              <span className="text-muted-foreground block mb-0.5 md:mb-1">Low</span>
+              <span className="text-foreground font-bold text-xs md:text-base break-all">{formatRate(stats.low)}</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Chart container with proper spacing */}
-      <div className="h-[300px] md:h-[400px] w-full mt-4">
+      <div className="h-[280px] md:h-[400px] w-full mt-3 md:mt-4 -mx-3 md:mx-0 px-1 md:px-0">
         {isLoading ? (
           <div className="h-full flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : chartData.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+          <div className="h-full flex items-center justify-center text-muted-foreground text-xs md:text-sm">
             No price data available for this timeframe
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart 
               data={chartData}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              margin={{ top: 10, right: 5, left: -20, bottom: 0 }}
             >
               <defs>
                 <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
@@ -190,15 +190,17 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
               <XAxis 
                 dataKey="time" 
                 stroke="hsl(var(--muted-foreground))"
-                fontSize={11}
+                fontSize={10}
+                tick={{ fontSize: 10 }}
                 tickMargin={8}
               />
               <YAxis 
                 stroke="hsl(var(--muted-foreground))"
-                fontSize={11}
+                fontSize={9}
+                tick={{ fontSize: 9 }}
                 tickFormatter={formatRate}
-                width={80}
-                tickMargin={8}
+                width={50}
+                tickMargin={5}
               />
               <Tooltip content={<CustomTooltip />} />
               <Area
