@@ -4,7 +4,8 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Copy, Eye, EyeOff, Wallet, QrCode as QrCodeIcon, AlertTriangle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Copy, Eye, EyeOff, Wallet, QrCode as QrCodeIcon, AlertTriangle, Send } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 import { toDataURL } from "qrcode";
@@ -17,12 +18,16 @@ interface WalletDialogProps {
 }
 
 const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
-  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, tokens, generateNewWallet, refreshBalance } = useWallet();
+  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, tokens, generateNewWallet, refreshBalance, sendTokens } = useWallet();
   const [importSeed, setImportSeed] = useState("");
   const [showSeed, setShowSeed] = useState(false);
   const [generatedSeed, setGeneratedSeed] = useState("");
   const [qrCode, setQrCode] = useState("");
   const [previewAddress, setPreviewAddress] = useState<string | null>(null);
+  const [sendTo, setSendTo] = useState("");
+  const [sendAmount, setSendAmount] = useState("");
+  const [selectedToken, setSelectedToken] = useState<string>("KTA");
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     if (publicKey && open) {
@@ -216,6 +221,85 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                   onClick={handleCopyAddress}
                 >
                   <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Send Tokens Section */}
+            <div className="pixel-border-thick bg-gradient-to-br from-accent/5 to-accent/10 p-5 space-y-4 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -z-10" />
+              <Label className="text-[10px] tracking-wider text-accent font-bold flex items-center gap-2">
+                <Send className="w-4 h-4" />
+                SEND TOKENS
+              </Label>
+              
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-[9px] text-muted-foreground">SELECT TOKEN</Label>
+                  <Select value={selectedToken} onValueChange={setSelectedToken}>
+                    <SelectTrigger className="pixel-border bg-background/50 border-2 text-xs h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="pixel-border">
+                      <SelectItem value="KTA" className="text-xs">KTA (Balance: {balance || "0.000000"})</SelectItem>
+                      {tokens.map((token) => (
+                        <SelectItem key={token.address} value={token.address} className="text-xs">
+                          {token.symbol} (Balance: {(Number(token.balance) / Math.pow(10, token.decimals)).toFixed(6)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[9px] text-muted-foreground">RECIPIENT ADDRESS</Label>
+                  <Input
+                    placeholder="keeta_..."
+                    value={sendTo}
+                    onChange={(e) => setSendTo(e.target.value)}
+                    className="pixel-border bg-background/50 border-2 text-[10px] font-mono h-10"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[9px] text-muted-foreground">AMOUNT</Label>
+                  <Input
+                    type="number"
+                    placeholder="0.000000"
+                    value={sendAmount}
+                    onChange={(e) => setSendAmount(e.target.value)}
+                    className="pixel-border bg-background/50 border-2 text-[10px] h-10"
+                    step="0.000001"
+                  />
+                </div>
+
+                <Button
+                  className="w-full pixel-border-thick bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-xs h-11 neon-glow-secondary transition-all disabled:opacity-50"
+                  onClick={async () => {
+                    if (!sendTo || !sendAmount) {
+                      toast.error("Please fill in all fields");
+                      return;
+                    }
+                    if (!sendTo.startsWith("keeta_")) {
+                      toast.error("Invalid Keeta address");
+                      return;
+                    }
+                    setIsSending(true);
+                    try {
+                      const tokenAddress = selectedToken === "KTA" ? undefined : selectedToken;
+                      await sendTokens(sendTo, sendAmount, tokenAddress);
+                      setSendTo("");
+                      setSendAmount("");
+                      toast.success("Tokens sent successfully!");
+                    } catch (error) {
+                      console.error("Send error:", error);
+                    } finally {
+                      setIsSending(false);
+                    }
+                  }}
+                  disabled={isSending}
+                >
+                  {isSending ? "⏳ SENDING..." : "🚀 SEND TOKENS"}
                 </Button>
               </div>
             </div>
