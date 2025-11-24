@@ -9,6 +9,7 @@ import Collection from "./pages/Collection";
 import NFTDetail from "./pages/NFTDetail";
 import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
+import PublicProfile from "./pages/PublicProfile";
 import Swap from "./pages/Swap";
 import Bridge from "./pages/Bridge";
 import MintNFT from "./pages/MintNFT";
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/nft/:id" element={<NFTDetail />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:walletAddress" element={<PublicProfile />} />
               <Route path="/swap" element={<Swap />} />
               <Route path="/bridge" element={<Bridge />} />
               <Route path="/mint" element={<MintNFT />} />

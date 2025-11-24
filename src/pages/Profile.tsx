@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, User, Wallet, Upload } from "lucide-react";
+import { Loader2, User, Wallet, Upload, Eye } from "lucide-react";
 import { toast } from "sonner";
 import AvatarCropDialog from "@/components/AvatarCropDialog";
+import { Link } from "react-router-dom";
 
 interface Profile {
   id: string;
@@ -242,11 +243,21 @@ export default function Profile() {
       <Card className="max-w-2xl mx-auto p-6 md:p-8 glass border-border">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl md:text-3xl font-bold neon-glow">Your Profile</h1>
-          {!isEditing && (
-            <Button onClick={() => setIsEditing(true)} variant="outline">
-              Edit Profile
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {publicKey && (
+              <Link to={`/profile/${publicKey}`}>
+                <Button variant="outline" size="sm">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Public
+                </Button>
+              </Link>
+            )}
+            {!isEditing && (
+              <Button onClick={() => setIsEditing(true)} variant="outline">
+                Edit Profile
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-6">
