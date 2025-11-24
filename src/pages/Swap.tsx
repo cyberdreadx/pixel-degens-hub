@@ -9,8 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import TradingChart from "@/components/TradingChart";
 import xrgeLogo from "@/assets/xrge-logo.webp";
 import ktaLogo from "@/assets/kta-logo.jpg";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Token addresses
 const TOKENS = {
@@ -34,7 +32,6 @@ const Swap = () => {
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [priceImpact, setPriceImpact] = useState<number | null>(null);
-  const [transactionHistory, setTransactionHistory] = useState<any[]>([]);
 
   // Fetch anchor info and rate together
   const fetchAnchorInfo = async () => {
@@ -71,32 +68,10 @@ const Swap = () => {
     }
   };
 
-  // Fetch transaction history
-  const fetchTransactionHistory = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("price_history")
-        .select("*")
-        .gt("volume_24h", 0)
-        .order("timestamp", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      setTransactionHistory(data || []);
-    } catch (error) {
-      console.error('Failed to fetch transaction history:', error);
-    }
-  };
-
   // Fetch anchor info and market data on mount
   useEffect(() => {
     fetchAnchorInfo();
     fetchMarketData();
-    fetchTransactionHistory();
-    
-    // Refresh transaction history every 30 seconds
-    const interval = setInterval(fetchTransactionHistory, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   // Fetch rate on mount and when currencies change
@@ -711,66 +686,6 @@ const Swap = () => {
             </div>
           </Card>
         ) : null}
-
-        {/* Transaction History */}
-        <Card className="mt-6 p-6 glass-card hover-scale transition-all duration-300 animate-fade-in">
-          <h3 className="text-xl font-bold mb-4 neon-glow-secondary">Recent Swaps</h3>
-          <ScrollArea className="h-[400px] w-full">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="animate-fade-in">Time</TableHead>
-                  <TableHead className="animate-fade-in">Type</TableHead>
-                  <TableHead className="text-right animate-fade-in">Amount</TableHead>
-                  <TableHead className="text-right animate-fade-in">Rate</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactionHistory.map((tx, index) => {
-                  const isBuy = tx.from_token === "KTA";
-                  const amount = tx.volume_24h;
-                  const time = new Date(tx.timestamp).toLocaleTimeString();
-                  
-                  return (
-                    <TableRow 
-                      key={tx.id}
-                      className="hover-scale transition-all duration-200"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <TableCell className="font-mono text-xs animate-fade-in">
-                        {time}
-                      </TableCell>
-                      <TableCell>
-                        <span 
-                          className={`px-2 py-1 rounded text-xs font-bold animate-pulse ${
-                            isBuy 
-                              ? "bg-green-500/20 text-green-400" 
-                              : "bg-red-500/20 text-red-400"
-                          }`}
-                        >
-                          {isBuy ? "BUY" : "SELL"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right font-mono animate-fade-in">
-                        {amount.toFixed(4)} {isBuy ? "XRGE" : "KTA"}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs animate-fade-in">
-                        {tx.rate.toFixed(6)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {transactionHistory.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground animate-fade-in">
-                      No transactions yet
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-        </Card>
       </div>
     </div>
   );
