@@ -77,7 +77,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!client || !account) return;
     
     try {
-      // Get all balances
       const allBalances = await client.allBalances();
       
       if (!Array.isArray(allBalances) || allBalances.length === 0) {
@@ -85,25 +84,25 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
       
-      // Find the largest balance (which is likely the actual KTA token)
-      let largestBalance = BigInt(0);
+      // Find largest balance
+      let maxBalance = BigInt(0);
       
-      for (const balanceData of allBalances) {
-        const tokenInfo = JSON.parse(
-          JSON.stringify(balanceData, (k: string, v: any) => 
-            typeof v === 'bigint' ? v.toString() : v
-          )
-        );
+      for (let i = 0; i < allBalances.length; i++) {
+        const item = allBalances[i];
+        const balStr = String(item.balance || 0);
+        const bal = BigInt(balStr);
         
-        const balance = BigInt(tokenInfo.balance || 0);
-        if (balance > largestBalance) {
-          largestBalance = balance;
+        if (bal > maxBalance) {
+          maxBalance = bal;
         }
       }
       
-      // Convert balance using 18 decimals (standard for KTA)
-      const balanceInKTA = Number(largestBalance) / Math.pow(10, 18);
-      setBalance(balanceInKTA.toFixed(6));
+      // Convert to decimal (18 decimals)
+      const divisor = Math.pow(10, 18);
+      const balanceNum = Number(maxBalance) / divisor;
+      const balanceStr = balanceNum.toFixed(6);
+      
+      setBalance(balanceStr);
       toast.success("Balance refreshed!");
     } catch (error) {
       console.error("Error fetching balance:", error);
