@@ -23,13 +23,13 @@ interface BuildSwapRequest {
 
 interface BuildSwapResponse {
   success: boolean;
-  swapBlockBytes?: string; // Base64-encoded unsigned swap block
   fromAmount: string;
   toAmount: string;
   fromCurrency: string;
   toCurrency: string;
   rate: number;
   anchorAddress: string;
+  transactionHash?: string;
   error?: string;
 }
 
@@ -172,53 +172,59 @@ serve(async (req) => {
     const fromAmountBigInt = BigInt(Math.floor(inputAmount * Math.pow(10, 18)));
     const toAmountBigInt = BigInt(Math.floor(outputAmount * Math.pow(10, 18)));
     
-    // ATOMIC SWAP OPERATIONS:
+    // ATOMIC SWAP OPERATIONS (both in same block):
     
-    // 1. Anchor sends toCurrency to user
+    // 1. RECEIVE: Anchor expects to receive fromCurrency from user
+    if (fromCurrency === 'KTA') {
+      builder.receive(userAccount, fromAmountBigInt, client.baseToken, false);
+    } else {
+      const fromTokenAccount = KeetaNet.lib.Account.fromPublicKeyString(fromToken);
+      builder.receive(userAccount, fromAmountBigInt, fromTokenAccount as any, false);
+    }
+    
+    // 2. SEND: Anchor sends toCurrency to user
     if (toCurrency === 'KTA') {
       builder.send(userAccount, toAmountBigInt, client.baseToken);
     } else {
       const toTokenAccount = KeetaNet.lib.Account.fromPublicKeyString(toToken);
       builder.send(userAccount, toAmountBigInt, toTokenAccount as any);
     }
-    
-    // 2. Anchor expects to receive fromCurrency from user
-    if (fromCurrency === 'KTA') {
-      builder.receive(userAccount, fromAmountBigInt, client.baseToken, true);
-    } else {
-      const fromTokenAccount = KeetaNet.lib.Account.fromPublicKeyString(fromToken);
-      builder.receive(userAccount, fromAmountBigInt, fromTokenAccount as any, true);
-    }
 
-    console.log('Swap operations added to builder');
+    console.log('Atomic swap operations added to builder');
 
-    // Compute the swap block (don't publish yet - user needs to sign)
+    // Compute and publish the atomic swap block
     const computed = await client.computeBuilderBlocks(builder);
     
     if (!computed.blocks || computed.blocks.length === 0) {
       throw new Error('Failed to compute swap blocks');
     }
 
-    const swapBlock = computed.blocks[0];
-    console.log('Swap block computed successfully');
+    console.log('Swap blocks computed:', computed.blocks.length);
+    
+    // Publish the atomic swap
+    const result = await client.publishBuilder(builder);
+    console.log('Atomic swap published:', result);
 
-    // Convert block to bytes and encode as base64 for transmission
-    const blockBytesBuffer = swapBlock.toBytes();
-    const blockBytesArray = new Uint8Array(blockBytesBuffer);
-    const swapBlockBytes = btoa(String.fromCharCode(...blockBytesArray));
+    // Get transaction hash
+    const hashBuffer = computed.blocks?.[0]?.hash?.get();
+    const txHash = hashBuffer 
+      ? Array.from(new Uint8Array(hashBuffer))
+          .map((b: number) => b.toString(16).padStart(2, '0'))
+          .join('')
+      : 'pending';
 
     const response: BuildSwapResponse = {
       success: true,
-      swapBlockBytes,
       fromAmount: inputAmount.toFixed(6),
       toAmount: outputAmount.toFixed(6),
       fromCurrency,
       toCurrency,
       rate,
-      anchorAddress
+      anchorAddress,
+      transactionHash: txHash,
     };
 
-    console.log('Atomic swap block built successfully');
+    console.log('Atomic swap complete');
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
