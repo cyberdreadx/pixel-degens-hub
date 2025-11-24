@@ -126,7 +126,7 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground m-0;
     font-family: 'Press Start 2P', 'Courier New', monospace;
     image-rendering: pixelated;
     overflow-x: hidden;
