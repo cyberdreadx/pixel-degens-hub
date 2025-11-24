@@ -11,6 +11,7 @@ import xrgeLogo from "@/assets/xrge-logo.webp";
 import ktaLogo from "@/assets/kta-logo.jpg";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { fetchAnchorInfo as fetchAnchorInfoApi, fetchExchangeRate } from "@/utils/keetaApi";
 
 // Token addresses
 const TOKENS = {
@@ -39,14 +40,17 @@ const Swap = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoadingTx, setIsLoadingTx] = useState(false);
 
-  // Fetch anchor info and rate together
+  // Fetch anchor info and rate together - now directly from chain
   const fetchAnchorInfo = async () => {
     setIsRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fx-anchor-info');
-      if (error) throw error;
+      const data = await fetchAnchorInfoApi(ANCHOR_ADDRESS);
       setAnchorAddress(data.address);
-      setAnchorInfo(data);
+      setAnchorInfo({
+        address: data.address,
+        ktaBalance: data.ktaBalance.toFixed(6),
+        xrgeBalance: data.xrgeBalance.toFixed(6),
+      });
       
       // Also refresh the rate
       await fetchRate();
@@ -54,7 +58,7 @@ const Swap = () => {
       toast.success('Liquidity and rates refreshed');
     } catch (error) {
       console.error('Failed to fetch anchor info:', error);
-      toast.error('Failed to connect to anchor');
+      toast.error('Failed to connect to chain');
     } finally {
       setIsRefreshing(false);
     }
@@ -115,12 +119,7 @@ const Swap = () => {
   const fetchRate = async () => {
     setIsLoadingRate(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fx-rates', {
-        body: { from: fromCurrency, to: toCurrency }
-      });
-
-      if (error) throw error;
-      
+      const data = await fetchExchangeRate(ANCHOR_ADDRESS, fromCurrency, toCurrency);
       setRate(data.rate);
       return data.rate;
     } catch (error: any) {
