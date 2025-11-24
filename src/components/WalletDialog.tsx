@@ -161,63 +161,63 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
   if (isConnected) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="pixel-border-thick bg-gradient-to-b from-card to-card/80 max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto border-4 border-primary shadow-[0_0_30px_rgba(0,255,255,0.3)]">
-          <DialogHeader className="space-y-3 pb-4 border-b-2 border-primary/30">
-            <DialogTitle className="text-2xl neon-glow flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary pixel-border-thick flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-background" />
+        <DialogContent className="pixel-border-thick bg-gradient-to-b from-card to-card/80 max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto border-4 border-primary shadow-[0_0_30px_rgba(0,255,255,0.3)] p-4 sm:p-6">
+          <DialogHeader className="space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b-2 border-primary/30">
+            <DialogTitle className="text-xl sm:text-2xl neon-glow flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary pixel-border-thick flex items-center justify-center">
+                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-background" />
               </div>
               WALLET ACTIVE
             </DialogTitle>
-            <DialogDescription className="text-xs text-primary/80 font-mono">
+            <DialogDescription className="text-[10px] sm:text-xs text-primary/80 font-mono">
               KEETA MAINNET • SECP256K1 • INDEX 0
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 pt-4">
+          <div className="space-y-4 sm:space-y-5 pt-3 sm:pt-4">
             {/* Balance Section */}
-            <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 p-5 space-y-3 relative overflow-hidden">
+            <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 p-4 sm:p-5 space-y-2 sm:space-y-3 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10" />
-              <div className="flex items-center justify-between">
-                <Label className="text-[10px] tracking-wider text-primary font-bold">YOUR BALANCES</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-[11px] sm:text-[10px] tracking-wider text-primary font-bold">YOUR BALANCES</Label>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2 text-[10px] hover:bg-primary/20 pixel-border"
+                  className="h-8 sm:h-7 px-2 sm:px-2 text-[11px] sm:text-[10px] hover:bg-primary/20 pixel-border min-w-[80px]"
                   onClick={refreshBalance}
                 >
                   ↻ REFRESH
                 </Button>
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-2 sm:space-y-2.5">
                 <div className="flex items-baseline gap-2">
-                  <div className="text-3xl font-bold neon-glow leading-none">{balance || "0.000000"}</div>
-                  <div className="text-sm text-primary/70">KTA</div>
+                  <div className="text-2xl sm:text-3xl font-bold neon-glow leading-none">{balance || "0.000000"}</div>
+                  <div className="text-xs sm:text-sm text-primary/70">KTA</div>
                 </div>
                 {tokens.map((token) => (
                   <div key={token.address} className="flex items-baseline gap-2 pl-2 border-l-2 border-accent/50">
-                    <div className="text-xl font-bold text-accent leading-none">
+                    <div className="text-lg sm:text-xl font-bold text-accent leading-none">
                       {token.balance}
                     </div>
-                    <div className="text-xs text-accent/70">{token.symbol}</div>
+                    <div className="text-[11px] sm:text-xs text-accent/70">{token.symbol}</div>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Address Section */}
-            <div className="space-y-3">
-              <Label className="text-[10px] tracking-wider text-muted-foreground font-bold">YOUR ADDRESS</Label>
+            <div className="space-y-2 sm:space-y-3">
+              <Label className="text-[11px] sm:text-[10px] tracking-wider text-muted-foreground font-bold">YOUR ADDRESS</Label>
               <div className="flex gap-2">
                 <Input
                   value={publicKey || ""}
                   readOnly
-                  className="pixel-border bg-muted/50 text-[10px] font-mono border-2 border-muted hover:border-primary/50 transition-colors"
+                  className="pixel-border bg-muted/50 text-[11px] sm:text-[10px] font-mono border-2 border-muted hover:border-primary/50 transition-colors truncate"
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  className="pixel-border-thick hover:bg-primary/20 hover:border-primary transition-all"
+                  className="pixel-border-thick hover:bg-primary/20 hover:border-primary transition-all min-w-[44px] h-10"
                   onClick={handleCopyAddress}
                 >
                   <Copy className="w-4 h-4" />
@@ -226,21 +226,21 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             </div>
 
             {/* Send Tokens Section */}
-            <div className="pixel-border-thick bg-gradient-to-br from-accent/5 to-accent/10 p-5 space-y-4 relative overflow-hidden">
+            <div className="pixel-border-thick bg-gradient-to-br from-accent/5 to-accent/10 p-4 sm:p-5 space-y-3 sm:space-y-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -z-10" />
-              <Label className="text-[10px] tracking-wider text-accent font-bold flex items-center gap-2">
+              <Label className="text-[11px] sm:text-[10px] tracking-wider text-accent font-bold flex items-center gap-2">
                 <Send className="w-4 h-4" />
                 SEND TOKENS
               </Label>
               
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label className="text-[9px] text-muted-foreground">SELECT TOKEN</Label>
+                  <Label className="text-[10px] sm:text-[9px] text-muted-foreground">SELECT TOKEN</Label>
                   <Select value={selectedToken} onValueChange={setSelectedToken}>
-                    <SelectTrigger className="pixel-border bg-background/50 border-2 text-xs h-10">
+                    <SelectTrigger className="pixel-border bg-background/50 border-2 text-xs sm:text-xs h-11 sm:h-10">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="pixel-border">
+                    <SelectContent className="pixel-border bg-background z-50">
                       <SelectItem value="KTA" className="text-xs">KTA (Balance: {balance || "0.000000"})</SelectItem>
                       {tokens.map((token) => (
                         <SelectItem key={token.address} value={token.address} className="text-xs">
@@ -252,29 +252,29 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[9px] text-muted-foreground">RECIPIENT ADDRESS</Label>
+                  <Label className="text-[10px] sm:text-[9px] text-muted-foreground">RECIPIENT ADDRESS</Label>
                   <Input
                     placeholder="keeta_..."
                     value={sendTo}
                     onChange={(e) => setSendTo(e.target.value)}
-                    className="pixel-border bg-background/50 border-2 text-[10px] font-mono h-10"
+                    className="pixel-border bg-background/50 border-2 text-[11px] sm:text-[10px] font-mono h-11 sm:h-10"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[9px] text-muted-foreground">AMOUNT</Label>
+                  <Label className="text-[10px] sm:text-[9px] text-muted-foreground">AMOUNT</Label>
                   <Input
                     type="number"
                     placeholder="0.000000"
                     value={sendAmount}
                     onChange={(e) => setSendAmount(e.target.value)}
-                    className="pixel-border bg-background/50 border-2 text-[10px] h-10"
+                    className="pixel-border bg-background/50 border-2 text-[11px] sm:text-[10px] h-11 sm:h-10"
                     step="0.000001"
                   />
                 </div>
 
                 <Button
-                  className="w-full pixel-border-thick bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-xs h-11 neon-glow-secondary transition-all disabled:opacity-50"
+                  className="w-full pixel-border-thick bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-xs sm:text-xs h-12 sm:h-11 neon-glow-secondary transition-all disabled:opacity-50"
                   onClick={async () => {
                     if (!sendTo || !sendAmount) {
                       toast.error("Please fill in all fields");
@@ -306,15 +306,15 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
             {/* QR Code Section */}
             {qrCode && (
-              <div className="pixel-border-thick bg-background p-5 space-y-3">
-                <Label className="text-[10px] tracking-wider text-primary font-bold flex items-center gap-2">
+              <div className="pixel-border-thick bg-background p-4 sm:p-5 space-y-2 sm:space-y-3">
+                <Label className="text-[11px] sm:text-[10px] tracking-wider text-primary font-bold flex items-center gap-2">
                   <QrCodeIcon className="w-4 h-4" />
                   RECEIVE FUNDS
                 </Label>
-                <div className="flex justify-center p-4 bg-white rounded-lg">
-                  <img src={qrCode} alt="Address QR Code" className="w-40 h-40" />
+                <div className="flex justify-center p-3 sm:p-4 bg-white rounded-lg">
+                  <img src={qrCode} alt="Address QR Code" className="w-32 h-32 sm:w-40 sm:h-40" />
                 </div>
-                <p className="text-[9px] text-center text-muted-foreground">
+                <p className="text-[10px] sm:text-[9px] text-center text-muted-foreground">
                   Scan this QR code to receive KTA or tokens
                 </p>
               </div>
@@ -322,11 +322,11 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
             {/* Export Options */}
             <div className="space-y-2 pt-3 border-t-2 border-muted/50">
-              <Label className="text-[10px] tracking-wider text-muted-foreground font-bold">EXPORT OPTIONS</Label>
+              <Label className="text-[11px] sm:text-[10px] tracking-wider text-muted-foreground font-bold">EXPORT OPTIONS</Label>
               
               <Button
                 variant="outline"
-                className="w-full pixel-border-thick text-xs bg-primary/5 hover:bg-primary/10 border-primary/30 hover:border-primary transition-all"
+                className="w-full pixel-border-thick text-xs sm:text-xs bg-primary/5 hover:bg-primary/10 border-primary/30 hover:border-primary transition-all h-11 sm:h-10"
                 onClick={handleExportConnectedWallet}
               >
                 <Copy className="w-3 h-3 mr-2" />
@@ -335,7 +335,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
               <Button
                 variant="outline"
-                className="w-full pixel-border-thick text-xs bg-accent/5 hover:bg-accent/10 border-accent/30 hover:border-accent transition-all"
+                className="w-full pixel-border-thick text-xs sm:text-xs bg-accent/5 hover:bg-accent/10 border-accent/30 hover:border-accent transition-all h-11 sm:h-10"
                 onClick={handleExportSeedHex}
               >
                 <Copy className="w-3 h-3 mr-2" />
@@ -344,7 +344,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
               <Button
                 variant="outline"
-                className="w-full pixel-border text-xs hover:bg-muted/50"
+                className="w-full pixel-border text-xs sm:text-xs hover:bg-muted/50 h-11 sm:h-10"
                 onClick={() => {
                   const walletData = {
                     seed: localStorage.getItem("keetaWalletSeed"),
@@ -369,7 +369,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             {/* Disconnect Button */}
             <Button
               variant="destructive"
-              className="w-full pixel-border-thick text-xs bg-destructive/80 hover:bg-destructive transition-all"
+              className="w-full pixel-border-thick text-xs sm:text-xs bg-destructive/80 hover:bg-destructive transition-all h-12 sm:h-11"
               onClick={handleDisconnect}
             >
               🔌 DISCONNECT WALLET
@@ -382,43 +382,43 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="pixel-border-thick bg-gradient-to-b from-card to-card/80 max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto border-4 border-primary shadow-[0_0_30px_rgba(0,255,255,0.3)]">
-        <DialogHeader className="space-y-3 pb-4 border-b-2 border-primary/30">
-          <DialogTitle className="text-2xl neon-glow flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary pixel-border-thick flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-background" />
+      <DialogContent className="pixel-border-thick bg-gradient-to-b from-card to-card/80 max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto border-4 border-primary shadow-[0_0_30px_rgba(0,255,255,0.3)] p-4 sm:p-6">
+        <DialogHeader className="space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b-2 border-primary/30">
+          <DialogTitle className="text-xl sm:text-2xl neon-glow flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary pixel-border-thick flex items-center justify-center">
+              <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-background" />
             </div>
             CONNECT WALLET
           </DialogTitle>
-          <DialogDescription className="text-xs text-primary/80 font-mono">
+          <DialogDescription className="text-[10px] sm:text-xs text-primary/80 font-mono">
             KEETA MAINNET • SECP256K1 • INDEX 0
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="create" className="w-full pt-4">
-          <TabsList className="grid w-full grid-cols-2 pixel-border-thick bg-muted/50 text-xs p-1 gap-1 h-11">
+        <Tabs defaultValue="create" className="w-full pt-3 sm:pt-4">
+          <TabsList className="grid w-full grid-cols-2 pixel-border-thick bg-muted/50 text-xs p-1 gap-1 h-12 sm:h-11">
             <TabsTrigger 
               value="create" 
-              className="text-xs pixel-border data-[state=active]:bg-primary data-[state=active]:text-background data-[state=active]:neon-glow transition-all"
+              className="text-xs sm:text-xs pixel-border data-[state=active]:bg-primary data-[state=active]:text-background data-[state=active]:neon-glow transition-all"
             >
               🆕 CREATE
             </TabsTrigger>
             <TabsTrigger 
               value="import" 
-              className="text-xs pixel-border data-[state=active]:bg-secondary data-[state=active]:text-background data-[state=active]:neon-glow-secondary transition-all"
+              className="text-xs sm:text-xs pixel-border data-[state=active]:bg-secondary data-[state=active]:text-background data-[state=active]:neon-glow-secondary transition-all"
             >
               📥 IMPORT
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="create" className="space-y-5 mt-6">
+          <TabsContent value="create" className="space-y-4 sm:space-y-5 mt-4 sm:mt-6">
             {/* Security Warning */}
-            <div className="pixel-border-thick bg-destructive/10 border-2 border-destructive/30 p-4 space-y-2.5">
-              <div className="flex items-start gap-3">
+            <div className="pixel-border-thick bg-destructive/10 border-2 border-destructive/30 p-3 sm:p-4 space-y-2 sm:space-y-2.5">
+              <div className="flex items-start gap-2 sm:gap-3">
                 <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                <div className="space-y-1.5">
-                  <p className="text-xs font-bold text-destructive tracking-wider">⚠️ SECURITY ALERT</p>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                <div className="space-y-1 sm:space-y-1.5">
+                  <p className="text-xs sm:text-xs font-bold text-destructive tracking-wider">⚠️ SECURITY ALERT</p>
+                  <p className="text-[11px] sm:text-[10px] text-muted-foreground leading-relaxed">
                     Your seed phrase will be stored in browser localStorage. Never share it with anyone. Write it down offline and keep it safe.
                   </p>
                 </div>
@@ -427,27 +427,27 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
             {!generatedSeed ? (
               <Button
-                className="w-full pixel-border-thick bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-xs h-12 neon-glow transition-all"
+                className="w-full pixel-border-thick bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-xs sm:text-xs h-12 sm:h-12 neon-glow transition-all"
                 onClick={handleGenerateWallet}
               >
                 ✨ GENERATE 24-WORD PHRASE
               </Button>
             ) : (
-              <div className="space-y-5">
-                <div className="space-y-3">
-                  <Label className="text-xs text-destructive font-bold tracking-wider flex items-center gap-2">
+              <div className="space-y-4 sm:space-y-5">
+                <div className="space-y-2 sm:space-y-3">
+                  <Label className="text-xs sm:text-xs text-destructive font-bold tracking-wider flex items-center gap-2">
                     <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
                     SAVE YOUR RECOVERY PHRASE
                   </Label>
-                  <div className="pixel-border-thick bg-gradient-to-br from-background to-muted/30 p-4 space-y-3">
-                    <div className={`text-[10px] font-mono leading-relaxed ${showSeed ? '' : 'blur-md select-none pointer-events-none'} transition-all`}>
+                  <div className="pixel-border-thick bg-gradient-to-br from-background to-muted/30 p-3 sm:p-4 space-y-2 sm:space-y-3">
+                    <div className={`text-[11px] sm:text-[10px] font-mono leading-relaxed ${showSeed ? '' : 'blur-md select-none pointer-events-none'} transition-all break-all`}>
                       {generatedSeed}
                     </div>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="pixel-border flex-1 text-[10px] hover:bg-primary/10 hover:border-primary transition-all"
+                        className="pixel-border flex-1 text-[10px] sm:text-[10px] hover:bg-primary/10 hover:border-primary transition-all h-10"
                         onClick={() => setShowSeed(!showSeed)}
                       >
                         {showSeed ? (
@@ -459,7 +459,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="pixel-border flex-1 text-[10px] hover:bg-primary/10 hover:border-primary transition-all"
+                        className="pixel-border flex-1 text-[10px] sm:text-[10px] hover:bg-primary/10 hover:border-primary transition-all h-10"
                         onClick={handleCopySeed}
                       >
                         <Copy className="w-3 h-3 mr-1.5" /> COPY
@@ -467,16 +467,16 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                     </div>
                   </div>
                   <div className="pixel-border bg-destructive/5 border-destructive/20 p-3">
-                    <p className="text-[10px] text-destructive leading-relaxed">
+                    <p className="text-[11px] sm:text-[10px] text-destructive leading-relaxed">
                       ⚠️ Write down these 24 words in exact order. Store them safely offline. You'll need them to recover your wallet. No one can help if you lose them!
                     </p>
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-2 sm:gap-3 pt-2">
                   <Button
                     variant="outline"
-                    className="flex-1 pixel-border-thick text-xs hover:bg-muted/50 transition-all"
+                    className="flex-1 pixel-border-thick text-xs sm:text-xs hover:bg-muted/50 transition-all h-11 sm:h-10"
                     onClick={() => {
                       setGeneratedSeed("");
                       setShowSeed(false);
@@ -485,7 +485,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                     ❌ CANCEL
                   </Button>
                   <Button
-                    className="flex-1 pixel-border-thick bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-xs transition-all"
+                    className="flex-1 pixel-border-thick bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-xs sm:text-xs transition-all h-11 sm:h-10"
                     onClick={handleConnectWithSeed}
                   >
                     ✅ I SAVED IT
@@ -495,9 +495,9 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             )}
           </TabsContent>
 
-          <TabsContent value="import" className="space-y-5 mt-6">
-            <div className="space-y-3">
-              <Label className="text-xs font-bold tracking-wider">ENTER YOUR 24-WORD PHRASE</Label>
+          <TabsContent value="import" className="space-y-4 sm:space-y-5 mt-4 sm:mt-6">
+            <div className="space-y-2 sm:space-y-3">
+              <Label className="text-xs sm:text-xs font-bold tracking-wider">ENTER YOUR 24-WORD PHRASE</Label>
               <textarea
                 placeholder="word1 word2 word3 ... word24"
                 value={importSeed}
@@ -505,16 +505,16 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                   setImportSeed(e.target.value);
                   setPreviewAddress(null);
                 }}
-                className="pixel-border-thick bg-muted/30 text-xs font-mono w-full min-h-[120px] p-4 rounded-md resize-none border-2 border-muted hover:border-primary/50 focus:border-primary transition-colors"
+                className="pixel-border-thick bg-muted/30 text-[11px] sm:text-xs font-mono w-full min-h-[120px] p-3 sm:p-4 rounded-md resize-none border-2 border-muted hover:border-primary/50 focus:border-primary transition-colors"
               />
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
+              <p className="text-[11px] sm:text-[10px] text-muted-foreground leading-relaxed">
                 💡 Separate words with spaces. Old 64-character hex seeds are also supported.
               </p>
             </div>
 
             <Button
               variant="outline"
-              className="w-full pixel-border-thick text-xs hover:bg-primary/10 hover:border-primary transition-all h-11"
+              className="w-full pixel-border-thick text-xs sm:text-xs hover:bg-primary/10 hover:border-primary transition-all h-12 sm:h-11"
               onClick={handlePreviewAddress}
               disabled={!importSeed.trim()}
             >
@@ -522,22 +522,22 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             </Button>
 
             {previewAddress && (
-              <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/30 p-4 space-y-3">
-                <Label className="text-[10px] tracking-wider text-primary font-bold flex items-center gap-2">
+              <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/30 p-3 sm:p-4 space-y-2 sm:space-y-3">
+                <Label className="text-[11px] sm:text-[10px] tracking-wider text-primary font-bold flex items-center gap-2">
                   <span className="w-2 h-2 bg-primary rounded-full" />
                   DERIVED ADDRESS
                 </Label>
-                <div className="font-mono text-[10px] break-all bg-background/50 p-3 rounded pixel-border leading-relaxed">
+                <div className="font-mono text-[11px] sm:text-[10px] break-all bg-background/50 p-2 sm:p-3 rounded pixel-border leading-relaxed">
                   {previewAddress}
                 </div>
-                <p className="text-[9px] text-muted-foreground leading-relaxed">
+                <p className="text-[10px] sm:text-[9px] text-muted-foreground leading-relaxed">
                   Compare this address with the FX Anchor Status on the swap page. They should match if using the same seed phrase.
                 </p>
               </div>
             )}
 
             <Button
-              className="w-full pixel-border-thick bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary text-xs h-12 neon-glow-secondary transition-all"
+              className="w-full pixel-border-thick bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary text-xs sm:text-xs h-12 sm:h-12 neon-glow-secondary transition-all"
               onClick={handleImportWallet}
               disabled={!importSeed.trim()}
             >
