@@ -79,10 +79,13 @@ const Swap = () => {
     setIsLoadingTx(true);
     try {
       // Fetch all swap records from price_history for current network
+      // Filter to only show KTA → XRGE swaps to avoid duplicate entries
+      // (Each swap is recorded twice: once for each direction)
       const { data, error } = await supabase
         .from("price_history")
         .select("*")
         .eq("network", network)  // Filter by current network
+        .eq("from_token", "KTA")  // Only show KTA → XRGE direction to avoid duplicates
         .gt("volume_24h", 0)
         .order("timestamp", { ascending: false })
         .limit(20);
