@@ -30,6 +30,7 @@ export default function Profile() {
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [bio, setBio] = useState("");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   useEffect(() => {
     if (isConnected && publicKey) {
@@ -65,6 +66,65 @@ export default function Profile() {
       toast.error("Failed to load profile");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      // Extract old IPFS hash from current avatar URL if it exists
+      let oldIpfsHash = null;
+      if (avatarUrl && avatarUrl.includes('ipfs/')) {
+        const match = avatarUrl.match(/ipfs\/([a-zA-Z0-9]+)/);
+        if (match) {
+          oldIpfsHash = match[1];
+        }
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (oldIpfsHash) {
+        formData.append('oldIpfsHash', oldIpfsHash);
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fx-upload-avatar`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to upload avatar');
+      }
+
+      const { ipfsUrl } = await response.json();
+      setAvatarUrl(ipfsUrl);
+      toast.success('Avatar uploaded to IPFS!');
+    } catch (error: any) {
+      console.error('Error uploading avatar:', error);
+      toast.error(`Failed to upload avatar: ${error.message}`);
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -180,14 +240,30 @@ export default function Profile() {
               </AvatarFallback>
             </Avatar>
             {isEditing && (
-              <div className="flex-1">
-                <Label htmlFor="avatar_url">Avatar URL</Label>
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="avatar_upload">Upload Avatar</Label>
+                <Input
+                  id="avatar_upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  disabled={isUploadingAvatar}
+                  className="cursor-pointer"
+                />
+                {isUploadingAvatar && (
+                  <p className="text-xs text-muted-foreground">
+                    <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
+                    Uploading to IPFS...
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Or paste URL:
+                </p>
                 <Input
                   id="avatar_url"
                   value={avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
                   placeholder="https://example.com/avatar.png"
-                  className="mt-1"
                 />
               </div>
             )}
