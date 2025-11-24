@@ -165,25 +165,23 @@ const MintNFT = () => {
       const tokenAccount = pendingTokenAccount.account;
 
       // Format for Keeta SDK
-      // Name: only A-Z and underscores allowed (convert everything else)
-      const formattedName = name.toUpperCase().replace(/[^A-Z]/g, '_');
-      // Symbol: strict validation (A-Z only, no underscores)
+      // IMPORTANT: Keeta's naming is confusing:
+      // - "name" parameter = SYMBOL/TICKER (strict A-Z and underscores)
+      // - "description" parameter = NFT NAME (can be anything)
       const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '').substring(0, 4);
 
       console.log('Token Info Mapping:', {
-        'name (on-chain Name)': formattedName,
-        'symbol (on-chain Symbol)': formattedSymbol,
-        'description (on-chain)': description || '',
-        'original name in metadata': name
+        'name (SDK param, actually SYMBOL)': formattedSymbol,
+        'description (SDK param, actually NFT NAME)': name,
+        'metadata': 'includes full description'
       });
 
-      // Set token info
+      // Set token info - Keeta SDK has confusing param names
       builder.setInfo(
         {
-          name: formattedName, // "Yoda#1" -> "YODA__"
-          symbol: formattedSymbol, // YODA
-          description: description || '',
-          metadata: metadataBase64, // Contains original name "Yoda#1"
+          name: formattedSymbol, // YODA (this is the symbol/ticker, requires strict format)
+          description: name, // "Yoda#1" (this is the actual NFT name)
+          metadata: metadataBase64, // Contains description and other metadata
           defaultPermission: new KeetaNet.lib.Permissions(['ACCESS']),
         },
         { account: tokenAccount }
@@ -248,7 +246,7 @@ const MintNFT = () => {
               className="pixel-border text-xs"
             />
             <p className="text-xs text-muted-foreground">
-              Will be formatted: A-Z and underscores only (e.g., "Yoda #1" → "YODA___")
+              Your NFT's display name (can include anything - letters, numbers, symbols, spaces)
             </p>
           </div>
 
@@ -264,7 +262,7 @@ const MintNFT = () => {
               className="pixel-border text-xs"
             />
             <p className="text-xs text-muted-foreground">
-              Letters and numbers only (special characters removed automatically)
+              Letters only, max 4 characters (special characters removed automatically)
             </p>
           </div>
 
