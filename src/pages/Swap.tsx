@@ -456,15 +456,22 @@ const Swap = () => {
                 <span className="font-bold text-foreground">{fromCurrency}</span>
               </div>
             </div>
-            {isConnected && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Balance: {
-                  fromCurrency === 'KTA' 
-                    ? (balance || "0.000000")
-                    : (tokens.find(t => t.symbol === fromCurrency)?.balance || "0.000000")
-                } {fromCurrency}
-              </p>
-            )}
+            <div className="mt-1 space-y-0.5">
+              {isConnected && (
+                <p className="text-xs text-muted-foreground">
+                  Balance: {
+                    fromCurrency === 'KTA' 
+                      ? (balance || "0.000000")
+                      : (tokens.find(t => t.symbol === fromCurrency)?.balance || "0.000000")
+                  } {fromCurrency}
+                </p>
+              )}
+              {fromAmount && parseFloat(fromAmount) > 0 && marketData && (
+                <p className="text-xs text-muted-foreground">
+                  ≈ ${(parseFloat(fromAmount) * (fromCurrency === 'KTA' ? marketData.kta?.price || 0 : marketData.xrge?.price || 0)).toFixed(2)} USD
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Swap Button */}
@@ -496,15 +503,22 @@ const Swap = () => {
                 <span className="font-bold text-foreground">{toCurrency}</span>
               </div>
             </div>
-            {isConnected && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Balance: {
-                  toCurrency === 'KTA' 
-                    ? (balance || "0.000000")
-                    : (tokens.find(t => t.symbol === toCurrency)?.balance || "0.000000")
-                } {toCurrency}
-              </p>
-            )}
+            <div className="mt-1 space-y-0.5">
+              {isConnected && (
+                <p className="text-xs text-muted-foreground">
+                  Balance: {
+                    toCurrency === 'KTA' 
+                      ? (balance || "0.000000")
+                      : (tokens.find(t => t.symbol === toCurrency)?.balance || "0.000000")
+                  } {toCurrency}
+                </p>
+              )}
+              {toAmount && parseFloat(toAmount) > 0 && marketData && (
+                <p className="text-xs text-muted-foreground">
+                  ≈ ${(parseFloat(toAmount) * (toCurrency === 'KTA' ? marketData.kta?.price || 0 : marketData.xrge?.price || 0)).toFixed(2)} USD
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Price Impact Display */}
