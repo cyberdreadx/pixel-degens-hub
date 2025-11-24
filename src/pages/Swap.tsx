@@ -7,6 +7,7 @@ import { ArrowDownUp, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import TradingChart from "@/components/TradingChart";
+import xrgeLogo from "@/assets/xrge-logo.webp";
 
 // Token addresses
 const TOKENS = {
@@ -382,7 +383,10 @@ const Swap = () => {
                     )}
                     {marketData.xrge && (
                       <div className="space-y-1">
-                        <div className="text-xs text-muted-foreground">XRGE</div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <img src={xrgeLogo} alt="XRGE" className="w-4 h-4 rounded-full" />
+                          XRGE
+                        </div>
                         <div className="font-bold text-foreground">
                           ${marketData.xrge.price.toFixed(6)}
                         </div>
@@ -452,7 +456,8 @@ const Swap = () => {
                 onChange={(e) => handleFromAmountChange(e.target.value)}
                 className="flex-1"
               />
-              <div className="px-4 py-2 bg-muted rounded-md flex items-center min-w-[80px] justify-center">
+              <div className="px-4 py-2 bg-muted rounded-md flex items-center gap-2 min-w-[80px] justify-center">
+                {fromCurrency === 'XRGE' && <img src={xrgeLogo} alt="XRGE" className="w-5 h-5 rounded-full" />}
                 <span className="font-bold text-foreground">{fromCurrency}</span>
               </div>
             </div>
@@ -499,7 +504,8 @@ const Swap = () => {
                 readOnly
                 className="flex-1"
               />
-              <div className="px-4 py-2 bg-muted rounded-md flex items-center min-w-[80px] justify-center">
+              <div className="px-4 py-2 bg-muted rounded-md flex items-center gap-2 min-w-[80px] justify-center">
+                {toCurrency === 'XRGE' && <img src={xrgeLogo} alt="XRGE" className="w-5 h-5 rounded-full" />}
                 <span className="font-bold text-foreground">{toCurrency}</span>
               </div>
             </div>
