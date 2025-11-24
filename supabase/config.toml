@@ -6,6 +6,12 @@ verify_jwt = false
 [functions.fx-swap]
 verify_jwt = false
 
+[functions.fx-build-swap]
+verify_jwt = false
+
+[functions.fx-publish-swap]
+verify_jwt = false
+
 [functions.fx-anchor-info]
 verify_jwt = false
 
