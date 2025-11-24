@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, User, Wallet } from "lucide-react";
+import { Loader2, User, Wallet, Upload } from "lucide-react";
 import { toast } from "sonner";
+import AvatarCropDialog from "@/components/AvatarCropDialog";
 
 interface Profile {
   id: string;
@@ -31,6 +32,8 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [bio, setBio] = useState("");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [showCropDialog, setShowCropDialog] = useState(false);
 
   useEffect(() => {
     if (isConnected && publicKey) {
@@ -69,7 +72,7 @@ export default function Profile() {
     }
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -85,6 +88,19 @@ export default function Profile() {
       return;
     }
 
+    // Create preview URL and show crop dialog
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreviewImageUrl(reader.result as string);
+      setShowCropDialog(true);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedImageBlob: Blob) => {
     setIsUploadingAvatar(true);
     try {
       // Extract old IPFS hash from current avatar URL if it exists
@@ -97,7 +113,7 @@ export default function Profile() {
       }
 
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', croppedImageBlob, 'avatar.jpg');
       if (oldIpfsHash) {
         formData.append('oldIpfsHash', oldIpfsHash);
       }
@@ -114,11 +130,14 @@ export default function Profile() {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to upload avatar');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload avatar');
       }
 
       const { ipfsUrl } = await response.json();
       setAvatarUrl(ipfsUrl);
+      setShowCropDialog(false);
+      setPreviewImageUrl(null);
       toast.success('Avatar uploaded to IPFS!');
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
@@ -232,38 +251,52 @@ export default function Profile() {
 
         <div className="space-y-6">
           {/* Avatar */}
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20 border-2 border-border">
-              <AvatarImage src={avatarUrl || undefined} />
-              <AvatarFallback>
-                <User className="h-10 w-10" />
-              </AvatarFallback>
-            </Avatar>
-            {isEditing && (
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="avatar_upload">Upload Avatar</Label>
-                <Input
-                  id="avatar_upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  disabled={isUploadingAvatar}
-                  className="cursor-pointer"
-                />
-                {isUploadingAvatar && (
-                  <p className="text-xs text-muted-foreground">
-                    <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
-                    Uploading to IPFS...
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20 border-2 border-border">
+                <AvatarImage src={avatarUrl || undefined} />
+                <AvatarFallback>
+                  <User className="h-10 w-10" />
+                </AvatarFallback>
+              </Avatar>
+              {isEditing && (
+                <div className="flex-1">
+                  <Label htmlFor="avatar_upload" className="cursor-pointer">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={isUploadingAvatar}
+                      onClick={() => document.getElementById('avatar_upload')?.click()}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {avatarUrl ? 'Change Avatar' : 'Upload Avatar'}
+                    </Button>
+                  </Label>
+                  <Input
+                    id="avatar_upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarSelect}
+                    disabled={isUploadingAvatar}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Image will be cropped to a circle and uploaded to IPFS
                   </p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Or paste URL:
-                </p>
+                </div>
+              )}
+            </div>
+            
+            {isEditing && (
+              <div>
+                <Label htmlFor="avatar_url">Or paste image URL:</Label>
                 <Input
                   id="avatar_url"
                   value={avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
                   placeholder="https://example.com/avatar.png"
+                  className="mt-1"
                 />
               </div>
             )}
@@ -369,6 +402,20 @@ export default function Profile() {
           )}
         </div>
       </Card>
+
+      {/* Avatar Crop Dialog */}
+      {previewImageUrl && (
+        <AvatarCropDialog
+          open={showCropDialog}
+          imageUrl={previewImageUrl}
+          onClose={() => {
+            setShowCropDialog(false);
+            setPreviewImageUrl(null);
+          }}
+          onCropComplete={handleCropComplete}
+          isUploading={isUploadingAvatar}
+        />
+      )}
     </div>
   );
 }
