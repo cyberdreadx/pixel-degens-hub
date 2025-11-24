@@ -78,9 +78,14 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!client || !account) return;
     
     try {
+      console.log('[WalletContext] Fetching balances for network:', network);
       const allBalances = await client.allBalances();
+      console.log('[WalletContext] Raw allBalances response:', allBalances);
+      console.log('[WalletContext] allBalances type:', typeof allBalances, 'keys:', Object.keys(allBalances || {}));
       
-      if (!Array.isArray(allBalances) || allBalances.length === 0) {
+      // allBalances returns an object: { [tokenId]: { token: 'address', balance: bigint } }
+      if (!allBalances || Object.keys(allBalances).length === 0) {
+        console.log('[WalletContext] No balances found');
         setBalance("0.000000");
         return;
       }
@@ -89,29 +94,55 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const tokenAddrs = getTokenAddresses(network);
       const ktaAddress = tokenAddrs.KTA;
       
-      // Find KTA balance by matching the token address
-      let ktaBalance = BigInt(0);
+      // Also get the base token address from the client (this is the canonical KTA address)
+      const baseTokenAddr = client.baseToken.publicKeyString.toString();
+      console.log('[WalletContext] Network:', network);
+      console.log('[WalletContext] Expected KTA address:', ktaAddress);
+      console.log('[WalletContext] Client base token:', baseTokenAddr);
       
-      for (let i = 0; i < allBalances.length; i++) {
-        const item = allBalances[i];
-        const tokenAddr = String(item.token || '');
+      // Find KTA balance by iterating over balance entries
+      let ktaBalance = BigInt(0);
+      let foundKTA = false;
+      
+      for (const [tokenId, balanceData] of Object.entries(allBalances)) {
+        // Parse the balance data (handles bigint serialization)
+        const tokenInfo = JSON.parse(JSON.stringify(balanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
+        const tokenAddr = String(tokenInfo.token || '');
+        console.log('[WalletContext] Token entry:', { tokenId, tokenAddr, balance: tokenInfo.balance });
         
-        if (tokenAddr === ktaAddress) {
-          const balStr = String(item.balance || 0);
+        // Match against both the static address AND the base token from client
+        if (tokenAddr === ktaAddress || tokenAddr === baseTokenAddr) {
+          const balStr = String(tokenInfo.balance || '0');
           ktaBalance = BigInt(balStr);
+          foundKTA = true;
+          console.log('[WalletContext] ✅ Found KTA balance:', balStr, 'from token:', tokenAddr);
           break;
         }
       }
       
-      // Convert to decimal (18 decimals)
-      const divisor = Math.pow(10, 18);
+      if (!foundKTA) {
+        console.warn('[WalletContext] KTA token not found in balances. All tokens:', 
+          Object.entries(allBalances).map(([id, data]: [string, any]) => {
+            const info = JSON.parse(JSON.stringify(data, (k, v) => typeof v === 'bigint' ? v.toString() : v));
+            return info.token;
+          })
+        );
+      }
+      
+      // KTA uses 7 decimals (not 18) based on keeta-cli observation
+      // Raw balance example: 2490090104486200 with 7 decimals = 249009010.4486200
+      const decimals = 7;
+      const divisor = Math.pow(10, decimals);
       const balanceNum = Number(ktaBalance) / divisor;
       const balanceStr = balanceNum.toFixed(6);
       
+      console.log('[WalletContext] Raw KTA balance (bigint):', ktaBalance.toString());
+      console.log('[WalletContext] Decimals used:', decimals);
+      console.log('[WalletContext] Final KTA balance:', balanceStr);
       setBalance(balanceStr);
       toast.success("Balance refreshed!");
     } catch (error) {
-      console.error("Error fetching balance:", error);
+      console.error("[WalletContext] Error fetching balance:", error);
       setBalance("0.000000");
       toast.error("Failed to refresh balance");
     }

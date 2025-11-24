@@ -81,8 +81,29 @@ npm i
 npm run dev
 ```
 
+### Troubleshooting
+
+**KTA balance shows 0 when you have tokens?**
+
+Open browser DevTools console (F12) and check for logs prefixed with `[WalletContext]`. The logs will show:
+- Which network you're connected to (test/main)
+- The expected KTA token address
+- All tokens found in your wallet
+- Whether KTA was matched correctly
+
+Common issues:
+- **Wrong network**: Make sure you're on the same network where your tokens are (testnet vs mainnet)
+- **Token address mismatch**: The KTA token address changes between networks. The app now checks both the static address and the client's base token.
+- **Not yet synced**: Wait a few seconds after connecting and click "REFRESH" in the wallet dialog
+
+**Debug steps:**
+1. Open DevTools Console (F12)
+2. Connect your wallet or click "REFRESH" 
+3. Look for `[WalletContext]` logs showing all token addresses
+4. Verify the KTA address matches your network
+
 ### Security & Dependency Notes
-- Dev server moderate vuln via `esbuild` (<0.24.2) transitive in `vite@5`; affects local dev only. Plan: branch upgrade to `vite@^7.2.4` and validate.
+- Dev server moderate vuln via `esbuild` (<0.24.2) transitive in `vite@5`; **RESOLVED** - upgraded to `vite@6.4.1` ✅
 - Critical `form-data` advisory sourced from legacy `@types/request` chain in `@keetanetwork/keetanet-client`; currently not directly referenced in app code. Monitor upstream for removal.
 - Low `tmp` via `external-editor` used only if interactive CLI flows are invoked; typical browser usage unaffected.
 - Engine mismatch warnings resolved when using Node 20.18.0 as above.
