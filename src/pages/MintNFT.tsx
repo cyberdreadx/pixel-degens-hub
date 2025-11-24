@@ -23,7 +23,6 @@ const MintNFT = () => {
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
   const [description, setDescription] = useState("");
-  const [supply, setSupply] = useState("1000");
   const [imageUrl, setImageUrl] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
   const [attributes, setAttributes] = useState<NFTAttribute[]>([]);
@@ -168,8 +167,8 @@ const MintNFT = () => {
       // Format ticker for Keeta SDK (strict A-Z only, max 4 characters)
       const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '').substring(0, 4);
 
-      // Parse supply amount
-      const supplyAmount = BigInt(supply);
+      // Hardcoded supply of 1
+      const supplyAmount = 1n;
 
       // Set token info first
       builder.setInfo(
@@ -197,7 +196,6 @@ const MintNFT = () => {
       // Reset form
       setName("");
       setTicker("");
-      setSupply("1000");
       setDescription("");
       setImageUrl("");
       setExternalUrl("");
@@ -259,23 +257,6 @@ const MintNFT = () => {
             />
             <p className="text-xs text-muted-foreground">
               Letters only, max 4 characters (special characters removed automatically)
-            </p>
-          </div>
-
-          {/* Supply */}
-          <div className="space-y-2">
-            <Label htmlFor="supply" className="text-xs font-bold">SUPPLY *</Label>
-            <Input
-              id="supply"
-              type="number"
-              value={supply}
-              onChange={(e) => setSupply(e.target.value)}
-              placeholder="1000"
-              min="1"
-              className="pixel-border text-xs"
-            />
-            <p className="text-xs text-muted-foreground">
-              Total token supply (how many tokens to mint)
             </p>
           </div>
 
@@ -432,7 +413,7 @@ const MintNFT = () => {
           {/* Mint Button */}
           <Button
             onClick={mintNFT}
-            disabled={!isConnected || isMinting || isUploading || !name || !ticker || !supply || (!imageUrl && !selectedFile)}
+            disabled={!isConnected || isMinting || isUploading || !name || !ticker || (!imageUrl && !selectedFile)}
             className="w-full pixel-border-thick text-xs"
             size="lg"
           >
@@ -441,8 +422,8 @@ const MintNFT = () => {
 
           {/* Info */}
           <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
-            <p>• Tokens are created with your specified supply</p>
-            <p>• All tokens will be distributed to your wallet</p>
+            <p>• Tokens are created with supply of 1</p>
+            <p>• Token will be distributed to your wallet</p>
             <p>• Use IPFS for permanent image storage (recommended)</p>
             <p>• <strong>Transaction fee:</strong> ~0.05-0.1 KTA</p>
             <p>• Your balance: <strong>{balance || "0.000"} KTA</strong></p>
