@@ -165,25 +165,25 @@ const MintNFT = () => {
       const tokenAccount = pendingTokenAccount.account;
 
       // Format for Keeta SDK
-      // The "name" field has strict validation (A-Z_ only), so use the ticker there
-      const formattedName = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '');
-      // Symbol is the same as the formatted ticker
+      // Name field needs to be formatted for strict validation (A-Z_ only)
+      const formattedName = name.toUpperCase().replace(/[^A-Z]/g, '_');
+      // Symbol is the ticker
       const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
 
       console.log('Token Info Mapping:', {
-        'On-chain name field (strict A-Z_)': formattedName,
-        'On-chain symbol field': formattedSymbol,
-        'On-chain description field': description || ''
+        'name parameter (Yoda #1 formatted)': formattedName,
+        'symbol parameter': formattedSymbol,
+        'description parameter': description
       });
 
       // Set token info with metadata
       builder.setInfo(
         {
-          name: formattedName, // On-chain: YODA
-          symbol: formattedSymbol, // On-chain: YODA
-          description: description || '', // On-chain: USE THE FORCE (separate from name)
+          name: formattedName, // Yoda #1 -> YODA__
+          symbol: formattedSymbol, // YODA
+          description: description || '', // USE THE FORCE
           metadata: metadataBase64,
-          defaultPermission: new KeetaNet.lib.Permissions(['ACCESS']), // Public token
+          defaultPermission: new KeetaNet.lib.Permissions(['ACCESS']),
         },
         { account: tokenAccount }
       );
