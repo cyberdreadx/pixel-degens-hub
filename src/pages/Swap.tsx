@@ -104,13 +104,21 @@ const Swap = () => {
     setIsLoading(true);
 
     try {
-      // Execute atomic swap via anchor
-      // The anchor creates a block with both RECEIVE and SEND operations
-      // This ensures both transfers happen atomically or not at all
+      // Two-transaction swap (user sends first, anchor sends back)
+      // This is the standard approach for anchor-initiated swaps
       
-      toast.info("Initiating atomic swap...");
+      toast.info(`Sending ${fromAmount} ${fromCurrency} to anchor...`);
       
-      const { data, error } = await supabase.functions.invoke('fx-build-swap', {
+      // Get the token address (undefined for KTA means use base token)
+      const fromTokenAddress = fromCurrency === 'KTA' ? undefined : TOKENS[fromCurrency as keyof typeof TOKENS];
+      
+      // User sends tokens to anchor wallet
+      await sendTokens(anchorAddress, fromAmount, fromTokenAddress);
+      
+      toast.success("Tokens sent. Processing swap...");
+
+      // Call edge function for anchor to send swapped tokens back
+      const { data, error } = await supabase.functions.invoke('fx-swap', {
         body: {
           fromCurrency,
           toCurrency,
@@ -120,20 +128,19 @@ const Swap = () => {
       });
 
       if (error) throw error;
-      if (!data.success) throw new Error(data.error || "Failed to execute swap");
 
-      toast.success(
-        `Atomic swap complete! Received ${data.toAmount} ${data.toCurrency}`
-      );
-      
-      console.log('Swap transaction hash:', data.transactionHash);
-      
-      setFromAmount("");
-      setToAmount("");
-      
+      if (data.success) {
+        toast.success(
+          `Swap complete! Received ${data.toAmount} ${data.toCurrency}`
+        );
+        setFromAmount("");
+        setToAmount("");
+      } else {
+        toast.error(data.error || "Swap failed");
+      }
     } catch (error: any) {
-      console.error('Atomic swap error:', error);
-      toast.error(error.message || "Failed to execute atomic swap");
+      console.error('Swap error:', error);
+      toast.error(error.message || "Failed to execute swap");
     } finally {
       setIsLoading(false);
     }
