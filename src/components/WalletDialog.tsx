@@ -339,7 +339,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                 onClick={handleExportSeedHex}
               >
                 <Copy className="w-3 h-3 mr-2" />
-                COPY SEED HEX (FOR BACKEND)
+                COPY SEED HEX
               </Button>
 
               <Button
