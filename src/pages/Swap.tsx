@@ -785,10 +785,10 @@ const Swap = () => {
                 <TableBody>
                   {transactions.map((tx, index) => {
                     const time = new Date(tx.timestamp).toLocaleTimeString();
-                    // From user perspective: SELL = selling what you have, BUY = buying what you want
-                    // If from_token is KTA, user is selling KTA to buy XRGE (SELL KTA)
-                    // If from_token is XRGE, user is selling XRGE to buy KTA (SELL XRGE)
-                    const label = `SELL ${tx.from_token}`;
+                    // BUY XRGE = spending KTA to get XRGE (green)
+                    // SELL XRGE = spending XRGE to get KTA (red)
+                    const isBuyingXRGE = tx.from_token === "KTA";
+                    const label = isBuyingXRGE ? "BUY XRGE" : "SELL XRGE";
                     const inputAmount = tx.volume_24h || 0;
                     const outputAmount = inputAmount * (tx.rate || 0);
                     
@@ -804,9 +804,9 @@ const Swap = () => {
                         <TableCell>
                           <span 
                             className={`px-2 py-1 rounded text-xs font-bold ${
-                              tx.from_token === "KTA"
-                                ? "bg-red-500/20 text-red-400" 
-                                : "bg-green-500/20 text-green-400"
+                              isBuyingXRGE
+                                ? "bg-green-500/20 text-green-400" 
+                                : "bg-red-500/20 text-red-400"
                             }`}
                           >
                             {label}
