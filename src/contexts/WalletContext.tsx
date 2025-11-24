@@ -77,29 +77,49 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!client || !account) return;
     
     try {
-      // Get all balances (matches Keeta SDK pattern)
+      // Get all balances
       const allBalances = await client.allBalances();
       
-      // Get base token address for comparison
-      const baseTokenAddr = client.baseToken.publicKeyString.toString();
+      if (!Array.isArray(allBalances) || allBalances.length === 0) {
+        setBalance("0.000000");
+        return;
+      }
       
-      // Find KTA balance from allBalances
-      let keetaBalance = BigInt(0);
-      if (Array.isArray(allBalances)) {
-        for (const balanceData of allBalances) {
-          const tokenInfo = JSON.parse(JSON.stringify(balanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
-          const tokenAddress = tokenInfo.token;
+      // Convert balances to a usable format and find the largest balance
+      // (which is likely the actual KTA token)
+      let largestBalance = BigInt(0);
+      let largestDecimals = 18; // Default to 18 decimals
+      
+      for (const balanceData of allBalances) {
+        const tokenInfo = JSON.parse(
+          JSON.stringify(balanceData, (k: string, v: any) => 
+            typeof v === 'bigint' ? v.toString() : v
+          )
+        );
+        
+        const balance = BigInt(tokenInfo.balance || 0);
+        
+        // Check if this balance is larger
+        if (balance > largestBalance) {
+          largestBalance = balance;
           
-          if (tokenAddress === baseTokenAddr) {
-            keetaBalance = BigInt(tokenInfo.balance || 0);
-            break;
+          // Try to get token info to check decimals
+          try {
+            const info = await client.getInfo(tokenInfo.token);
+            if (info && info.decimals !== undefined) {
+              largestDecimals = info.decimals;
+            }
+          } catch (e) {
+            // If we can't get info, use default 18 decimals
+            console.log('Could not fetch decimals for token:', tokenInfo.token);
           }
         }
       }
       
-      // Convert balance from smallest unit to KTA (18 decimals)
-      const balanceInKTA = Number(keetaBalance) / Math.pow(10, 18);
+      // Convert balance using detected decimals
+      const balanceInKTA = Number(largestBalance) / Math.pow(10, largestDecimals);
       setBalance(balanceInKTA.toFixed(6));
+      console.log(`KTA Balance: ${balanceInKTA.toFixed(6)} (using ${largestDecimals} decimals)`);
       toast.success("Balance refreshed!");
     } catch (error) {
       console.error("Error fetching balance:", error);
