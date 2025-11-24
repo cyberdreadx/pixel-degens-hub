@@ -694,7 +694,8 @@ const Swap = () => {
               </h3>
               <div className="flex items-center gap-2">
                 <AddLiquidityDialog 
-                  anchorAddress={anchorInfo.address} 
+                  anchorAddress={anchorInfo.address}
+                  anchorInfo={anchorInfo}
                   onSuccess={() => {
                     fetchAnchorInfo();
                     refreshBalance();

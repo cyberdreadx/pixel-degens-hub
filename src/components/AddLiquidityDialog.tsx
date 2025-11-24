@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useWallet } from "@/contexts/WalletContext";
@@ -12,17 +13,60 @@ import xrgeLogo from "@/assets/xrge-logo.webp";
 
 interface AddLiquidityDialogProps {
   anchorAddress: string;
+  anchorInfo: any;
   onSuccess?: () => void;
 }
 
-export function AddLiquidityDialog({ anchorAddress, onSuccess }: AddLiquidityDialogProps) {
+export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: AddLiquidityDialogProps) {
   const { sendTokens, balance, tokens, network } = useWallet();
   const [isOpen, setIsOpen] = useState(false);
   const [ktaAmount, setKtaAmount] = useState("");
   const [xrgeAmount, setXrgeAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [matchRatio, setMatchRatio] = useState(false);
 
   const xrgeBalance = tokens.find(t => t.symbol === 'XRGE')?.balance || '0';
+  
+  // Calculate pool ratio (XRGE per KTA)
+  const poolRatio = anchorInfo ? 
+    parseFloat(anchorInfo.xrgeBalance || '0') / parseFloat(anchorInfo.ktaBalance || '1') : 0;
+
+  const handleKtaChange = (value: string) => {
+    setKtaAmount(value);
+    
+    if (matchRatio && value && poolRatio > 0) {
+      const ktaValue = parseFloat(value);
+      if (!isNaN(ktaValue)) {
+        const calculatedXrge = (ktaValue * poolRatio).toFixed(6);
+        setXrgeAmount(calculatedXrge);
+      }
+    }
+  };
+
+  const handleXrgeChange = (value: string) => {
+    setXrgeAmount(value);
+    
+    if (matchRatio && value && poolRatio > 0) {
+      const xrgeValue = parseFloat(value);
+      if (!isNaN(xrgeValue)) {
+        const calculatedKta = (xrgeValue / poolRatio).toFixed(6);
+        setKtaAmount(calculatedKta);
+      }
+    }
+  };
+
+  const handleMatchRatioToggle = (checked: boolean) => {
+    setMatchRatio(checked);
+    
+    // If enabling and we have a KTA amount, calculate XRGE
+    if (checked && ktaAmount && poolRatio > 0) {
+      const ktaValue = parseFloat(ktaAmount);
+      if (!isNaN(ktaValue)) {
+        const calculatedXrge = (ktaValue * poolRatio).toFixed(6);
+        setXrgeAmount(calculatedXrge);
+      }
+    }
+  };
 
   const handleAddLiquidity = async () => {
     const ktaValue = parseFloat(ktaAmount);
@@ -95,6 +139,29 @@ export function AddLiquidityDialog({ anchorAddress, onSuccess }: AddLiquidityDia
           <DialogTitle className="text-foreground">Add Liquidity to Pool</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          {/* Match Pool Ratio Toggle */}
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="space-y-0.5">
+              <Label htmlFor="match-ratio" className="text-sm font-medium">
+                Match Pool Ratio
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Auto-calculate proportional amounts
+              </p>
+            </div>
+            <Switch
+              id="match-ratio"
+              checked={matchRatio}
+              onCheckedChange={handleMatchRatioToggle}
+              disabled={isLoading}
+            />
+          </div>
+
+          {matchRatio && poolRatio > 0 && (
+            <div className="bg-primary/10 p-2 rounded text-xs text-primary">
+              Current pool ratio: 1 KTA = {poolRatio.toFixed(6)} XRGE
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="kta-amount" className="text-sm text-muted-foreground">
               KTA Amount
@@ -105,7 +172,7 @@ export function AddLiquidityDialog({ anchorAddress, onSuccess }: AddLiquidityDia
                 type="number"
                 placeholder="0.0"
                 value={ktaAmount}
-                onChange={(e) => setKtaAmount(e.target.value)}
+                onChange={(e) => handleKtaChange(e.target.value)}
                 className="pr-20"
                 disabled={isLoading}
               />
@@ -129,7 +196,7 @@ export function AddLiquidityDialog({ anchorAddress, onSuccess }: AddLiquidityDia
                 type="number"
                 placeholder="0.0"
                 value={xrgeAmount}
-                onChange={(e) => setXrgeAmount(e.target.value)}
+                onChange={(e) => handleXrgeChange(e.target.value)}
                 className="pr-20"
                 disabled={isLoading}
               />
