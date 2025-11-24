@@ -31,9 +31,12 @@ const TESTNET_TOKENS = {
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
 async function getAnchorBalances(network: string) {
-  const seedHex = Deno.env.get('ANCHOR_WALLET_SEED');
+  // Use different seed based on network
+  const seedEnvVar = network === 'test' ? 'ANCHOR_WALLET_SEED_TESTNET' : 'ANCHOR_WALLET_SEED';
+  const seedHex = Deno.env.get(seedEnvVar);
+  
   if (!seedHex || seedHex.length !== 64) {
-    throw new Error('Invalid ANCHOR_WALLET_SEED: must be 64-character hex string');
+    throw new Error(`Invalid ${seedEnvVar}: must be 64-character hex string`);
   }
 
   const trimmedSeed = seedHex.trim();
