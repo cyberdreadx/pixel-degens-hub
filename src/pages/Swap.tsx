@@ -360,9 +360,11 @@ const Swap = () => {
         
         // Manually trigger price recording for this network (especially important for testnet)
         try {
-          await supabase.functions.invoke('fx-record-price', {
-            body: { network }
+          console.log('Triggering fx-record-price for network:', network);
+          const { data: priceData, error: priceError } = await supabase.functions.invoke('fx-record-price', {
+            body: { network: network }
           });
+          console.log('Price recording result:', priceData, priceError);
         } catch (priceError) {
           console.warn('Failed to record price snapshot:', priceError);
         }
