@@ -130,8 +130,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         );
       }
       
-      // KTA uses 6 decimals for display, 9 for transactions
-      const decimals = DISPLAY_DECIMALS.KTA;
+      // KTA uses 9 decimals for blockchain, display with 3 decimal places
+      const decimals = TOKEN_DECIMALS.KTA;
       const divisor = Math.pow(10, decimals);
       const balanceNum = Number(ktaBalance) / divisor;
       const balanceStr = balanceNum.toFixed(3);
@@ -221,13 +221,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             }
           }
           
-          // Convert balance using proper display decimals
+          // Convert balance (NFTs have decimals=0, regular tokens use proper decimals)
           const rawBalance = BigInt(tokenInfo.balance);
-          const displayDecimals = decimals === 0 ? 0 : 
-            (symbol === 'KTA' ? DISPLAY_DECIMALS.KTA : DISPLAY_DECIMALS.XRGE);
           const readableBalance = decimals === 0 
             ? Number(rawBalance).toString() 
-            : (Number(rawBalance) / Math.pow(10, displayDecimals)).toFixed(3);
+            : (Number(rawBalance) / Math.pow(10, decimals)).toFixed(3);
           
           return {
             address: tokenAddress,
