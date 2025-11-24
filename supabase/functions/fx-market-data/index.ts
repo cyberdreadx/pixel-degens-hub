@@ -34,7 +34,7 @@ serve(async (req) => {
     console.log('Fetching market data from DexScreener...');
 
     // KTA contract address for DexScreener
-    const KTA_CONTRACT = '0xd9eDC75a3a797Ec92Ca370F19051BAbebfb2edEe';
+    const KTA_CONTRACT = '0xc0634090F2Fe6c6d75e61Be2b949464aBB498973';
     
     // Note: XRGE address to be added when available
     const XRGE_CONTRACT = null;
