@@ -176,10 +176,7 @@ const MintNFT = () => {
         'metadata': 'includes full description'
       });
 
-      // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
-      builder.modifyTokenSupply(1n, { account: tokenAccount });
-
-      // Set token info - Keeta SDK has confusing param names
+      // Set token info first - Keeta SDK has confusing param names
       builder.setInfo(
         {
           name: formattedSymbol, // YODA (this is the symbol/ticker, requires strict format)
@@ -190,8 +187,11 @@ const MintNFT = () => {
         { account: tokenAccount }
       );
 
-      // Note: For NFTs (supply=1), the token automatically belongs to the creator
-      // No explicit send() needed - the balance is in the creator's account after minting
+      // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
+      builder.modifyTokenSupply(1n, { account: tokenAccount });
+
+      // Distribute the token from unallocated supply to user's wallet
+      builder.send(client.account, 1n, tokenAccount, undefined, { account: tokenAccount });
 
       // Compute and publish the transaction
       await client.computeBuilderBlocks(builder);
