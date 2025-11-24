@@ -29,7 +29,7 @@ const Swap = () => {
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
 
-  // Fetch anchor info
+  // Fetch anchor info and rate together
   const fetchAnchorInfo = async () => {
     setIsRefreshing(true);
     try {
@@ -37,7 +37,11 @@ const Swap = () => {
       if (error) throw error;
       setAnchorAddress(data.address);
       setAnchorInfo(data);
-      toast.success('Anchor info refreshed');
+      
+      // Also refresh the rate
+      await fetchRate();
+      
+      toast.success('Liquidity and rates refreshed');
     } catch (error) {
       console.error('Failed to fetch anchor info:', error);
       toast.error('Failed to connect to anchor');
@@ -128,6 +132,49 @@ const Swap = () => {
     if (!fromAmount || parseFloat(fromAmount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
+    }
+
+    // Liquidity validation
+    if (!anchorInfo) {
+      toast.error("Unable to verify liquidity. Please refresh.");
+      return;
+    }
+
+    const swapAmount = parseFloat(fromAmount);
+    const fromPoolBalance = fromCurrency === 'KTA' 
+      ? parseFloat(anchorInfo.ktaBalance || '0')
+      : parseFloat(anchorInfo.xrgeBalance || '0');
+    const toPoolBalance = toCurrency === 'KTA'
+      ? parseFloat(anchorInfo.ktaBalance || '0') 
+      : parseFloat(anchorInfo.xrgeBalance || '0');
+
+    // Calculate max allowed swap (15% of from pool to prevent draining)
+    const maxSwapAmount = fromPoolBalance * 0.15;
+    
+    if (swapAmount > maxSwapAmount) {
+      toast.error(
+        `Amount too large! Max swap: ${maxSwapAmount.toFixed(6)} ${fromCurrency} (15% of pool)`,
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    // Check if anchor has enough liquidity to fulfill the swap
+    const expectedToAmount = parseFloat(toAmount);
+    if (expectedToAmount > toPoolBalance) {
+      toast.error(
+        `Insufficient liquidity! Pool only has ${toPoolBalance.toFixed(3)} ${toCurrency}`,
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    // Warn if output would drain >50% of pool
+    if (expectedToAmount > toPoolBalance * 0.5) {
+      toast.warning(
+        `Large trade! This will impact pool balance significantly.`,
+        { duration: 4000 }
+      );
     }
 
     setIsLoading(true);
