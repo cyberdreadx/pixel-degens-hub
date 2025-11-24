@@ -9,11 +9,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Token addresses on Keeta Network
-const TOKENS = {
-  KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
-  XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
-};
+// Token addresses on Keeta Network - get based on network parameter
+function getTokenAddresses(network: string) {
+  return network === 'test' ? {
+    KTA: 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52',
+    XRGE: 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s',
+  } : {
+    KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
+    XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
+  };
+}
 
 interface SwapRequest {
   fromCurrency: string;
@@ -57,6 +62,7 @@ async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddre
     const balanceData = await balanceResponse.json();
     const allBalances = balanceData.balances || [];
     
+    const TOKENS = getTokenAddresses(network);
     let ktaBalance = 0;
     let xrgeBalance = 0;
 
@@ -151,7 +157,8 @@ serve(async (req) => {
       }
     }
 
-    // Get token addresses
+    // Get token addresses based on network
+    const TOKENS = getTokenAddresses(network);
     const fromToken = TOKENS[fromCurrency as keyof typeof TOKENS];
     const toToken = TOKENS[toCurrency as keyof typeof TOKENS];
 
@@ -159,7 +166,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: `Invalid token: ${!fromToken ? fromCurrency : toCurrency}. Supported tokens: ${Object.keys(TOKENS).join(', ')}`
+          error: `Invalid token: ${!fromToken ? fromCurrency : toCurrency}. Supported tokens: KTA, XRGE`
         }),
         {
           status: 400,
@@ -168,10 +175,13 @@ serve(async (req) => {
       );
     }
 
-    // Connect to Keeta mainnet
-    const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
+    // Get network-specific anchor seed
+    const anchorSeed = network === 'test'
+      ? Deno.env.get('ANCHOR_WALLET_SEED_TESTNET')
+      : Deno.env.get('ANCHOR_WALLET_SEED');
+      
     if (!anchorSeed) {
-      console.error('ANCHOR_WALLET_SEED not configured');
+      console.error(`ANCHOR_WALLET_SEED${network === 'test' ? '_TESTNET' : ''} not configured`);
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -259,7 +269,9 @@ serve(async (req) => {
     
     try {
       // Fetch current pool balances
-      const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+      const apiEndpoint = network === 'test'
+        ? 'https://rep3.test.network.api.keeta.com/api'
+        : 'https://rep3.main.network.api.keeta.com/api';
       const balanceResponse = await fetch(
         `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
       );
@@ -390,7 +402,9 @@ serve(async (req) => {
           );
 
           // Get current pool balances after swap
-          const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+          const apiEndpoint = network === 'test'
+            ? 'https://rep3.test.network.api.keeta.com/api'
+            : 'https://rep3.main.network.api.keeta.com/api';
           const balanceResponse = await fetch(
             `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
           );

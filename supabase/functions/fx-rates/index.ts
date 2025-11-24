@@ -13,17 +13,25 @@ interface ExchangeRate {
   source?: string;
 }
 
-// Token addresses on Keeta Network
-const TOKENS = {
-  KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
-  XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
-};
+// Token addresses on Keeta Network - get based on network parameter
+function getTokenAddresses(network: string) {
+  return network === 'test' ? {
+    KTA: 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52',
+    XRGE: 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s',
+  } : {
+    KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
+    XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
+  };
+}
 
 async function getAnchorBalances(network: string) {
   try {
-    const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
+    const anchorSeed = network === 'test'
+      ? Deno.env.get('ANCHOR_WALLET_SEED_TESTNET')
+      : Deno.env.get('ANCHOR_WALLET_SEED');
+      
     if (!anchorSeed) {
-      console.error('ANCHOR_WALLET_SEED not configured');
+      console.error(`ANCHOR_WALLET_SEED${network === 'test' ? '_TESTNET' : ''} not configured`);
       return { ktaBalance: null, xrgeBalance: null };
     }
 
@@ -61,6 +69,7 @@ async function getAnchorBalances(network: string) {
     const balanceData = await balanceResponse.json();
     const allBalances = balanceData.balances || [];
     
+    const TOKENS = getTokenAddresses(network);
     let ktaBalance = 0;
     let xrgeBalance = 0;
 
