@@ -14,12 +14,14 @@ interface WalletContextType {
   client: any | null;
   balance: string | null;
   tokens: KeetaToken[];
+  network: "main" | "test";
   connectWallet: (seed?: string) => Promise<void>;
   disconnectWallet: () => void;
   generateNewWallet: () => Promise<string>;
   refreshBalance: () => Promise<void>;
   fetchTokens: () => Promise<void>;
   sendTokens: (to: string, amount: string, tokenAddress?: string) => Promise<any>;
+  switchNetwork: (network: "main" | "test") => void;
 }
 
 interface KeetaToken {
@@ -42,6 +44,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [client, setClient] = useState<any | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const [tokens, setTokens] = useState<KeetaToken[]>([]);
+  const [network, setNetwork] = useState<"main" | "test">(() => {
+    return (localStorage.getItem("keetaNetwork") as "main" | "test") || "test";
+  });
 
   // Expose wallet context to window for atomic swap signing
   useEffect(() => {
@@ -222,9 +227,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const newPublicKey = newAccount.publicKeyString.toString();
 
       console.log('Connected wallet (secp256k1, index 0, seedFromPassphrase method):', newPublicKey);
+      console.log('Network:', network);
 
-      // Connect to mainnet
-      const newClient = KeetaNet.UserClient.fromNetwork("main", newAccount);
+      // Connect to selected network
+      const newClient = KeetaNet.UserClient.fromNetwork(network, newAccount);
 
       // Save to state
       setAccount(newAccount);
@@ -261,6 +267,16 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const refreshBalance = useCallback(async () => {
     await Promise.all([fetchBalance(), fetchTokensInternal()]);
   }, [fetchBalance, fetchTokensInternal]);
+
+  const switchNetwork = (newNetwork: "main" | "test") => {
+    if (isConnected) {
+      toast.error("Please disconnect wallet before switching networks");
+      return;
+    }
+    setNetwork(newNetwork);
+    localStorage.setItem("keetaNetwork", newNetwork);
+    toast.success(`Switched to ${newNetwork === "main" ? "Mainnet" : "Testnet"}`);
+  };
 
   const sendTokens = useCallback(async (to: string, amount: string, tokenAddress?: string) => {
     if (!account || !client) {
@@ -314,12 +330,14 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         client,
         balance,
         tokens,
+        network,
         connectWallet,
         disconnectWallet,
         generateNewWallet,
         refreshBalance,
         fetchTokens: fetchTokensInternal,
         sendTokens,
+        switchNetwork,
       }}
     >
       {children}

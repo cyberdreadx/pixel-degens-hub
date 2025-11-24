@@ -21,7 +21,7 @@ const TOKENS = {
 const ANCHOR_ADDRESS = 'keeta_aab4yyxf3mw5mi6coye4zm6ovk2e36b2g6xxhfpa4ol4eh22vumrp4kjtbyckla';
 
 const Swap = () => {
-  const { isConnected, publicKey, balance, tokens, sendTokens, refreshBalance } = useWallet();
+  const { isConnected, publicKey, balance, tokens, sendTokens, refreshBalance, network } = useWallet();
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [fromCurrency, setFromCurrency] = useState("KTA");
@@ -43,7 +43,9 @@ const Swap = () => {
   const fetchAnchorInfo = async () => {
     setIsRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fx-anchor-info');
+      const { data, error } = await supabase.functions.invoke('fx-anchor-info', {
+        body: { network }
+      });
       if (error) throw error;
       setAnchorAddress(data.address);
       setAnchorInfo(data);
@@ -96,7 +98,7 @@ const Swap = () => {
     }
   };
 
-  // Fetch anchor info and market data on mount
+  // Fetch anchor info and market data on mount and when network changes
   useEffect(() => {
     fetchAnchorInfo();
     fetchMarketData();
@@ -105,18 +107,18 @@ const Swap = () => {
     // Refresh transactions every 30 seconds
     const interval = setInterval(fetchTransactions, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [network]);
 
-  // Fetch rate on mount and when currencies change
+  // Fetch rate on mount and when currencies or network change
   useEffect(() => {
     fetchRate();
-  }, [fromCurrency, toCurrency]);
+  }, [fromCurrency, toCurrency, network]);
 
   const fetchRate = async () => {
     setIsLoadingRate(true);
     try {
       const { data, error } = await supabase.functions.invoke('fx-rates', {
-        body: { from: fromCurrency, to: toCurrency }
+        body: { from: fromCurrency, to: toCurrency, network }
       });
 
       if (error) throw error;
@@ -337,6 +339,7 @@ const Swap = () => {
           userPublicKey: publicKey,
           expectedRate: latestRate, // Use the freshly fetched rate
           slippageTolerance: slippage, // Pass slippage tolerance percentage
+          network, // Pass the current network
         }
       });
 

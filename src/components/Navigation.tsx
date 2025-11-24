@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
-import { Wallet, Home, Image, Users, Activity, ArrowDownUp, ArrowLeftRight, Menu, X, Palette } from "lucide-react";
+import { Wallet, Home, Image, Users, Activity, ArrowDownUp, ArrowLeftRight, Menu, X, Palette, Network } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import WalletDialog from "./WalletDialog";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import logo from "@/assets/logo.png";
+import { Switch } from "./ui/switch";
+import { Label } from "./ui/label";
 
 const Navigation = () => {
-  const { isConnected, publicKey, balance, tokens } = useWallet();
+  const { isConnected, publicKey, balance, tokens, network, switchNetwork } = useWallet();
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "colecovision">(() => {
@@ -70,6 +72,17 @@ const Navigation = () => {
               </NavLink>
             ))}
             
+            <div className="flex items-center gap-2 px-3 py-1.5 pixel-border bg-muted rounded">
+              <Network className="w-3 h-3" />
+              <span className="text-[10px] font-bold">{network === "main" ? "MAIN" : "TEST"}</span>
+              <Switch 
+                checked={network === "main"}
+                onCheckedChange={(checked) => switchNetwork(checked ? "main" : "test")}
+                disabled={isConnected}
+                className="scale-75"
+              />
+            </div>
+            
             <Button
               variant="outline"
               size="sm"
@@ -100,6 +113,16 @@ const Navigation = () => {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
+            <div className="flex items-center gap-1 px-2 py-1 pixel-border bg-muted rounded">
+              <Network className="w-3 h-3" />
+              <Switch 
+                checked={network === "main"}
+                onCheckedChange={(checked) => switchNetwork(checked ? "main" : "test")}
+                disabled={isConnected}
+                className="scale-75"
+              />
+            </div>
+            
             <Button
               variant="outline"
               size="sm"
