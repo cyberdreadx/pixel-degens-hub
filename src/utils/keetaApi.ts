@@ -1,10 +1,20 @@
 // Keeta chain API interactions via Supabase proxy (bypasses CORS)
 import { supabase } from "@/integrations/supabase/client";
 
-const TOKENS = {
-  KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
-  XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
+export const TOKENS = {
+  MAINNET: {
+    KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
+    XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
+  },
+  TESTNET: {
+    KTA: 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52',
+    XRGE: 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s',
+  }
 };
+
+export function getTokenAddresses(network: "main" | "test") {
+  return network === "main" ? TOKENS.MAINNET : TOKENS.TESTNET;
+}
 
 export interface AnchorInfo {
   address: string;
@@ -23,8 +33,13 @@ export interface ExchangeRate {
 /**
  * Fetch account balances from Keeta chain via proxy edge function
  */
-export async function fetchAccountBalances(address: string): Promise<{ kta: number; xrge: number }> {
+export async function fetchAccountBalances(
+  address: string, 
+  network: "main" | "test" = "main"
+): Promise<{ kta: number; xrge: number }> {
   try {
+    const tokenAddrs = getTokenAddresses(network);
+    
     const { data, error } = await supabase.functions.invoke('fx-keeta-proxy', {
       body: { address }
     });
@@ -35,8 +50,8 @@ export async function fetchAccountBalances(address: string): Promise<{ kta: numb
     let xrgeBalance = 0;
 
     if (data.balances && Array.isArray(data.balances)) {
-      const ktaToken = data.balances.find((b: any) => b.token === TOKENS.KTA);
-      const xrgeToken = data.balances.find((b: any) => b.token === TOKENS.XRGE);
+      const ktaToken = data.balances.find((b: any) => b.token === tokenAddrs.KTA);
+      const xrgeToken = data.balances.find((b: any) => b.token === tokenAddrs.XRGE);
 
       if (ktaToken) {
         ktaBalance = parseInt(ktaToken.balance, 16) / Math.pow(10, 18);
@@ -56,8 +71,11 @@ export async function fetchAccountBalances(address: string): Promise<{ kta: numb
 /**
  * Fetch anchor info (balances and rate) directly from chain
  */
-export async function fetchAnchorInfo(anchorAddress: string): Promise<AnchorInfo> {
-  const balances = await fetchAccountBalances(anchorAddress);
+export async function fetchAnchorInfo(
+  anchorAddress: string,
+  network: "main" | "test" = "main"
+): Promise<AnchorInfo> {
+  const balances = await fetchAccountBalances(anchorAddress, network);
   
   // Calculate rate from pool balances (constant product formula)
   const rate = balances.xrge / balances.kta;
@@ -75,10 +93,11 @@ export async function fetchAnchorInfo(anchorAddress: string): Promise<AnchorInfo
  */
 export async function fetchExchangeRate(
   anchorAddress: string,
+  network: "main" | "test" = "main",
   from: string = 'KTA',
   to: string = 'XRGE'
 ): Promise<ExchangeRate> {
-  const anchorInfo = await fetchAnchorInfo(anchorAddress);
+  const anchorInfo = await fetchAnchorInfo(anchorAddress, network);
   
   let rate: number;
   if (from === 'KTA' && to === 'XRGE') {
