@@ -23,7 +23,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="dark">
+          <div>
             <Navigation />
             <Routes>
               <Route path="/" element={<Home />} />
