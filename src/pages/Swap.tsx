@@ -104,23 +104,10 @@ const Swap = () => {
     setIsLoading(true);
 
     try {
-      // FALLBACK: Use trusted anchor model (two separate transactions)
-      // This is the current working implementation where:
-      // 1. User sends tokens to anchor first
-      // 2. Anchor verifies and sends tokens back
+      // Step 1: Request anchor to build atomic swap transaction
+      toast.info("Building atomic swap...");
       
-      toast.info(`Sending ${fromAmount} ${fromCurrency} to anchor...`);
-      
-      // Get the token address (undefined for KTA means use base token)
-      const fromTokenAddress = fromCurrency === 'KTA' ? undefined : TOKENS[fromCurrency as keyof typeof TOKENS];
-      
-      // Send tokens to anchor wallet (sendTokens handles conversion to smallest units)
-      await sendTokens(anchorAddress, fromAmount, fromTokenAddress);
-      
-      toast.success("Tokens sent to anchor. Processing swap...");
-
-      // Call edge function to have anchor send back swapped tokens
-      const { data, error } = await supabase.functions.invoke('fx-swap', {
+      const { data: buildData, error: buildError } = await supabase.functions.invoke('fx-build-swap', {
         body: {
           fromCurrency,
           toCurrency,
@@ -129,20 +116,72 @@ const Swap = () => {
         }
       });
 
-      if (error) throw error;
+      if (buildError) throw buildError;
+      if (!buildData.success) throw new Error(buildData.error || "Failed to build swap");
 
-      if (data.success) {
-        toast.success(
-          `Swap complete! Received ${data.toAmount} ${data.toCurrency}`
-        );
-        setFromAmount("");
-        setToAmount("");
-      } else {
-        toast.error(data.error || "Swap failed");
+      console.log('Swap block built:', {
+        from: buildData.fromAmount,
+        to: buildData.toAmount,
+        rate: buildData.rate
+      });
+
+      toast.info("Signing atomic swap transaction...");
+
+      // Step 2: Sign the swap block with user's wallet
+      // Access wallet context dynamically
+      const walletContext = (window as any).__walletContext;
+      if (!walletContext?.client || !walletContext?.account) {
+        throw new Error("Wallet client not available");
       }
+
+      const { client, account } = walletContext;
+
+      // Decode the swap block
+      const blockBytes = new Uint8Array(
+        atob(buildData.swapBlockBytes).split('').map((c: string) => c.charCodeAt(0))
+      );
+
+      // Import KeetaNet from window
+      const KeetaNet = (window as any).KeetaNet;
+      if (!KeetaNet) {
+        throw new Error("KeetaNet SDK not loaded");
+      }
+
+      const swapBlock = KeetaNet.lib.Block.fromBytesV2(blockBytes);
+      
+      // Sign the block with user's account
+      const signedBlock = await account.signBlock(swapBlock);
+      
+      console.log('Block signed by user');
+
+      // Convert signed block back to bytes
+      const signedBytes = signedBlock.toBytes();
+      const signedBlockBytes = btoa(String.fromCharCode(...signedBytes));
+
+      toast.info("Publishing atomic swap...");
+
+      // Step 3: Send signed block to anchor for publishing
+      const { data: publishData, error: publishError } = await supabase.functions.invoke('fx-publish-swap', {
+        body: {
+          signedBlockBytes,
+        }
+      });
+
+      if (publishError) throw publishError;
+      if (!publishData.success) throw new Error(publishData.error || "Failed to publish swap");
+
+      toast.success(
+        `Atomic swap complete! Received ${buildData.toAmount} ${buildData.toCurrency}`
+      );
+      
+      console.log('Swap transaction hash:', publishData.transactionHash);
+      
+      setFromAmount("");
+      setToAmount("");
+      
     } catch (error: any) {
-      console.error('Swap error:', error);
-      toast.error(error.message || "Failed to execute swap");
+      console.error('Atomic swap error:', error);
+      toast.error(error.message || "Failed to execute atomic swap");
     } finally {
       setIsLoading(false);
     }
