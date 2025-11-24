@@ -217,7 +217,10 @@ serve(async (req) => {
     }
 
     // Slippage protection: Check if current rate differs too much from expected rate
-    if (expectedRate && slippageTolerance !== undefined) {
+    // For atomic swaps (swapBlockBytes provided), enforce strict slippage checks.
+    // For trusted two-transaction model, the pool has already been modified by the
+    // user's send, so comparing against pre-send rate will always show large drift.
+    if (swapBlockBytes && expectedRate && slippageTolerance !== undefined) {
       const rateChange = Math.abs((currentRate - expectedRate) / expectedRate) * 100;
       
       if (rateChange > slippageTolerance) {
