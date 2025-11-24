@@ -20,6 +20,8 @@ interface SwapRequest {
   amount: string;
   userPublicKey: string;
   swapBlockBytes?: string; // Base64-encoded swap block from user
+  expectedRate?: number; // Expected rate from frontend for slippage check
+  slippageTolerance?: number; // Slippage tolerance percentage (e.g., 1 for 1%)
 }
 
 interface SwapResponse {
@@ -84,9 +86,17 @@ serve(async (req) => {
   }
 
   try {
-    const { fromCurrency, toCurrency, amount, userPublicKey, swapBlockBytes }: SwapRequest = await req.json();
+    const { fromCurrency, toCurrency, amount, userPublicKey, swapBlockBytes, expectedRate, slippageTolerance }: SwapRequest = await req.json();
 
-    console.log('Swap request:', { fromCurrency, toCurrency, amount, userPublicKey, hasSwapBlock: !!swapBlockBytes });
+    console.log('Swap request:', { 
+      fromCurrency, 
+      toCurrency, 
+      amount, 
+      userPublicKey, 
+      hasSwapBlock: !!swapBlockBytes,
+      expectedRate,
+      slippageTolerance 
+    });
 
     // Validate input
     if (!fromCurrency || !toCurrency || !amount || !userPublicKey) {
@@ -100,6 +110,37 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
+    }
+
+    // Validate amount is positive number
+    const inputAmount = parseFloat(amount);
+    if (isNaN(inputAmount) || inputAmount <= 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Invalid amount. Must be a positive number.' 
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Validate slippage tolerance if provided
+    if (slippageTolerance !== undefined) {
+      if (isNaN(slippageTolerance) || slippageTolerance < 0 || slippageTolerance > 100) {
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: 'Invalid slippage tolerance. Must be between 0 and 100.' 
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
     }
 
     // Get token addresses
@@ -160,9 +201,9 @@ serve(async (req) => {
     console.log('Anchor wallet:', anchorAddress);
 
     // Calculate rate from liquidity pool
-    const rate = await getPoolRate(fromCurrency, toCurrency, anchorAddress);
+    const currentRate = await getPoolRate(fromCurrency, toCurrency, anchorAddress);
     
-    if (!rate || rate <= 0) {
+    if (!currentRate || currentRate <= 0) {
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -175,16 +216,42 @@ serve(async (req) => {
       );
     }
 
-    // Calculate output amount
-    const inputAmount = parseFloat(amount);
-    const outputAmount = inputAmount * rate;
+    // Slippage protection: Check if current rate differs too much from expected rate
+    if (expectedRate && slippageTolerance !== undefined) {
+      const rateChange = Math.abs((currentRate - expectedRate) / expectedRate) * 100;
+      
+      if (rateChange > slippageTolerance) {
+        console.log(`Slippage exceeded: ${rateChange.toFixed(2)}% > ${slippageTolerance}%`);
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: `Price changed by ${rateChange.toFixed(2)}% (max ${slippageTolerance}%). Current rate: 1 ${fromCurrency} = ${currentRate.toFixed(6)} ${toCurrency}. Please try again.`,
+            slippageExceeded: true,
+            expectedRate,
+            currentRate,
+            slippage: rateChange
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
+      console.log(`Slippage check passed: ${rateChange.toFixed(2)}% <= ${slippageTolerance}%`);
+    }
+
+    // Calculate output amount using current rate
+    const outputAmount = inputAmount * currentRate;
 
     console.log('Swap details:', { 
       from: fromCurrency, 
       to: toCurrency, 
       inputAmount,
       outputAmount,
-      rate
+      expectedRate,
+      currentRate,
+      slippageTolerance
     });
 
     // ATOMIC SWAP IMPLEMENTATION
@@ -247,7 +314,7 @@ serve(async (req) => {
           toAmount: outputAmount.toFixed(6),
           fromCurrency,
           toCurrency,
-          rate,
+          rate: currentRate,
           transactionHash: txHash,
         };
 
@@ -317,7 +384,7 @@ serve(async (req) => {
         toAmount: outputAmount.toFixed(6),
         fromCurrency,
         toCurrency,
-        rate,
+        rate: currentRate,
         transactionHash: txHash,
       };
 
