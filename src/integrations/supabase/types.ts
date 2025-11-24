@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      price_history: {
+        Row: {
+          from_token: string
+          id: string
+          kta_balance: number | null
+          rate: number
+          timestamp: string
+          to_token: string
+          volume_24h: number | null
+          xrge_balance: number | null
+        }
+        Insert: {
+          from_token: string
+          id?: string
+          kta_balance?: number | null
+          rate: number
+          timestamp?: string
+          to_token: string
+          volume_24h?: number | null
+          xrge_balance?: number | null
+        }
+        Update: {
+          from_token?: string
+          id?: string
+          kta_balance?: number | null
+          rate?: number
+          timestamp?: string
+          to_token?: string
+          volume_24h?: number | null
+          xrge_balance?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
