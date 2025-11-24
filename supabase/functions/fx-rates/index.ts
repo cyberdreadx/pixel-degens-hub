@@ -76,15 +76,18 @@ async function getAnchorBalances() {
 }
 
 serve(async (req) => {
+  console.log('[fx-rates] Function invoked, method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('[fx-rates] Handling CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { from, to } = await req.json().catch(() => ({ from: 'KTA', to: 'XRGE' }));
     
-    console.log(`Fetching exchange rate: ${from} -> ${to}`);
+    console.log(`[fx-rates] Fetching exchange rate: ${from} -> ${to}`);
 
     // Fetch anchor liquidity pool balances
     const { ktaBalance, xrgeBalance } = await getAnchorBalances();
