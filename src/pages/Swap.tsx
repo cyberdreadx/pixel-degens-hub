@@ -79,13 +79,10 @@ const Swap = () => {
     setIsLoadingTx(true);
     try {
       // Fetch all swap records from price_history for current network
-      // Filter to only show KTA → XRGE swaps to avoid duplicate entries
-      // (Each swap is recorded twice: once for each direction)
       const { data, error } = await supabase
         .from("price_history")
         .select("*")
         .eq("network", network)  // Filter by current network
-        .eq("from_token", "KTA")  // Only show KTA → XRGE direction to avoid duplicates
         .gt("volume_24h", 0)
         .order("timestamp", { ascending: false })
         .limit(20);
@@ -788,8 +785,10 @@ const Swap = () => {
                 <TableBody>
                   {transactions.map((tx, index) => {
                     const time = new Date(tx.timestamp).toLocaleTimeString();
-                    // BUY = buying XRGE (spending KTA), SELL = selling XRGE (spending XRGE)
-                    const isBuy = tx.from_token === "KTA";
+                    // From user perspective: SELL = selling what you have, BUY = buying what you want
+                    // If from_token is KTA, user is selling KTA to buy XRGE (SELL KTA)
+                    // If from_token is XRGE, user is selling XRGE to buy KTA (SELL XRGE)
+                    const label = `SELL ${tx.from_token}`;
                     const inputAmount = tx.volume_24h || 0;
                     const outputAmount = inputAmount * (tx.rate || 0);
                     
@@ -804,13 +803,13 @@ const Swap = () => {
                         </TableCell>
                         <TableCell>
                           <span 
-                            className={`px-2 py-1 rounded text-xs font-bold animate-pulse ${
-                              isBuy 
-                                ? "bg-green-500/20 text-green-400" 
-                                : "bg-red-500/20 text-red-400"
+                            className={`px-2 py-1 rounded text-xs font-bold ${
+                              tx.from_token === "KTA"
+                                ? "bg-red-500/20 text-red-400" 
+                                : "bg-green-500/20 text-green-400"
                             }`}
                           >
-                            {isBuy ? "BUY" : "SELL"}
+                            {label}
                           </span>
                         </TableCell>
                         <TableCell className="text-right font-mono animate-fade-in">
