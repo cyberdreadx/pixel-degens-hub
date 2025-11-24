@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import logo from "@/assets/logo.png";
 
 const Navigation = () => {
-  const { isConnected, publicKey, balance } = useWallet();
+  const { isConnected, publicKey, balance, tokens } = useWallet();
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "colecovision">(() => {
@@ -25,6 +25,8 @@ const Navigation = () => {
   const toggleTheme = () => {
     setTheme(prev => prev === "dark" ? "colecovision" : "dark");
   };
+
+  const xrgeToken = tokens.find(t => t.symbol === "XRGE");
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -141,6 +143,9 @@ const Navigation = () => {
                     <div className="mt-4 px-4 py-3 pixel-border bg-muted rounded space-y-2">
                       <div className="text-xs text-muted-foreground">BALANCE</div>
                       <div className="text-sm font-bold">{balance || "0.0000"} KTA</div>
+                      {xrgeToken && (
+                        <div className="text-sm font-bold">{xrgeToken.balance} XRGE</div>
+                      )}
                       <div className="text-xs text-muted-foreground break-all">
                         {publicKey && formatAddress(publicKey)}
                       </div>
