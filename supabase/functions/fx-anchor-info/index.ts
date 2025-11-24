@@ -78,13 +78,20 @@ serve(async (req) => {
     const balanceData = await balanceResponse.json();
     const allBalances = balanceData.balances || [];
     
+    console.log('Raw balance data:', JSON.stringify(balanceData));
+    
+    // KTA is the native token - look for it with the KTA token address
     const ktaBalance = allBalances.find((b: any) => {
       return b.token === 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';
     });
     
+    // XRGE is a custom token
     const xrgeBalance = allBalances.find((b: any) => {
       return b.token === 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
     });
+    
+    console.log('Found KTA balance:', ktaBalance);
+    console.log('Found XRGE balance:', xrgeBalance);
     
     const kta = ktaBalance 
       ? (BigInt(ktaBalance.balance) / BigInt(10 ** 18)).toString()
