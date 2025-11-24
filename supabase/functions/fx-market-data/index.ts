@@ -33,10 +33,11 @@ serve(async (req) => {
   try {
     console.log('Fetching market data from DexScreener...');
 
-    // DexScreener API endpoint for Keeta Network tokens
-    // Note: Replace these addresses with actual DexScreener pair addresses when available
-    const KTA_ADDRESS = 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';
-    const XRGE_ADDRESS = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
+    // KTA contract address for DexScreener
+    const KTA_CONTRACT = '0xd9eDC75a3a797Ec92Ca370F19051BAbebfb2edEe';
+    
+    // Note: XRGE address to be added when available
+    const XRGE_CONTRACT = null;
 
     // Fetch data from DexScreener (adjust endpoint when Keeta is listed)
     let ktaData = null;
@@ -45,7 +46,7 @@ serve(async (req) => {
     try {
       // Try to fetch KTA data
       const ktaResponse = await fetch(
-        `https://api.dexscreener.com/latest/dex/tokens/${KTA_ADDRESS}`,
+        `https://api.dexscreener.com/latest/dex/tokens/${KTA_CONTRACT}`,
         {
           headers: {
             'Accept': 'application/json',
@@ -71,27 +72,29 @@ serve(async (req) => {
     }
 
     try {
-      // Try to fetch XRGE data
-      const xrgeResponse = await fetch(
-        `https://api.dexscreener.com/latest/dex/tokens/${XRGE_ADDRESS}`,
-        {
-          headers: {
-            'Accept': 'application/json',
+      // Try to fetch XRGE data (if contract address available)
+      if (XRGE_CONTRACT) {
+        const xrgeResponse = await fetch(
+          `https://api.dexscreener.com/latest/dex/tokens/${XRGE_CONTRACT}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+            }
           }
-        }
-      );
-      
-      if (xrgeResponse.ok) {
-        const data = await xrgeResponse.json();
-        if (data.pairs && data.pairs.length > 0) {
-          const pair = data.pairs[0];
-          xrgeData = {
-            price: parseFloat(pair.priceUsd || '0'),
-            priceChange24h: parseFloat(pair.priceChange?.h24 || '0'),
-            volume24h: parseFloat(pair.volume?.h24 || '0'),
-            marketCap: parseFloat(pair.fdv || '0'),
-            liquidity: parseFloat(pair.liquidity?.usd || '0'),
-          };
+        );
+        
+        if (xrgeResponse.ok) {
+          const data = await xrgeResponse.json();
+          if (data.pairs && data.pairs.length > 0) {
+            const pair = data.pairs[0];
+            xrgeData = {
+              price: parseFloat(pair.priceUsd || '0'),
+              priceChange24h: parseFloat(pair.priceChange?.h24 || '0'),
+              volume24h: parseFloat(pair.volume?.h24 || '0'),
+              marketCap: parseFloat(pair.fdv || '0'),
+              liquidity: parseFloat(pair.liquidity?.usd || '0'),
+            };
+          }
         }
       }
     } catch (error) {
