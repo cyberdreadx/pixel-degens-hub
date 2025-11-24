@@ -124,11 +124,15 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             name = 'XRGE Token';
           }
           
+          // Convert balance from smallest unit to human-readable (18 decimals)
+          const rawBalance = BigInt(tokenInfo.balance);
+          const readableBalance = Number(rawBalance) / Math.pow(10, 18);
+          
           return {
             address: tokenAddress,
             symbol,
             name,
-            balance: tokenInfo.balance.toString(),
+            balance: readableBalance.toFixed(6),
             decimals: 18,
             price: 0,
           };
