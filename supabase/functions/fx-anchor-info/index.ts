@@ -94,11 +94,11 @@ serve(async (req) => {
     console.log('Found XRGE balance:', xrgeBalance);
     
     const kta = ktaBalance 
-      ? (BigInt(ktaBalance.balance) / BigInt(10 ** 18)).toString()
+      ? (Number(BigInt(ktaBalance.balance)) / Math.pow(10, 18)).toFixed(6)
       : '0';
     
     const xrge = xrgeBalance 
-      ? (BigInt(xrgeBalance.balance) / BigInt(10 ** 18)).toString()
+      ? (Number(BigInt(xrgeBalance.balance)) / Math.pow(10, 18)).toFixed(6)
       : '0';
 
     console.log('Backend-derived address balances:', { kta, xrge });
