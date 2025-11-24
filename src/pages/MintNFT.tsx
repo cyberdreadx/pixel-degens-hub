@@ -189,13 +189,13 @@ const MintNFT = () => {
 
       // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
       builder.modifyTokenSupply(1n, { account: tokenAccount });
-
+      
       // Distribute the token from unallocated supply to user's wallet
+      // The tokenAccount sends to client.account (user's wallet)
       builder.send(client.account, 1n, tokenAccount, undefined, { account: tokenAccount });
 
-      // Compute and publish the transaction
-      await client.computeBuilderBlocks(builder);
-      await client.publishBuilder(builder);
+      // Publish the transaction (computeBlocks happens automatically in publish)
+      await builder.publish();
 
       const tokenAddress = tokenAccount.publicKeyString.get();
       toast.success(`NFT minted successfully! Token: ${tokenAddress}`);
