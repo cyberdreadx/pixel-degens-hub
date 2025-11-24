@@ -223,13 +223,13 @@ const MintNFT = () => {
 
           {/* Ticker */}
           <div className="space-y-2">
-            <Label htmlFor="ticker" className="text-xs font-bold">TICKER / SYMBOL *</Label>
+            <Label htmlFor="ticker" className="text-xs font-bold">TICKER / SYMBOL * (4 LETTERS MAX)</Label>
             <Input
               id="ticker"
               value={ticker}
               onChange={(e) => setTicker(e.target.value.toUpperCase())}
-              placeholder="ROBOT"
-              maxLength={10}
+              placeholder="ROBO"
+              maxLength={4}
               className="pixel-border text-xs"
             />
           </div>
