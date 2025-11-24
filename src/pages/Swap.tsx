@@ -78,13 +78,11 @@ const Swap = () => {
   const fetchTransactions = async () => {
     setIsLoadingTx(true);
     try {
-      // For now, fetch from price_history table (actual swap records)
-      // Only fetch KTA→XRGE direction to avoid duplicate records
+      // Fetch all swap records from price_history
       const { data, error } = await supabase
         .from("price_history")
         .select("*")
         .gt("volume_24h", 0)
-        .eq("from_token", "KTA")
         .order("timestamp", { ascending: false })
         .limit(20);
 
@@ -754,6 +752,7 @@ const Swap = () => {
                 <TableBody>
                   {transactions.map((tx, index) => {
                     const time = new Date(tx.timestamp).toLocaleTimeString();
+                    // BUY = buying XRGE (spending KTA), SELL = selling XRGE (spending XRGE)
                     const isBuy = tx.from_token === "KTA";
                     const inputAmount = tx.volume_24h || 0;
                     const outputAmount = inputAmount * (tx.rate || 0);
@@ -779,7 +778,7 @@ const Swap = () => {
                           </span>
                         </TableCell>
                         <TableCell className="text-right font-mono animate-fade-in">
-                          {inputAmount.toFixed(4)} KTA → {outputAmount.toFixed(4)} XRGE
+                          {inputAmount.toFixed(4)} {tx.from_token} → {outputAmount.toFixed(4)} {tx.to_token}
                         </TableCell>
                         <TableCell className="text-right font-mono text-xs animate-fade-in">
                           {tx.rate.toFixed(6)}
