@@ -357,6 +357,18 @@ const Swap = () => {
         
         // Also refresh anchor info to show updated liquidity
         await fetchAnchorInfo();
+        
+        // Manually trigger price recording for this network (especially important for testnet)
+        try {
+          await supabase.functions.invoke('fx-record-price', {
+            body: { network }
+          });
+        } catch (priceError) {
+          console.warn('Failed to record price snapshot:', priceError);
+        }
+        
+        // Refresh chart data
+        await fetchTransactions();
       } else {
         toast.error(data.error || "Swap failed");
       }
