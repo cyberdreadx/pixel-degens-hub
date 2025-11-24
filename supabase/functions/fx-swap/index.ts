@@ -19,7 +19,6 @@ interface SwapRequest {
   toCurrency: string;
   amount: string;
   userPublicKey: string;
-  userSignedTx?: string; // Pre-signed transaction from user
 }
 
 interface SwapResponse {
@@ -150,9 +149,12 @@ serve(async (req) => {
       toToken
     });
 
-    // Build swap transaction
-    // User sends fromToken to anchor (done separately by user)
-    // Anchor sends toToken to user
+    // Build swap transaction - Anchor sends tokens to user
+    // NOTE: This is not a true atomic swap. In a production system, you would:
+    // 1. Verify the user has sent tokens to the anchor first
+    // 2. Use the receive() operation to create atomic swap blocks
+    // 3. Exchange unsigned blocks between parties and co-sign
+    // Current implementation: Simple send after user sends (requires trust)
     try {
       const builder = client.initBuilder();
       
