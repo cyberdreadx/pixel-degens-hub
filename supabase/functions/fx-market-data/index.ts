@@ -44,8 +44,9 @@ serve(async (req) => {
 
     try {
       // Try to fetch KTA data from BASE chain
+      // DexScreener API: search by token address on specific chain
       const ktaResponse = await fetch(
-        `https://api.dexscreener.com/latest/dex/tokens/${CHAIN}/${KTA_CONTRACT}`,
+        `https://api.dexscreener.com/latest/dex/search?q=${KTA_CONTRACT}`,
         {
           headers: {
             'Accept': 'application/json',
@@ -53,18 +54,30 @@ serve(async (req) => {
         }
       );
       
+      console.log('KTA API response status:', ktaResponse.status);
+      
       if (ktaResponse.ok) {
         const data = await ktaResponse.json();
+        console.log('KTA API response:', JSON.stringify(data, null, 2));
+        
+        // Find the pair on BASE chain
         if (data.pairs && data.pairs.length > 0) {
-          const pair = data.pairs[0];
-          ktaData = {
-            price: parseFloat(pair.priceUsd || '0'),
-            priceChange24h: parseFloat(pair.priceChange?.h24 || '0'),
-            volume24h: parseFloat(pair.volume?.h24 || '0'),
-            marketCap: parseFloat(pair.fdv || '0'),
-            liquidity: parseFloat(pair.liquidity?.usd || '0'),
-          };
+          const basePair = data.pairs.find((p: any) => p.chainId === 'base') || data.pairs[0];
+          
+          if (basePair) {
+            ktaData = {
+              price: parseFloat(basePair.priceUsd || '0'),
+              priceChange24h: parseFloat(basePair.priceChange?.h24 || '0'),
+              volume24h: parseFloat(basePair.volume?.h24 || '0'),
+              marketCap: parseFloat(basePair.fdv || '0'),
+              liquidity: parseFloat(basePair.liquidity?.usd || '0'),
+            };
+            console.log('KTA data parsed:', ktaData);
+          }
         }
+      } else {
+        const errorText = await ktaResponse.text();
+        console.error('KTA API error:', errorText);
       }
     } catch (error) {
       console.error('Error fetching KTA data from DexScreener:', error);
@@ -74,7 +87,7 @@ serve(async (req) => {
       // Try to fetch XRGE data
       if (XRGE_CONTRACT) {
         const xrgeResponse = await fetch(
-          `https://api.dexscreener.com/latest/dex/tokens/${CHAIN}/${XRGE_CONTRACT}`,
+          `https://api.dexscreener.com/latest/dex/search?q=${XRGE_CONTRACT}`,
           {
             headers: {
               'Accept': 'application/json',
@@ -82,18 +95,30 @@ serve(async (req) => {
           }
         );
         
+        console.log('XRGE API response status:', xrgeResponse.status);
+        
         if (xrgeResponse.ok) {
           const data = await xrgeResponse.json();
+          console.log('XRGE API response:', JSON.stringify(data, null, 2));
+          
+          // Find the pair on BASE chain
           if (data.pairs && data.pairs.length > 0) {
-            const pair = data.pairs[0];
-            xrgeData = {
-              price: parseFloat(pair.priceUsd || '0'),
-              priceChange24h: parseFloat(pair.priceChange?.h24 || '0'),
-              volume24h: parseFloat(pair.volume?.h24 || '0'),
-              marketCap: parseFloat(pair.fdv || '0'),
-              liquidity: parseFloat(pair.liquidity?.usd || '0'),
-            };
+            const basePair = data.pairs.find((p: any) => p.chainId === 'base') || data.pairs[0];
+            
+            if (basePair) {
+              xrgeData = {
+                price: parseFloat(basePair.priceUsd || '0'),
+                priceChange24h: parseFloat(basePair.priceChange?.h24 || '0'),
+                volume24h: parseFloat(basePair.volume?.h24 || '0'),
+                marketCap: parseFloat(basePair.fdv || '0'),
+                liquidity: parseFloat(basePair.liquidity?.usd || '0'),
+              };
+              console.log('XRGE data parsed:', xrgeData);
+            }
           }
+        } else {
+          const errorText = await xrgeResponse.text();
+          console.error('XRGE API error:', errorText);
         }
       }
     } catch (error) {
