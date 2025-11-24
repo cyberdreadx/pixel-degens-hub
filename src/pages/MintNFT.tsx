@@ -170,7 +170,7 @@ const MintNFT = () => {
       // Hardcoded supply of 1
       const supplyAmount = 1n;
 
-      // Set token info first
+      // Set token info FIRST (before modifyTokenSupply)
       builder.setInfo(
         {
           name: formattedSymbol, // YODA (this is the symbol/ticker, requires strict format)
@@ -184,7 +184,7 @@ const MintNFT = () => {
       // Increase total token supply
       builder.modifyTokenSupply(supplyAmount, { account: tokenAccount });
       
-      // Distribute tokens from unallocated supply to user's wallet
+      // Distribute token from supply to user's wallet
       builder.send(client.account, supplyAmount, tokenAccount, undefined, { account: tokenAccount });
 
       // Publish the transaction
