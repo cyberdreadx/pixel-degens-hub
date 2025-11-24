@@ -1,7 +1,20 @@
 import { useState, useEffect } from "react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
-import { Wallet, Home, Image, Users, Activity, ArrowDownUp, ArrowLeftRight, Menu, X, Palette, Network, Settings } from "lucide-react";
+import {
+  Wallet,
+  Home,
+  Image,
+  Users,
+  Activity,
+  ArrowDownUp,
+  ArrowLeftRight,
+  Menu,
+  X,
+  Palette,
+  Network,
+  Settings,
+} from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import WalletDialog from "./WalletDialog";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -25,10 +38,10 @@ const Navigation = () => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === "dark" ? "colecovision" : "dark");
+    setTheme((prev) => (prev === "dark" ? "colecovision" : "dark"));
   };
 
-  const xrgeToken = tokens.find(t => t.symbol === "XRGE");
+  const xrgeToken = tokens.find((t) => t.symbol === "XRGE");
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -50,13 +63,9 @@ const Navigation = () => {
         <div className="flex items-center justify-between">
           <NavLink to="/" className="flex items-center gap-2">
             <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
-              <img 
-                src={logo} 
-                alt="DEGEN Logo" 
-                className="w-full h-full object-contain"
-              />
+              <img src={logo} alt="DEGEN Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="text-base sm:text-lg neon-glow hidden sm:inline font-bold">DEGEN</span>
+            <span className="text-base sm:text-lg neon-glow hidden sm:inline font-bold">DEGEN SWAP</span>
           </NavLink>
 
           {/* Desktop Navigation */}
@@ -72,18 +81,18 @@ const Navigation = () => {
                 <span className="text-xs">{link.label}</span>
               </NavLink>
             ))}
-            
+
             <div className="flex items-center gap-2 px-3 py-1.5 pixel-border bg-muted rounded">
               <Network className="w-3 h-3" />
               <span className="text-[10px] font-bold">{network === "main" ? "MAIN" : "TEST"}</span>
-              <Switch 
+              <Switch
                 checked={network === "main"}
                 onCheckedChange={(checked) => switchNetwork(checked ? "main" : "test")}
                 disabled={isConnected}
                 className="scale-75"
               />
             </div>
-            
+
             <Button
               variant="outline"
               size="sm"
@@ -93,9 +102,9 @@ const Navigation = () => {
             >
               <Palette className="w-4 h-4" />
             </Button>
-            
+
             <Button
-              variant="default" 
+              variant="default"
               size="sm"
               className="pixel-border bg-primary hover:bg-primary/80 text-xs gap-2"
               onClick={() => setWalletDialogOpen(true)}
@@ -116,32 +125,27 @@ const Navigation = () => {
           <div className="flex md:hidden items-center gap-2">
             <div className="flex items-center gap-1 px-2 py-1 pixel-border bg-muted rounded">
               <Network className="w-3 h-3" />
-              <Switch 
+              <Switch
                 checked={network === "main"}
                 onCheckedChange={(checked) => switchNetwork(checked ? "main" : "test")}
                 disabled={isConnected}
                 className="scale-75"
               />
             </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              className="pixel-border text-xs"
-              onClick={toggleTheme}
-            >
+
+            <Button variant="outline" size="sm" className="pixel-border text-xs" onClick={toggleTheme}>
               <Palette className="w-4 h-4" />
             </Button>
-            
+
             <Button
-              variant="default" 
+              variant="default"
               size="sm"
               className="pixel-border bg-primary hover:bg-primary/80 text-xs"
               onClick={() => setWalletDialogOpen(true)}
             >
               <Wallet className="w-4 h-4" />
             </Button>
-            
+
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="pixel-border">
@@ -162,14 +166,12 @@ const Navigation = () => {
                       <span className="text-sm font-semibold">{link.label}</span>
                     </NavLink>
                   ))}
-                  
+
                   {isConnected && (
                     <div className="mt-4 px-4 py-3 pixel-border bg-muted rounded space-y-1.5">
                       <div className="text-[10px] text-muted-foreground">BALANCE</div>
                       <div className="text-xs font-bold">{balance || "0.0000"} KTA</div>
-                      {xrgeToken && (
-                        <div className="text-xs font-bold">{xrgeToken.balance} XRGE</div>
-                      )}
+                      {xrgeToken && <div className="text-xs font-bold">{xrgeToken.balance} XRGE</div>}
                       <div className="text-[10px] text-muted-foreground break-all">
                         {publicKey && formatAddress(publicKey)}
                       </div>
@@ -181,7 +183,7 @@ const Navigation = () => {
           </div>
         </div>
       </div>
-      
+
       <WalletDialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen} />
     </nav>
   );
