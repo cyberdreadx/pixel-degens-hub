@@ -29,6 +29,7 @@ const Swap = () => {
   const [slippage, setSlippage] = useState(1); // Default 1% slippage tolerance
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
+  const [priceImpact, setPriceImpact] = useState<number | null>(null);
 
   // Fetch anchor info and rate together
   const fetchAnchorInfo = async () => {
@@ -96,11 +97,45 @@ const Swap = () => {
     }
   };
 
+  const calculatePriceImpact = (swapAmount: number) => {
+    if (!anchorInfo || !rate) return null;
+
+    const fromPoolBalance = fromCurrency === 'KTA' 
+      ? parseFloat(anchorInfo.ktaBalance || '0')
+      : parseFloat(anchorInfo.xrgeBalance || '0');
+    const toPoolBalance = toCurrency === 'KTA'
+      ? parseFloat(anchorInfo.ktaBalance || '0') 
+      : parseFloat(anchorInfo.xrgeBalance || '0');
+
+    if (fromPoolBalance <= 0 || toPoolBalance <= 0) return null;
+
+    // Constant product: k = x * y
+    const k = fromPoolBalance * toPoolBalance;
+    
+    // After swap: new_from = from + swapAmount
+    const newFromBalance = fromPoolBalance + swapAmount;
+    
+    // new_to = k / new_from
+    const newToBalance = k / newFromBalance;
+    
+    // New rate after swap
+    const newRate = newFromBalance / newToBalance;
+    
+    // Current rate
+    const currentRate = fromPoolBalance / toPoolBalance;
+    
+    // Price impact percentage
+    const impact = ((newRate - currentRate) / currentRate) * 100;
+    
+    return Math.abs(impact);
+  };
+
   const handleFromAmountChange = async (value: string) => {
     setFromAmount(value);
     
     if (!value || isNaN(parseFloat(value))) {
       setToAmount("");
+      setPriceImpact(null);
       return;
     }
 
@@ -108,6 +143,10 @@ const Swap = () => {
     if (currentRate) {
       const calculated = parseFloat(value) * currentRate;
       setToAmount(calculated.toFixed(6));
+      
+      // Calculate price impact
+      const impact = calculatePriceImpact(parseFloat(value));
+      setPriceImpact(impact);
     }
   };
 
@@ -117,6 +156,14 @@ const Swap = () => {
     setFromAmount(toAmount);
     setToAmount(fromAmount);
     setRate(null);
+    
+    // Recalculate price impact with swapped values
+    if (toAmount && parseFloat(toAmount) > 0) {
+      const impact = calculatePriceImpact(parseFloat(toAmount));
+      setPriceImpact(impact);
+    } else {
+      setPriceImpact(null);
+    }
   };
 
   const handleSwap = async () => {
@@ -403,6 +450,40 @@ const Swap = () => {
               </p>
             )}
           </div>
+
+          {/* Price Impact Display */}
+          {priceImpact !== null && fromAmount && parseFloat(fromAmount) > 0 && (
+            <div className={`mb-4 p-3 rounded-lg border ${
+              priceImpact < 1 
+                ? 'bg-green-500/10 border-green-500/20' 
+                : priceImpact < 5 
+                ? 'bg-yellow-500/10 border-yellow-500/20'
+                : 'bg-red-500/10 border-red-500/20'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Price Impact</span>
+                <span className={`text-sm font-bold ${
+                  priceImpact < 1 
+                    ? 'text-green-500' 
+                    : priceImpact < 5 
+                    ? 'text-yellow-500'
+                    : 'text-red-500'
+                }`}>
+                  {priceImpact < 0.01 ? '<0.01' : priceImpact.toFixed(2)}%
+                </span>
+              </div>
+              {priceImpact >= 5 && (
+                <p className="text-xs text-red-500 mt-1">
+                  ⚠️ High price impact! This trade will significantly affect the pool.
+                </p>
+              )}
+              {priceImpact >= 1 && priceImpact < 5 && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  Moderate price impact. Consider splitting into smaller trades.
+                </p>
+              )}
+            </div>
+          )}
 
 
           {/* Swap Action Button */}
