@@ -29,7 +29,7 @@ interface BuildSwapResponse {
   toCurrency: string;
   rate: number;
   anchorAddress: string;
-  transactionHash?: string;
+  unsignedBlockBase64?: string;
   error?: string;
 }
 
@@ -192,7 +192,7 @@ serve(async (req) => {
 
     console.log('Atomic swap operations added to builder');
 
-    // Compute and publish the atomic swap block
+    // Compute the unsigned atomic swap block
     const computed = await client.computeBuilderBlocks(builder);
     
     if (!computed.blocks || computed.blocks.length === 0) {
@@ -201,17 +201,9 @@ serve(async (req) => {
 
     console.log('Swap blocks computed:', computed.blocks.length);
     
-    // Publish the atomic swap
-    const result = await client.publishBuilder(builder);
-    console.log('Atomic swap published:', result);
-
-    // Get transaction hash
-    const hashBuffer = computed.blocks?.[0]?.hash?.get();
-    const txHash = hashBuffer 
-      ? Array.from(new Uint8Array(hashBuffer))
-          .map((b: number) => b.toString(16).padStart(2, '0'))
-          .join('')
-      : 'pending';
+    // Get the unsigned block bytes for user signing
+    const unsignedBytes = computed.blocks[0].toBytes();
+    const unsignedBlockBase64 = btoa(String.fromCharCode(...new Uint8Array(unsignedBytes)));
 
     const response: BuildSwapResponse = {
       success: true,
@@ -221,10 +213,10 @@ serve(async (req) => {
       toCurrency,
       rate,
       anchorAddress,
-      transactionHash: txHash,
+      unsignedBlockBase64,
     };
 
-    console.log('Atomic swap complete');
+    console.log('Unsigned atomic swap block ready for signing');
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
