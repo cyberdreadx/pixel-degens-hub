@@ -125,27 +125,13 @@ serve(async (req) => {
       console.error('Error fetching XRGE data from DexScreener:', error);
     }
 
-    // If no data found, return mock data for development
+    // If no data found, return an informative error without fake zero values
     if (!ktaData && !xrgeData) {
-      console.log('No DexScreener data available, returning mock data');
+      console.log('No DexScreener data available for provided contracts');
       
       const response: MarketDataResponse = {
-        success: true,
-        kta: {
-          price: 0.0,
-          priceChange24h: 0.0,
-          volume24h: 0.0,
-          marketCap: 0.0,
-          liquidity: 0.0,
-        },
-        xrge: {
-          price: 0.0,
-          priceChange24h: 0.0,
-          volume24h: 0.0,
-          marketCap: 0.0,
-          liquidity: 0.0,
-        },
-        error: 'Tokens not yet listed on DexScreener'
+        success: false,
+        error: 'No market data returned from DexScreener for these contracts (check chain & address configuration).'
       };
 
       return new Response(JSON.stringify(response), {
