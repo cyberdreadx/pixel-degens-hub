@@ -13,57 +13,65 @@ interface ExchangeRate {
   source?: string;
 }
 
-// Contract addresses on BASE chain
-const KTA_CONTRACT = '0xc0634090F2Fe6c6d75e61Be2b949464aBB498973';
-const XRGE_CONTRACT = '0x147120faEC9277ec02d957584CFCD92B56A24317';
-
-// Fallback static rates if DexScreener is unavailable
-const FALLBACK_RATES: Record<string, number> = {
-  'KTA_XRGE': 0.85,
-  'XRGE_KTA': 1.18,
+// Token addresses on Keeta Network
+const TOKENS = {
+  KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
+  XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
 };
 
-async function fetchMarketPrices() {
+async function getAnchorBalances() {
   try {
-    // Fetch KTA price
-    const ktaResponse = await fetch(
-      `https://api.dexscreener.com/latest/dex/search?q=${KTA_CONTRACT}`,
-      {
-        headers: { 'Accept': 'application/json' }
-      }
+    const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
+    if (!anchorSeed) {
+      console.error('ANCHOR_WALLET_SEED not configured');
+      return { ktaBalance: null, xrgeBalance: null };
+    }
+
+    const trimmedSeed = anchorSeed.trim();
+    if (!/^[0-9a-f]{64}$/i.test(trimmedSeed)) {
+      console.error('ANCHOR_WALLET_SEED is not a 64-char hex string');
+      return { ktaBalance: null, xrgeBalance: null };
+    }
+
+    // Import KeetaNet SDK
+    const KeetaNet = await import("npm:@keetanetwork/keetanet-client@0.14.12");
+    const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
+
+    // Create anchor account using secp256k1 at index 0
+    const anchorAccount = KeetaNet.lib.Account.fromSeed(trimmedSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
+    const anchorAddress = anchorAccount.publicKeyString.toString();
+
+    console.log('Fetching balances for anchor:', anchorAddress);
+
+    // Fetch balances directly from API
+    const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+    const balanceResponse = await fetch(
+      `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
     );
+    
+    if (!balanceResponse.ok) {
+      throw new Error(`Failed to fetch balance: ${balanceResponse.statusText}`);
+    }
+    
+    const balanceData = await balanceResponse.json();
+    const allBalances = balanceData.balances || [];
+    
+    let ktaBalance = 0;
+    let xrgeBalance = 0;
 
-    // Fetch XRGE price
-    const xrgeResponse = await fetch(
-      `https://api.dexscreener.com/latest/dex/search?q=${XRGE_CONTRACT}`,
-      {
-        headers: { 'Accept': 'application/json' }
-      }
-    );
-
-    let ktaPrice = null;
-    let xrgePrice = null;
-
-    if (ktaResponse.ok) {
-      const ktaData = await ktaResponse.json();
-      if (ktaData.pairs && ktaData.pairs.length > 0) {
-        const basePair = ktaData.pairs.find((p: any) => p.chainId === 'base') || ktaData.pairs[0];
-        ktaPrice = parseFloat(basePair.priceUsd || '0');
+    for (const balance of allBalances) {
+      if (balance.token === TOKENS.KTA) {
+        ktaBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
+      } else if (balance.token === TOKENS.XRGE) {
+        xrgeBalance = Number(BigInt(balance.balance)) / Math.pow(10, 18);
       }
     }
 
-    if (xrgeResponse.ok) {
-      const xrgeData = await xrgeResponse.json();
-      if (xrgeData.pairs && xrgeData.pairs.length > 0) {
-        const basePair = xrgeData.pairs.find((p: any) => p.chainId === 'base') || xrgeData.pairs[0];
-        xrgePrice = parseFloat(basePair.priceUsd || '0');
-      }
-    }
-
-    return { ktaPrice, xrgePrice };
+    console.log(`Anchor liquidity pool: ${ktaBalance} KTA, ${xrgeBalance} XRGE`);
+    return { ktaBalance, xrgeBalance };
   } catch (error) {
-    console.error('Error fetching market prices:', error);
-    return { ktaPrice: null, xrgePrice: null };
+    console.error('Error fetching anchor balances:', error);
+    return { ktaBalance: null, xrgeBalance: null };
   }
 }
 
@@ -78,43 +86,35 @@ serve(async (req) => {
     
     console.log(`Fetching exchange rate: ${from} -> ${to}`);
 
-    // Fetch real market prices
-    const { ktaPrice, xrgePrice } = await fetchMarketPrices();
+    // Fetch anchor liquidity pool balances
+    const { ktaBalance, xrgeBalance } = await getAnchorBalances();
 
     let rate: number;
     let source: string;
 
-    // Calculate rate from real prices if available
-    if (ktaPrice && ktaPrice > 0 && xrgePrice && xrgePrice > 0) {
+    // Calculate rate from liquidity pool if available
+    if (ktaBalance && ktaBalance > 0 && xrgeBalance && xrgeBalance > 0) {
       if (from === 'KTA' && to === 'XRGE') {
-        rate = ktaPrice / xrgePrice; // How much XRGE per KTA
+        // Rate based on pool ratio: how much XRGE you get per KTA
+        rate = xrgeBalance / ktaBalance;
       } else if (from === 'XRGE' && to === 'KTA') {
-        rate = xrgePrice / ktaPrice; // How much KTA per XRGE
+        // Rate based on pool ratio: how much KTA you get per XRGE
+        rate = ktaBalance / xrgeBalance;
       } else {
         throw new Error(`Unsupported pair: ${from}_${to}`);
       }
-      source = 'DexScreener';
-      console.log(`Real market rate calculated: 1 ${from} = ${rate} ${to} (KTA: $${ktaPrice}, XRGE: $${xrgePrice})`);
+      source = 'Liquidity Pool';
+      console.log(`Pool-based rate calculated: 1 ${from} = ${rate} ${to} (Pool: ${ktaBalance} KTA, ${xrgeBalance} XRGE)`);
     } else {
-      // Fallback to static rates
-      const rateKey = `${from}_${to}`;
-      rate = FALLBACK_RATES[rateKey];
-      
-      if (!rate) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Exchange rate not available',
-            availablePairs: Object.keys(FALLBACK_RATES)
-          }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      
-      source = 'Fallback';
-      console.log(`Using fallback rate: 1 ${from} = ${rate} ${to}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Liquidity pool not available. Please fund the anchor wallet with KTA and XRGE.',
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const response: ExchangeRate = {
