@@ -130,12 +130,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         );
       }
       
-      // KTA uses 6 decimals for display, 9 for transactions
-      // Raw balance example: 249007609393930 with 6 decimals = 249007609.393930
+      // KTA uses 3 decimals for display, 9 for transactions
       const decimals = DISPLAY_DECIMALS.KTA;
       const divisor = Math.pow(10, decimals);
       const balanceNum = Number(ktaBalance) / divisor;
-      const balanceStr = balanceNum.toFixed(6);
+      const balanceStr = balanceNum.toFixed(3);
       
       console.log('[WalletContext] Raw KTA balance (bigint):', ktaBalance.toString());
       console.log('[WalletContext] Decimals used:', decimals);
@@ -228,7 +227,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             (symbol === 'KTA' ? DISPLAY_DECIMALS.KTA : DISPLAY_DECIMALS.XRGE);
           const readableBalance = decimals === 0 
             ? Number(rawBalance).toString() 
-            : (Number(rawBalance) / Math.pow(10, displayDecimals)).toFixed(6);
+            : (Number(rawBalance) / Math.pow(10, displayDecimals)).toFixed(displayDecimals === 3 ? 3 : 6);
           
           return {
             address: tokenAddress,
