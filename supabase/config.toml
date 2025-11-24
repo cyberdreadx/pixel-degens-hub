@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.fx-record-price]
 verify_jwt = false
+
+[functions.fx-keeta-proxy]
+verify_jwt = false

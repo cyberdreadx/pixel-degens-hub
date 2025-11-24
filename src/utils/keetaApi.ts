@@ -1,5 +1,5 @@
-// Direct Keeta chain API interactions - no Supabase dependency
-const KEETA_API = 'https://rep3.main.network.api.keeta.com/api';
+// Keeta chain API interactions via Supabase proxy (bypasses CORS)
+import { supabase } from "@/integrations/supabase/client";
 
 const TOKENS = {
   KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
@@ -21,21 +21,15 @@ export interface ExchangeRate {
 }
 
 /**
- * Fetch account balances directly from Keeta chain
+ * Fetch account balances from Keeta chain via proxy edge function
  */
 export async function fetchAccountBalances(address: string): Promise<{ kta: number; xrge: number }> {
   try {
-    const response = await fetch(`${KEETA_API}/account-balances`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ account: address }),
+    const { data, error } = await supabase.functions.invoke('fx-keeta-proxy', {
+      body: { address }
     });
 
-    if (!response.ok) {
-      throw new Error(`Keeta API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    if (error) throw error;
     
     let ktaBalance = 0;
     let xrgeBalance = 0;
