@@ -15,7 +15,7 @@ interface NFTAttribute {
 }
 
 const MintNFT = () => {
-  const { client, account, isConnected } = useWallet();
+  const { client, account, isConnected, network } = useWallet();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -192,9 +192,14 @@ const MintNFT = () => {
       <div className="container mx-auto px-4 max-w-2xl">
         <div className="mb-8 space-y-4">
           <h1 className="text-3xl md:text-5xl font-bold neon-glow">MINT NFT</h1>
-          <p className="text-xs md:text-sm text-muted-foreground">
-            CREATE YOUR 8-BIT MASTERPIECE ON KEETA CHAIN
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-xs md:text-sm text-muted-foreground">
+              CREATE YOUR 8-BIT MASTERPIECE ON KEETA CHAIN
+            </p>
+            <div className="px-3 py-1 pixel-border bg-muted rounded text-xs font-bold">
+              {network === "main" ? "MAINNET" : "TESTNET"}
+            </div>
+          </div>
         </div>
 
         <Card className="p-6 pixel-border-thick bg-card/80 backdrop-blur space-y-6">

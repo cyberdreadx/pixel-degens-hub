@@ -23,6 +23,7 @@ interface SwapRequest {
   swapBlockBytes?: string; // Base64-encoded swap block from user
   expectedRate?: number; // Expected rate from frontend for slippage check
   slippageTolerance?: number; // Slippage tolerance percentage (e.g., 1 for 1%)
+  network?: string; // Network: 'main' or 'test'
 }
 
 interface SwapResponse {
@@ -36,10 +37,15 @@ interface SwapResponse {
   error?: string;
 }
 
-async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddress: string): Promise<number> {
+async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddress: string, network: string): Promise<number> {
   try {
     // Fetch balances directly from API
-    const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+    const apiEndpoint = network === 'test'
+      ? 'https://rep3.test.network.api.keeta.com/api'
+      : 'https://rep3.main.network.api.keeta.com/api';
+    
+    console.log('[fx-swap] Using API endpoint:', apiEndpoint);
+    
     const balanceResponse = await fetch(
       `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
     );
@@ -87,7 +93,7 @@ serve(async (req) => {
   }
 
   try {
-    const { fromCurrency, toCurrency, amount, userPublicKey, swapBlockBytes, expectedRate, slippageTolerance }: SwapRequest = await req.json();
+    const { fromCurrency, toCurrency, amount, userPublicKey, swapBlockBytes, expectedRate, slippageTolerance, network = 'main' }: SwapRequest = await req.json();
 
     console.log('Swap request:', { 
       fromCurrency, 
@@ -96,7 +102,8 @@ serve(async (req) => {
       userPublicKey, 
       hasSwapBlock: !!swapBlockBytes,
       expectedRate,
-      slippageTolerance 
+      slippageTolerance,
+      network
     });
 
     // Validate input
@@ -196,13 +203,14 @@ serve(async (req) => {
     
     // Create anchor account using secp256k1 at index 0
     const anchorAccount = KeetaNet.lib.Account.fromSeed(seedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
-    const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
+    const client = KeetaNet.UserClient.fromNetwork(network as 'main' | 'test', anchorAccount);
     const anchorAddress = anchorAccount.publicKeyString.toString();
 
     console.log('Anchor wallet:', anchorAddress);
+    console.log('Network:', network);
 
     // Calculate rate from liquidity pool
-    const currentRate = await getPoolRate(fromCurrency, toCurrency, anchorAddress);
+    const currentRate = await getPoolRate(fromCurrency, toCurrency, anchorAddress, network);
     
     if (!currentRate || currentRate <= 0) {
       return new Response(
@@ -509,9 +517,12 @@ serve(async (req) => {
         );
 
         // Get current pool balances after swap
-        const postSwapRate = await getPoolRate(fromCurrency, toCurrency, anchorAddress);
+        const postSwapRate = await getPoolRate(fromCurrency, toCurrency, anchorAddress, network);
         
-        const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+        const apiEndpoint = network === 'test'
+          ? 'https://rep3.test.network.api.keeta.com/api'
+          : 'https://rep3.main.network.api.keeta.com/api';
+        
         const balanceResponse = await fetch(
           `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
         );

@@ -19,7 +19,7 @@ const TOKENS = {
   XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
 };
 
-async function getAnchorBalances() {
+async function getAnchorBalances(network: string) {
   try {
     const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
     if (!anchorSeed) {
@@ -44,7 +44,12 @@ async function getAnchorBalances() {
     console.log('Fetching balances for anchor:', anchorAddress);
 
     // Fetch balances directly from API
-    const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+    const apiEndpoint = network === 'test'
+      ? 'https://rep3.test.network.api.keeta.com/api'
+      : 'https://rep3.main.network.api.keeta.com/api';
+    
+    console.log('[fx-rates] Using API endpoint:', apiEndpoint);
+    
     const balanceResponse = await fetch(
       `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
     );
@@ -85,12 +90,13 @@ serve(async (req) => {
   }
 
   try {
-    const { from, to } = await req.json().catch(() => ({ from: 'KTA', to: 'XRGE' }));
+    const { from, to, network } = await req.json().catch(() => ({ from: 'KTA', to: 'XRGE', network: 'main' }));
     
     console.log(`[fx-rates] Fetching exchange rate: ${from} -> ${to}`);
+    console.log(`[fx-rates] Network: ${network}`);
 
     // Fetch anchor liquidity pool balances
-    const { ktaBalance, xrgeBalance } = await getAnchorBalances();
+    const { ktaBalance, xrgeBalance } = await getAnchorBalances(network);
 
     let rate: number;
     let source: string;

@@ -18,7 +18,11 @@ serve(async (req) => {
   }
 
   try {
+    const { network } = await req.json().catch(() => ({ network: 'main' }));
+    
     console.log('[fx-anchor-info] Loading environment variables');
+    console.log('[fx-anchor-info] Network:', network);
+    
     const anchorAddress = Deno.env.get('ANCHOR_WALLET_ADDRESS');
     const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
     
@@ -70,7 +74,12 @@ serve(async (req) => {
     console.log('Addresses match:', trimmedAddress === backendDerivedAddress);
     
     // Fetch balances for the backend-derived address (the one that can actually be used)
-    const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
+    const apiEndpoint = network === 'test' 
+      ? 'https://rep3.test.network.api.keeta.com/api'
+      : 'https://rep3.main.network.api.keeta.com/api';
+    
+    console.log('[fx-anchor-info] Using API endpoint:', apiEndpoint);
+    
     const balanceResponse = await fetch(
       `${apiEndpoint}/node/ledger/account/${backendDerivedAddress}/balance`
     );
