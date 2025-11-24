@@ -184,6 +184,9 @@ const MintNFT = () => {
       // Increase total token supply
       builder.modifyTokenSupply(supplyAmount, { account: tokenAccount });
       
+      // Compute blocks to finalize the supply modification before sending
+      await builder.computeBlocks();
+      
       // Distribute tokens from unallocated supply to user's wallet
       builder.send(client.account, supplyAmount, tokenAccount, undefined, { account: tokenAccount });
 
