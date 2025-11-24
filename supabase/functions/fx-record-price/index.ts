@@ -17,15 +17,20 @@ interface PriceSnapshot {
   network: string;
 }
 
-// Token addresses
-const TOKENS = {
+// Token addresses by network
+const MAINNET_TOKENS = {
   KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
   XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
 };
 
+const TESTNET_TOKENS = {
+  KTA: 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52',
+  XRGE: 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s',
+};
+
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
-async function getAnchorBalances() {
+async function getAnchorBalances(network: string) {
   const seedHex = Deno.env.get('ANCHOR_WALLET_SEED');
   if (!seedHex || seedHex.length !== 64) {
     throw new Error('Invalid ANCHOR_WALLET_SEED: must be 64-character hex string');
@@ -40,8 +45,17 @@ async function getAnchorBalances() {
   const anchorAccount = KeetaNet.lib.Account.fromSeed(trimmedSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
   const address = anchorAccount.publicKeyString.toString();
 
+  // Select API endpoint based on network
+  const apiEndpoint = network === 'test' 
+    ? 'https://rep3.test.network.api.keeta.com/api'
+    : 'https://rep3.main.network.api.keeta.com/api';
+
+  // Select token addresses based on network
+  const TOKENS = network === 'test' ? TESTNET_TOKENS : MAINNET_TOKENS;
+
+  console.log(`[fx-record-price] Fetching balances for ${network} from ${apiEndpoint}`);
+
   // Fetch balances
-  const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
   const balanceResponse = await fetch(
     `${apiEndpoint}/node/ledger/account/${address}/balance`
   );
@@ -73,14 +87,37 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get current anchor balances
-    const { ktaBalance, xrgeBalance } = await getAnchorBalances();
+    // Get network from request body or default to 'main'
+    let network = 'main';
+    try {
+      const body = await req.json();
+      network = body.network || 'main';
+    } catch {
+      // If no body, use default
+    }
+
+    console.log(`[fx-record-price] Recording price for network: ${network}`);
+
+    // Get current anchor balances for the specified network
+    const { ktaBalance, xrgeBalance } = await getAnchorBalances(network);
+
+    console.log(`[fx-record-price] Balances - KTA: ${ktaBalance}, XRGE: ${xrgeBalance}`);
+
+    if (ktaBalance === 0 || xrgeBalance === 0) {
+      console.warn(`[fx-record-price] Insufficient liquidity on ${network}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Insufficient liquidity on ${network}`,
+          ktaBalance,
+          xrgeBalance,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Calculate rate (KTA to XRGE)
     const rate = xrgeBalance / ktaBalance;
-    
-    // Get network from environment (defaults to 'main')
-    const network = Deno.env.get('KEETA_NETWORK') || 'main';
 
     // Record both directions
     const snapshots: PriceSnapshot[] = [
@@ -108,7 +145,7 @@ serve(async (req) => {
 
     if (error) throw error;
 
-    console.log('Price snapshot recorded:', snapshots);
+    console.log(`[fx-record-price] Price snapshot recorded for ${network}:`, snapshots);
 
     return new Response(
       JSON.stringify({ 
@@ -120,7 +157,7 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Error recording price:', error);
+    console.error('[fx-record-price] Error recording price:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
