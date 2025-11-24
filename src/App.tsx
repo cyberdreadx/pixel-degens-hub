@@ -11,6 +11,7 @@ import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
 import Swap from "./pages/Swap";
 import Bridge from "./pages/Bridge";
+import MintNFT from "./pages/MintNFT";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/swap" element={<Swap />} />
               <Route path="/bridge" element={<Bridge />} />
+              <Route path="/mint" element={<MintNFT />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

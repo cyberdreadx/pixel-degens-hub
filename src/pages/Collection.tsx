@@ -1,7 +1,10 @@
 import NFTCard from "@/components/NFTCard";
 import { Button } from "@/components/ui/button";
-import { Filter, Search } from "lucide-react";
+import { Filter, Search, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useWallet } from "@/contexts/WalletContext";
+import { ipfsToHttp } from "@/utils/nftUtils";
+import { Link } from "react-router-dom";
 import nft1 from "@/assets/nft1.png";
 import nft2 from "@/assets/nft2.png";
 import nft3 from "@/assets/nft3.png";
@@ -67,63 +70,72 @@ const mockNFTs = [
 ];
 
 const Collection = () => {
+  const { tokens, isConnected } = useWallet();
+  
+  // Filter for NFTs only
+  const nfts = tokens.filter(token => token.isNFT && token.metadata);
+  
   return (
     <div className="relative min-h-screen pt-24 pb-16">
-      {/* Coming Soon Overlay */}
-      <div className="absolute inset-x-0 bottom-0 top-24 z-50 flex items-center justify-center backdrop-blur-sm bg-background/60">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl md:text-6xl font-bold neon-glow">COMING SOON</h1>
-          <p className="text-sm md:text-base text-muted-foreground">
-            THIS PAGE IS UNDER CONSTRUCTION
-          </p>
-        </div>
-      </div>
-
-      {/* Preview Content (blurred underneath) */}
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="mb-8 space-y-4">
-          <h1 className="text-3xl md:text-5xl font-bold neon-glow">NFT COLLECTION</h1>
-          <p className="text-xs md:text-sm text-muted-foreground">
-            EXPLORE THE DOPEST 8-BIT DROPS
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="mb-8 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="SEARCH NFTS..." 
-              className="pl-10 pixel-border bg-card text-xs"
-            />
+        <div className="mb-8 space-y-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl md:text-5xl font-bold neon-glow">NFT COLLECTION</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">
+              {isConnected ? `YOUR DEGEN 8BIT NFTS (${nfts.length})` : 'CONNECT WALLET TO VIEW YOUR NFTS'}
+            </p>
           </div>
-          <Button 
-            variant="outline" 
-            className="pixel-border gap-2 text-xs"
-          >
-            <Filter className="w-4 h-4" />
-            FILTER
-          </Button>
+          <Link to="/mint">
+            <Button className="pixel-border-thick gap-2">
+              <Sparkles className="w-4 h-4" />
+              MINT NFT
+            </Button>
+          </Link>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockNFTs.map((nft) => (
-            <NFTCard key={nft.id} {...nft} />
-          ))}
-        </div>
-
-        {/* Load More */}
-        <div className="mt-12 text-center">
-          <Button 
-            variant="outline" 
-            size="lg"
-            className="pixel-border-thick text-xs"
-          >
-            LOAD MORE NFTS
-          </Button>
-        </div>
+        {/* Content */}
+        {!isConnected ? (
+          <div className="text-center py-20 space-y-4">
+            <div className="text-6xl">🔒</div>
+            <h2 className="text-2xl font-bold">CONNECT YOUR WALLET</h2>
+            <p className="text-sm text-muted-foreground">
+              Connect your Keeta wallet to view your NFT collection
+            </p>
+          </div>
+        ) : nfts.length === 0 ? (
+          <div className="text-center py-20 space-y-4">
+            <div className="text-6xl">🎨</div>
+            <h2 className="text-2xl font-bold">NO NFTS YET</h2>
+            <p className="text-sm text-muted-foreground">
+              Mint your first Degen 8bit NFT to get started
+            </p>
+            <Link to="/mint">
+              <Button className="pixel-border-thick gap-2 mt-4">
+                <Sparkles className="w-4 h-4" />
+                MINT YOUR FIRST NFT
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {nfts.map((nft) => (
+                <NFTCard 
+                  key={nft.address}
+                  id={nft.address}
+                  title={nft.metadata.name || nft.name}
+                  creator={nft.metadata.version || "degen8bit v1.0"}
+                  price={nft.balance}
+                  image={ipfsToHttp(nft.metadata.image)}
+                  likes={0}
+                  comments={0}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
