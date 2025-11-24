@@ -65,10 +65,10 @@ serve(async (req) => {
     console.log('Backend-derived address (from seed):', backendDerivedAddress);
     console.log('Addresses match:', trimmedAddress === backendDerivedAddress);
     
-    // Fetch balances directly from the Keeta API for the intended address
+    // Fetch balances for the backend-derived address (the one that can actually be used)
     const apiEndpoint = 'https://rep3.main.network.api.keeta.com/api';
     const balanceResponse = await fetch(
-      `${apiEndpoint}/node/ledger/account/${trimmedAddress}/balance`
+      `${apiEndpoint}/node/ledger/account/${backendDerivedAddress}/balance`
     );
     
     if (!balanceResponse.ok) {
@@ -94,20 +94,20 @@ serve(async (req) => {
       ? (BigInt(xrgeBalance.balance) / BigInt(10 ** 18)).toString()
       : '0';
 
-    console.log('Intended address balances:', { kta, xrge });
+    console.log('Backend-derived address balances:', { kta, xrge });
 
     return new Response(
       JSON.stringify({ 
-        // Display the intended address and its balances
-        address: trimmedAddress,
+        // Display the backend-derived address and its balances
+        address: backendDerivedAddress,
         ktaBalance: kta,
         xrgeBalance: xrge,
-        method: 'Querying ANCHOR_WALLET_ADDRESS',
+        method: 'Backend-derived from ANCHOR_WALLET_SEED',
         // Extra debug fields
         intendedAddress: trimmedAddress,
         backendAddress: backendDerivedAddress,
         addressMatch: trimmedAddress === backendDerivedAddress,
-        note: 'Balances are from ANCHOR_WALLET_ADDRESS. Backend uses ANCHOR_WALLET_SEED for transaction signing.'
+        note: 'Balances are from backend-derived address. Fund this address for swaps to work.'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
