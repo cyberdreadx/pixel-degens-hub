@@ -176,7 +176,10 @@ const MintNFT = () => {
         'metadata': 'includes full description'
       });
 
-      // Set token info first - Keeta SDK has confusing param names
+      // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
+      builder.modifyTokenSupply(1n, { account: tokenAccount });
+
+      // Set token info - Keeta SDK has confusing param names
       builder.setInfo(
         {
           name: formattedSymbol, // YODA (this is the symbol/ticker, requires strict format)
@@ -187,15 +190,10 @@ const MintNFT = () => {
         { account: tokenAccount }
       );
 
-      // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
-      builder.modifyTokenSupply(1n, { account: tokenAccount });
-      
-      // Distribute the token from unallocated supply to user's wallet
-      // The tokenAccount sends to client.account (user's wallet)
-      builder.send(client.account, 1n, tokenAccount, undefined, { account: tokenAccount });
-
-      // Publish the transaction (computeBlocks happens automatically in publish)
-      await builder.publish();
+      // For NFTs (supply=1), no send() needed - the NFT automatically belongs to the creator
+      // Publish the transaction
+      await client.computeBuilderBlocks(builder);
+      await client.publishBuilder(builder);
 
       const tokenAddress = tokenAccount.publicKeyString.get();
       toast.success(`NFT minted successfully! Token: ${tokenAddress}`);
