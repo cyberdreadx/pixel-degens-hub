@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 import { Upload, Plus, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NFTAttribute {
   trait_type: string;
@@ -23,6 +24,10 @@ const MintNFT = () => {
   const [newTraitType, setNewTraitType] = useState("");
   const [newTraitValue, setNewTraitValue] = useState("");
   const [isMinting, setIsMinting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addAttribute = () => {
     if (!newTraitType || !newTraitValue) {
@@ -38,14 +43,78 @@ const MintNFT = () => {
     setAttributes(attributes.filter((_, i) => i !== index));
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image must be less than 10MB");
+      return;
+    }
+
+    setSelectedFile(file);
+    const preview = URL.createObjectURL(file);
+    setPreviewUrl(preview);
+  };
+
+  const uploadToIPFS = async () => {
+    if (!selectedFile) {
+      toast.error("Please select a file first");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const { data, error } = await supabase.functions.invoke('fx-upload-ipfs', {
+        body: formData,
+      });
+
+      if (error) throw error;
+
+      setImageUrl(data.ipfsUrl);
+      toast.success("Image uploaded to IPFS successfully!");
+      return data.ipfsUrl;
+    } catch (error: any) {
+      console.error('Error uploading to IPFS:', error);
+      toast.error(`Failed to upload: ${error.message}`);
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const mintNFT = async () => {
     if (!isConnected || !client || !account) {
       toast.error("Please connect your wallet first");
       return;
     }
 
-    if (!name || !imageUrl) {
-      toast.error("Name and image URL are required");
+    if (!name) {
+      toast.error("Name is required");
+      return;
+    }
+
+    // If file selected but not uploaded, upload it first
+    if (selectedFile && !imageUrl) {
+      try {
+        await uploadToIPFS();
+      } catch {
+        return; // Upload failed, stop minting
+      }
+    }
+
+    if (!imageUrl) {
+      toast.error("Image is required");
       return;
     }
 
@@ -105,6 +174,11 @@ const MintNFT = () => {
       setImageUrl("");
       setExternalUrl("");
       setAttributes([]);
+      setSelectedFile(null);
+      setPreviewUrl("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (error: any) {
       console.error("Error minting NFT:", error);
       toast.error(`Failed to mint NFT: ${error.message || "Unknown error"}`);
@@ -148,26 +222,75 @@ const MintNFT = () => {
             />
           </div>
 
-          {/* Image URL */}
+          {/* Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="image" className="text-xs font-bold">IMAGE URL (IPFS or HTTPS) *</Label>
+            <Label className="text-xs font-bold">IMAGE *</Label>
+            
+            {/* File Upload Button */}
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+                className="pixel-border text-xs flex-1"
+                disabled={isUploading}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {selectedFile ? selectedFile.name : "SELECT IMAGE FROM DEVICE"}
+              </Button>
+              {selectedFile && !imageUrl && (
+                <Button
+                  type="button"
+                  onClick={uploadToIPFS}
+                  disabled={isUploading}
+                  className="pixel-border text-xs"
+                >
+                  {isUploading ? "UPLOADING..." : "UPLOAD TO IPFS"}
+                </Button>
+              )}
+            </div>
+
+            {/* Or use URL */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or paste URL</span>
+              </div>
+            </div>
+
             <Input
-              id="image"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="ipfs://... or https://..."
               className="pixel-border text-xs"
+              disabled={isUploading}
             />
-            {imageUrl && (
+
+            {/* Image Preview */}
+            {(previewUrl || imageUrl) && (
               <div className="mt-2 relative w-full h-48 border-2 border-primary rounded overflow-hidden">
                 <img
-                  src={imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/")}
+                  src={previewUrl || imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/")}
                   alt="NFT Preview"
                   className="w-full h-full object-contain bg-muted"
                   onError={(e) => {
                     e.currentTarget.src = "/placeholder.svg";
                   }}
                 />
+                {imageUrl && (
+                  <div className="absolute top-2 right-2 bg-green-500/90 text-white px-2 py-1 rounded text-xs font-bold">
+                    ✓ UPLOADED
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -240,11 +363,11 @@ const MintNFT = () => {
           {/* Mint Button */}
           <Button
             onClick={mintNFT}
-            disabled={!isConnected || isMinting || !name || !imageUrl}
+            disabled={!isConnected || isMinting || isUploading || !name || (!imageUrl && !selectedFile)}
             className="w-full pixel-border-thick text-xs"
             size="lg"
           >
-            {isMinting ? "MINTING..." : isConnected ? "MINT NFT" : "CONNECT WALLET FIRST"}
+            {isMinting ? "MINTING..." : isUploading ? "UPLOADING IMAGE..." : isConnected ? "MINT NFT" : "CONNECT WALLET FIRST"}
           </Button>
 
           {/* Info */}
