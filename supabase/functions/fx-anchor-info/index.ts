@@ -91,12 +91,16 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
+        // For existing frontend code
+        address: backendDerivedAddress,
+        ktaBalance: kta,
+        xrgeBalance: xrge,
+        method: 'Backend-derived from ANCHOR_WALLET_SEED',
+        // Extra debug fields
         intendedAddress: trimmedAddress,
         backendAddress: backendDerivedAddress,
         addressMatch: trimmedAddress === backendDerivedAddress,
-        ktaBalance: kta,
-        xrgeBalance: xrge,
-        note: 'Due to SDK incompatibility, backend derives a different address. Transfer funds to backendAddress for swaps to work.'
+        note: 'Due to SDK incompatibility, backend address may differ from intended. Fund backendAddress for swaps.'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
