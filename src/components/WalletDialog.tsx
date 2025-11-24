@@ -161,63 +161,63 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
   if (isConnected) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="pixel-border-thick bg-gradient-to-b from-card to-card/80 max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto border-4 border-primary shadow-[0_0_30px_rgba(0,255,255,0.3)] p-4 sm:p-6">
+        <DialogContent className="pixel-border-thick bg-gradient-to-b from-card to-card/80 max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden border-4 border-primary shadow-[0_0_30px_rgba(0,255,255,0.3)] p-4 sm:p-6">
           <DialogHeader className="space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b-2 border-primary/30">
             <DialogTitle className="text-xl sm:text-2xl neon-glow flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary pixel-border-thick flex items-center justify-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary pixel-border-thick flex items-center justify-center shrink-0">
                 <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-background" />
               </div>
-              WALLET ACTIVE
+              <span className="truncate">WALLET ACTIVE</span>
             </DialogTitle>
-            <DialogDescription className="text-[10px] sm:text-xs text-primary/80 font-mono">
+            <DialogDescription className="text-[10px] sm:text-xs text-primary/80 font-mono truncate">
               KEETA MAINNET • SECP256K1 • INDEX 0
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 sm:space-y-5 pt-3 sm:pt-4">
+          <div className="space-y-4 sm:space-y-5 pt-3 sm:pt-4 w-full overflow-x-hidden">
             {/* Balance Section */}
-            <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 p-4 sm:p-5 space-y-2 sm:space-y-3 relative overflow-hidden">
+            <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 p-4 sm:p-5 space-y-2 sm:space-y-3 relative overflow-hidden w-full max-w-full">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10" />
-              <div className="flex items-center justify-between gap-2">
-                <Label className="text-[11px] sm:text-[10px] tracking-wider text-primary font-bold">YOUR BALANCES</Label>
+              <div className="flex items-center justify-between gap-2 w-full">
+                <Label className="text-[11px] sm:text-[10px] tracking-wider text-primary font-bold truncate">YOUR BALANCES</Label>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 sm:h-7 px-2 sm:px-2 text-[11px] sm:text-[10px] hover:bg-primary/20 pixel-border min-w-[80px]"
+                  className="h-8 sm:h-7 px-2 sm:px-2 text-[11px] sm:text-[10px] hover:bg-primary/20 pixel-border min-w-[80px] shrink-0"
                   onClick={refreshBalance}
                 >
                   ↻ REFRESH
                 </Button>
               </div>
-              <div className="space-y-2 sm:space-y-2.5">
-                <div className="flex items-baseline gap-2">
-                  <div className="text-2xl sm:text-3xl font-bold neon-glow leading-none">{balance || "0.000000"}</div>
-                  <div className="text-xs sm:text-sm text-primary/70">KTA</div>
+              <div className="space-y-2 sm:space-y-2.5 w-full overflow-hidden">
+                <div className="flex items-baseline gap-2 w-full overflow-hidden">
+                  <div className="text-2xl sm:text-3xl font-bold neon-glow leading-none truncate">{balance || "0.000000"}</div>
+                  <div className="text-xs sm:text-sm text-primary/70 shrink-0">KTA</div>
                 </div>
                 {tokens.map((token) => (
-                  <div key={token.address} className="flex items-baseline gap-2 pl-2 border-l-2 border-accent/50">
-                    <div className="text-lg sm:text-xl font-bold text-accent leading-none">
+                  <div key={token.address} className="flex items-baseline gap-2 pl-2 border-l-2 border-accent/50 w-full overflow-hidden">
+                    <div className="text-lg sm:text-xl font-bold text-accent leading-none truncate">
                       {token.balance}
                     </div>
-                    <div className="text-[11px] sm:text-xs text-accent/70">{token.symbol}</div>
+                    <div className="text-[11px] sm:text-xs text-accent/70 shrink-0">{token.symbol}</div>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Address Section */}
-            <div className="space-y-2 sm:space-y-3">
-              <Label className="text-[11px] sm:text-[10px] tracking-wider text-muted-foreground font-bold">YOUR ADDRESS</Label>
-              <div className="flex gap-2">
+            <div className="space-y-2 sm:space-y-3 w-full max-w-full overflow-hidden">
+              <Label className="text-[11px] sm:text-[10px] tracking-wider text-muted-foreground font-bold truncate">YOUR ADDRESS</Label>
+              <div className="flex gap-2 w-full max-w-full">
                 <Input
                   value={publicKey || ""}
                   readOnly
-                  className="pixel-border bg-muted/50 text-[11px] sm:text-[10px] font-mono border-2 border-muted hover:border-primary/50 transition-colors truncate"
+                  className="pixel-border bg-muted/50 text-[11px] sm:text-[10px] font-mono border-2 border-muted hover:border-primary/50 transition-colors truncate flex-1 min-w-0"
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  className="pixel-border-thick hover:bg-primary/20 hover:border-primary transition-all min-w-[44px] h-10"
+                  className="pixel-border-thick hover:bg-primary/20 hover:border-primary transition-all min-w-[44px] w-[44px] h-10 shrink-0"
                   onClick={handleCopyAddress}
                 >
                   <Copy className="w-4 h-4" />
@@ -226,21 +226,21 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             </div>
 
             {/* Send Tokens Section */}
-            <div className="pixel-border-thick bg-gradient-to-br from-accent/5 to-accent/10 p-4 sm:p-5 space-y-3 sm:space-y-4 relative overflow-hidden">
+            <div className="pixel-border-thick bg-gradient-to-br from-accent/5 to-accent/10 p-4 sm:p-5 space-y-3 sm:space-y-4 relative overflow-hidden w-full max-w-full">
               <div className="absolute top-0 left-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -z-10" />
-              <Label className="text-[11px] sm:text-[10px] tracking-wider text-accent font-bold flex items-center gap-2">
-                <Send className="w-4 h-4" />
-                SEND TOKENS
+              <Label className="text-[11px] sm:text-[10px] tracking-wider text-accent font-bold flex items-center gap-2 truncate">
+                <Send className="w-4 h-4 shrink-0" />
+                <span className="truncate">SEND TOKENS</span>
               </Label>
               
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-[10px] sm:text-[9px] text-muted-foreground">SELECT TOKEN</Label>
+              <div className="space-y-3 w-full max-w-full overflow-hidden">
+                <div className="space-y-2 w-full max-w-full overflow-hidden">
+                  <Label className="text-[10px] sm:text-[9px] text-muted-foreground truncate">SELECT TOKEN</Label>
                   <Select value={selectedToken} onValueChange={setSelectedToken}>
-                    <SelectTrigger className="pixel-border bg-background/50 border-2 text-xs sm:text-xs h-11 sm:h-10">
+                    <SelectTrigger className="pixel-border bg-background/50 border-2 text-xs sm:text-xs h-11 sm:h-10 w-full">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="pixel-border bg-background z-50">
+                    <SelectContent className="pixel-border bg-background z-50 max-w-[90vw]">
                       <SelectItem value="KTA" className="text-xs">KTA (Balance: {balance || "0.000000"})</SelectItem>
                       {tokens.map((token) => (
                         <SelectItem key={token.address} value={token.address} className="text-xs">
@@ -251,24 +251,24 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-[10px] sm:text-[9px] text-muted-foreground">RECIPIENT ADDRESS</Label>
+                <div className="space-y-2 w-full max-w-full overflow-hidden">
+                  <Label className="text-[10px] sm:text-[9px] text-muted-foreground truncate">RECIPIENT ADDRESS</Label>
                   <Input
                     placeholder="keeta_..."
                     value={sendTo}
                     onChange={(e) => setSendTo(e.target.value)}
-                    className="pixel-border bg-background/50 border-2 text-[11px] sm:text-[10px] font-mono h-11 sm:h-10"
+                    className="pixel-border bg-background/50 border-2 text-[11px] sm:text-[10px] font-mono h-11 sm:h-10 w-full"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-[10px] sm:text-[9px] text-muted-foreground">AMOUNT</Label>
+                <div className="space-y-2 w-full max-w-full overflow-hidden">
+                  <Label className="text-[10px] sm:text-[9px] text-muted-foreground truncate">AMOUNT</Label>
                   <Input
                     type="number"
                     placeholder="0.000000"
                     value={sendAmount}
                     onChange={(e) => setSendAmount(e.target.value)}
-                    className="pixel-border bg-background/50 border-2 text-[11px] sm:text-[10px] h-11 sm:h-10"
+                    className="pixel-border bg-background/50 border-2 text-[11px] sm:text-[10px] h-11 sm:h-10 w-full"
                     step="0.000001"
                   />
                 </div>
@@ -321,8 +321,8 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             )}
 
             {/* Export Options */}
-            <div className="space-y-2 pt-3 border-t-2 border-muted/50">
-              <Label className="text-[11px] sm:text-[10px] tracking-wider text-muted-foreground font-bold">EXPORT OPTIONS</Label>
+            <div className="space-y-2 pt-3 border-t-2 border-muted/50 w-full max-w-full overflow-hidden">
+              <Label className="text-[11px] sm:text-[10px] tracking-wider text-muted-foreground font-bold truncate">EXPORT OPTIONS</Label>
               
               <Button
                 variant="outline"
