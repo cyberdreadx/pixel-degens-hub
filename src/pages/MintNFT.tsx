@@ -158,10 +158,13 @@ const MintNFT = () => {
       await builder.computeBlocks();
       const tokenAccount = pendingTokenAccount.account;
 
+      // Format name for Keeta SDK (only uppercase letters and underscores)
+      const formattedName = name.toUpperCase().replace(/[^A-Z_]/g, '_');
+
       // Set token info with metadata
       builder.setInfo(
         {
-          name,
+          name: formattedName,
           symbol: ticker.toUpperCase(),
           description: description || `${name} - Degen 8bit NFT`,
           metadata: metadataBase64,
@@ -228,6 +231,9 @@ const MintNFT = () => {
               placeholder="CYBER ROBOT #001"
               className="pixel-border text-xs"
             />
+            <p className="text-xs text-muted-foreground">
+              Name will be formatted to uppercase with underscores (e.g., "Yoda #1" → "YODA__1")
+            </p>
           </div>
 
           {/* Ticker */}
