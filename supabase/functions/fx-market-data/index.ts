@@ -33,8 +33,9 @@ serve(async (req) => {
   try {
     console.log('Fetching market data from DexScreener...');
 
-    // KTA contract address for DexScreener
+    // KTA contract address on BASE chain
     const KTA_CONTRACT = '0xc0634090F2Fe6c6d75e61Be2b949464aBB498973';
+    const CHAIN = 'base'; // BASE chain identifier for DexScreener
     
     // Note: XRGE address to be added when available
     const XRGE_CONTRACT = null;
@@ -44,9 +45,9 @@ serve(async (req) => {
     let xrgeData = null;
 
     try {
-      // Try to fetch KTA data
+      // Try to fetch KTA data from BASE chain
       const ktaResponse = await fetch(
-        `https://api.dexscreener.com/latest/dex/tokens/${KTA_CONTRACT}`,
+        `https://api.dexscreener.com/latest/dex/tokens/${CHAIN}/${KTA_CONTRACT}`,
         {
           headers: {
             'Accept': 'application/json',
@@ -75,7 +76,7 @@ serve(async (req) => {
       // Try to fetch XRGE data (if contract address available)
       if (XRGE_CONTRACT) {
         const xrgeResponse = await fetch(
-          `https://api.dexscreener.com/latest/dex/tokens/${XRGE_CONTRACT}`,
+          `https://api.dexscreener.com/latest/dex/tokens/${CHAIN}/${XRGE_CONTRACT}`,
           {
             headers: {
               'Accept': 'application/json',
