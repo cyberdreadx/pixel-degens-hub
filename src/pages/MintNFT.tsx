@@ -182,8 +182,8 @@ const MintNFT = () => {
       // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
       builder.modifyTokenSupply(1n, { account: tokenAccount });
       
-      // Send the NFT to the minter
-      builder.send(account, 1n, tokenAccount, undefined, { account: tokenAccount });
+      // Note: The minted token is automatically owned by the transaction creator (account)
+      // No need to send() - the token balance is already in the creator's account
 
       // Publish the transaction
       await builder.publish();
