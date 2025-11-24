@@ -156,7 +156,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
   if (isConnected) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="pixel-border-thick bg-card max-w-md">
+      <DialogContent className="pixel-border-thick bg-card max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl neon-glow flex items-center gap-2">
               <Wallet className="w-5 h-5" />
@@ -273,7 +273,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="pixel-border-thick bg-card max-w-md">
+      <DialogContent className="pixel-border-thick bg-card max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl neon-glow flex items-center gap-2">
             <Wallet className="w-5 h-5" />
