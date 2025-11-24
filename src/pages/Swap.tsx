@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowDownUp, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import TradingChart from "@/components/TradingChart";
 
 // Token addresses
 const TOKENS = {
@@ -446,6 +447,11 @@ const Swap = () => {
             </p>
           </div>
         </Card>
+
+        {/* Trading Chart */}
+        <div className="mt-6">
+          <TradingChart fromToken={fromCurrency} toToken={toCurrency} />
+        </div>
 
         {/* Anchor Liquidity Status */}
         {isRefreshing ? (
