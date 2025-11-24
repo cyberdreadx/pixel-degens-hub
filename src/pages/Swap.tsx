@@ -365,7 +365,7 @@ const Swap = () => {
                   </div>
                 </Card>
               ) : marketData && (marketData.kta || marketData.xrge) ? (
-                <Card className="p-4 bg-card border-border">
+                <Card className="p-4 glass-light border-border/50 shadow-none">
                   <div className="flex items-center gap-2 mb-3">
                     <h3 className="font-semibold text-sm text-foreground">BASE Chain Prices</h3>
                     <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">External Market</span>
@@ -422,7 +422,7 @@ const Swap = () => {
                   </div>
                 </Card>
               ) : rate && anchorInfo ? (
-                <Card className="p-4 bg-card border-border">
+                <Card className="p-4 glass-light border-border/50 shadow-none">
                   <div className="flex items-center gap-2 mb-3">
                     <h3 className="font-semibold text-sm text-foreground">Keeta Pool Rate</h3>
                     <span className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded-full">Your Swap Rate</span>
@@ -446,7 +446,7 @@ const Swap = () => {
             </div>
 
             {/* Swap Interface Card */}
-            <Card className="p-4 md:p-6 bg-card border-border">
+            <Card className="p-4 md:p-6 glass border-border/50 shadow-none">
           {/* From Section */}
           <div className="mb-4">
             <label className="text-sm text-muted-foreground mb-2 block">
@@ -620,7 +620,7 @@ const Swap = () => {
 
     {/* Anchor Liquidity Status */}
         {isRefreshing ? (
-          <Card className="mt-4 md:mt-6 p-4 md:p-6 bg-card border-border">
+          <Card className="mt-4 md:mt-6 p-4 md:p-6 glass border-border/50 shadow-none">
             <div className="flex items-center justify-between mb-4">
               <div className="h-5 w-48 bg-muted animate-pulse rounded"></div>
               <div className="h-8 w-8 bg-muted animate-pulse rounded-full"></div>
