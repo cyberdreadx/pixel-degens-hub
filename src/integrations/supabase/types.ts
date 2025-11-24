@@ -56,6 +56,7 @@ export type Database = {
           bio: string | null
           created_at: string | null
           id: string
+          ipfs_hash: string | null
           updated_at: string | null
           username: string | null
           wallet_address: string
@@ -65,6 +66,7 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           id?: string
+          ipfs_hash?: string | null
           updated_at?: string | null
           username?: string | null
           wallet_address: string
@@ -74,6 +76,7 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           id?: string
+          ipfs_hash?: string | null
           updated_at?: string | null
           username?: string | null
           wallet_address?: string

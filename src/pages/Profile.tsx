@@ -16,6 +16,7 @@ interface Profile {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  ipfs_hash: string | null;
   created_at: string;
 }
 
@@ -79,11 +80,33 @@ export default function Profile() {
         bio: bio || null,
       };
 
+      // Upload to IPFS via Pinata
+      console.log('Uploading profile to IPFS...');
+      const ipfsResponse = await supabase.functions.invoke('fx-profile-ipfs', {
+        body: {
+          profileData,
+          oldIpfsHash: profile?.ipfs_hash || null,
+        }
+      });
+
+      if (ipfsResponse.error) {
+        throw new Error(ipfsResponse.error.message || 'Failed to upload to IPFS');
+      }
+
+      const { ipfsHash } = ipfsResponse.data;
+      console.log('Profile uploaded to IPFS:', ipfsHash);
+
+      // Save to database with IPFS hash (cache layer)
+      const dbData = {
+        ...profileData,
+        ipfs_hash: ipfsHash,
+      };
+
       if (profile) {
         // Update existing profile
         const { error } = await supabase
           .from("profiles")
-          .update(profileData)
+          .update(dbData)
           .eq("wallet_address", publicKey);
 
         if (error) throw error;
@@ -91,7 +114,7 @@ export default function Profile() {
         // Create new profile
         const { data, error } = await supabase
           .from("profiles")
-          .insert([profileData])
+          .insert([dbData])
           .select()
           .single();
 
@@ -99,12 +122,12 @@ export default function Profile() {
         setProfile(data);
       }
 
-      toast.success("Profile saved successfully!");
+      toast.success("Profile saved to IPFS!");
       setIsEditing(false);
       loadProfile();
     } catch (error: any) {
       console.error("Error saving profile:", error);
-      toast.error("Failed to save profile");
+      toast.error(`Failed to save profile: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -249,10 +272,23 @@ export default function Profile() {
 
           {/* Profile Stats */}
           {profile && (
-            <div className="pt-4 border-t border-border">
+            <div className="pt-4 border-t border-border space-y-2">
               <p className="text-xs text-muted-foreground">
                 Member since {new Date(profile.created_at).toLocaleDateString()}
               </p>
+              {profile.ipfs_hash && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">IPFS:</span>
+                  <a
+                    href={`https://gateway.pinata.cloud/ipfs/${profile.ipfs_hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-mono text-primary hover:underline break-all"
+                  >
+                    {profile.ipfs_hash.slice(0, 12)}...{profile.ipfs_hash.slice(-8)}
+                  </a>
+                </div>
+              )}
             </div>
           )}
         </div>
