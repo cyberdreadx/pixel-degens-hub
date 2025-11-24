@@ -201,6 +201,7 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
                 tickFormatter={formatRate}
                 width={50}
                 tickMargin={5}
+                domain={[stats.low * 0.995, stats.high * 1.005]}
               />
               <Tooltip content={<CustomTooltip />} />
               <Area
