@@ -9,12 +9,16 @@ import { supabase } from "@/integrations/supabase/client";
 import TradingChart from "@/components/TradingChart";
 import xrgeLogo from "@/assets/xrge-logo.webp";
 import ktaLogo from "@/assets/kta-logo.jpg";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Token addresses
 const TOKENS = {
   KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
   XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
 };
+
+const ANCHOR_ADDRESS = 'keeta_aab4yyxf3mw5mi6coye4zm6ovk2e36b2g6xxhfpa4ol4eh22vumrp4kjtbyckla';
 
 const Swap = () => {
   const { isConnected, publicKey, balance, tokens, sendTokens, refreshBalance } = useWallet();
@@ -32,6 +36,8 @@ const Swap = () => {
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [priceImpact, setPriceImpact] = useState<number | null>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [isLoadingTx, setIsLoadingTx] = useState(false);
 
   // Fetch anchor info and rate together
   const fetchAnchorInfo = async () => {
@@ -68,10 +74,37 @@ const Swap = () => {
     }
   };
 
+  // Fetch transactions from blockchain via edge function
+  const fetchTransactions = async () => {
+    setIsLoadingTx(true);
+    try {
+      // For now, fetch from price_history table (actual swap records)
+      const { data, error } = await supabase
+        .from("price_history")
+        .select("*")
+        .gt("volume_24h", 0)
+        .order("timestamp", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setTransactions(data || []);
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+      toast.error('Failed to load transactions');
+    } finally {
+      setIsLoadingTx(false);
+    }
+  };
+
   // Fetch anchor info and market data on mount
   useEffect(() => {
     fetchAnchorInfo();
     fetchMarketData();
+    fetchTransactions();
+    
+    // Refresh transactions every 30 seconds
+    const interval = setInterval(fetchTransactions, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Fetch rate on mount and when currencies change
@@ -686,6 +719,84 @@ const Swap = () => {
             </div>
           </Card>
         ) : null}
+
+        {/* Transaction History */}
+        <Card className="mt-6 p-6 glass-card hover-scale transition-all duration-300 animate-fade-in">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold neon-glow-secondary">Recent Swaps</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={fetchTransactions}
+              disabled={isLoadingTx}
+              className="h-8 w-8 hover:rotate-180 transition-all duration-300"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoadingTx ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+          <ScrollArea className="h-[400px] w-full">
+            {isLoadingTx ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="animate-fade-in">Time</TableHead>
+                    <TableHead className="animate-fade-in">Type</TableHead>
+                    <TableHead className="text-right animate-fade-in">Amount</TableHead>
+                    <TableHead className="text-right animate-fade-in">Rate</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.map((tx, index) => {
+                    const time = new Date(tx.timestamp).toLocaleTimeString();
+                    const isBuy = tx.from_token === "KTA";
+                    const amount = tx.volume_24h;
+                    const token = isBuy ? "XRGE" : "KTA";
+                    
+                    return (
+                      <TableRow 
+                        key={tx.id}
+                        className="hover-scale transition-all duration-200"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <TableCell className="font-mono text-xs animate-fade-in">
+                          {time}
+                        </TableCell>
+                        <TableCell>
+                          <span 
+                            className={`px-2 py-1 rounded text-xs font-bold animate-pulse ${
+                              isBuy 
+                                ? "bg-green-500/20 text-green-400" 
+                                : "bg-red-500/20 text-red-400"
+                            }`}
+                          >
+                            {isBuy ? "BUY" : "SELL"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono animate-fade-in">
+                          {amount.toFixed(4)} {token}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs animate-fade-in">
+                          {tx.rate.toFixed(6)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {transactions.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground animate-fade-in">
+                        No transactions found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </ScrollArea>
+        </Card>
       </div>
     </div>
   );
