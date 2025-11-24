@@ -8,7 +8,7 @@ export const TOKEN_DECIMALS = {
 
 // Display decimals are different from transaction decimals for KTA
 export const DISPLAY_DECIMALS = {
-  KTA: 3,   // KTA balance display uses 3 decimals
+  KTA: 6,   // KTA balance display divides by 10^6
   XRGE: 18, // XRGE display uses 18 decimals
 } as const;
 
