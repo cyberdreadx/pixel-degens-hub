@@ -46,8 +46,24 @@ A retro-futuristic NFT marketplace featuring pixel art aesthetics, KTA/XRGE toke
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20.18.0 (required by `@keetanetwork/anchor`)
 - npm or bun
+
+If your global Node differs, use a version manager (`nvm`, `fnm`, or `volta`).
+
+Create `.nvmrc` with:
+```
+20.18.0
+```
+Then:
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+nvm install
+nvm use
+node -v  # v20.18.0
+```
 
 ### Installation
 
@@ -64,6 +80,12 @@ npm i
 # Start development server
 npm run dev
 ```
+
+### Security & Dependency Notes
+- Dev server moderate vuln via `esbuild` (<0.24.2) transitive in `vite@5`; affects local dev only. Plan: branch upgrade to `vite@^7.2.4` and validate.
+- Critical `form-data` advisory sourced from legacy `@types/request` chain in `@keetanetwork/keetanet-client`; currently not directly referenced in app code. Monitor upstream for removal.
+- Low `tmp` via `external-editor` used only if interactive CLI flows are invoked; typical browser usage unaffected.
+- Engine mismatch warnings resolved when using Node 20.18.0 as above.
 
 ### Environment Variables
 
