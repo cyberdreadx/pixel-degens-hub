@@ -54,9 +54,15 @@ const Swap = () => {
       await fetchRate();
       
       toast.success('Liquidity and rates refreshed');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch anchor info:', error);
-      toast.error('Failed to connect to anchor');
+      if (network === 'test') {
+        toast.error('Testnet anchor not funded', {
+          description: 'The testnet anchor requires separate KTA and XRGE liquidity.'
+        });
+      } else {
+        toast.error('Failed to connect to anchor');
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -127,7 +133,18 @@ const Swap = () => {
       return data.rate;
     } catch (error: any) {
       console.error('Error fetching rate:', error);
-      toast.error('Failed to fetch exchange rate');
+      
+      // Check if it's a testnet liquidity error
+      if (network === 'test' && error?.message?.includes('Liquidity pool not available')) {
+        // Silent fail for testnet - no toast spam
+        setRate(null);
+      } else if (network === 'test') {
+        toast.error('Testnet liquidity unavailable', {
+          description: 'Fund the testnet anchor with KTA and XRGE to enable swaps.'
+        });
+      } else {
+        toast.error('Failed to fetch exchange rate');
+      }
       return null;
     } finally {
       setIsLoadingRate(false);
