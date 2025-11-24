@@ -26,7 +26,7 @@ const Swap = () => {
   const [anchorInfo, setAnchorInfo] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [marketData, setMarketData] = useState<any>(null);
-  const [slippage, setSlippage] = useState(1); // Default 1% slippage tolerance
+  const [slippage, setSlippage] = useState(3); // Default 3% slippage tolerance for small pools
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [priceImpact, setPriceImpact] = useState<number | null>(null);
@@ -228,6 +228,24 @@ const Swap = () => {
     setIsLoading(true);
 
     try {
+      // Fetch the latest rate right before swapping to minimize slippage
+      toast.info("Checking current rate...");
+      const latestRate = await fetchRate();
+      
+      if (!latestRate) {
+        toast.error("Unable to fetch current rate. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Recalculate the expected output with the latest rate
+      const latestExpectedOutput = (swapAmount * latestRate).toFixed(6);
+      setToAmount(latestExpectedOutput);
+      
+      // Calculate price impact with latest rate
+      const impact = calculatePriceImpact(swapAmount);
+      setPriceImpact(impact);
+      
       // Two-transaction swap (user sends first, anchor sends back)
       // This is the standard approach for anchor-initiated swaps
       
@@ -248,7 +266,7 @@ const Swap = () => {
           toCurrency,
           amount: fromAmount,
           userPublicKey: publicKey,
-          expectedRate: rate, // Pass current rate for slippage check
+          expectedRate: latestRate, // Use the freshly fetched rate
           slippageTolerance: slippage, // Pass slippage tolerance percentage
         }
       });
@@ -511,13 +529,13 @@ const Swap = () => {
               Slippage Tolerance
             </label>
             <div className="flex gap-2">
-              {[0.5, 1, 3].map((percentage) => (
+              {[0.5, 1, 3, 5].map((percentage) => (
                 <Button
                   key={percentage}
                   variant={slippage === percentage ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSlippage(percentage)}
-                  className="flex-1"
+                  className="flex-1 min-w-[50px]"
                 >
                   {percentage}%
                 </Button>
