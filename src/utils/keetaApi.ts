@@ -41,7 +41,7 @@ export async function fetchAccountBalances(
     const tokenAddrs = getTokenAddresses(network);
     
     const { data, error } = await supabase.functions.invoke('fx-keeta-proxy', {
-      body: { address }
+      body: { address, network }
     });
 
     if (error) throw error;

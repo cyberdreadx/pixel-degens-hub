@@ -5,19 +5,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const KEETA_API = 'https://rep3.main.network.api.keeta.com/api';
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { address } = await req.json();
+    const { address, network = 'main' } = await req.json();
     
     if (!address) {
       throw new Error('Address is required');
     }
+
+    // Select API endpoint based on network
+    const KEETA_API = network === 'test' 
+      ? 'https://rep3.test.network.api.keeta.com/api'
+      : 'https://rep3.main.network.api.keeta.com/api';
+
+    console.log(`[fx-keeta-proxy] Fetching balances for ${address} on ${network} network using ${KEETA_API}`);
 
     // Fetch balances from Keeta API
     const response = await fetch(`${KEETA_API}/account-balances`, {
