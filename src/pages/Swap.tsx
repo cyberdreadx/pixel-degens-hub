@@ -139,13 +139,47 @@ const Swap = () => {
       return;
     }
 
+    const swapAmount = parseFloat(value);
+    
+    // Calculate output using constant product formula (x * y = k)
+    if (anchorInfo) {
+      const fromPoolBalance = fromCurrency === 'KTA' 
+        ? parseFloat(anchorInfo.ktaBalance || '0')
+        : parseFloat(anchorInfo.xrgeBalance || '0');
+      const toPoolBalance = toCurrency === 'KTA'
+        ? parseFloat(anchorInfo.ktaBalance || '0') 
+        : parseFloat(anchorInfo.xrgeBalance || '0');
+
+      if (fromPoolBalance > 0 && toPoolBalance > 0) {
+        // Constant product: k = x * y
+        const k = fromPoolBalance * toPoolBalance;
+        
+        // After adding swapAmount: new_from = from + swapAmount
+        const newFromBalance = fromPoolBalance + swapAmount;
+        
+        // new_to = k / new_from
+        const newToBalance = k / newFromBalance;
+        
+        // Output amount = current_to - new_to
+        const outputAmount = toPoolBalance - newToBalance;
+        
+        setToAmount(outputAmount.toFixed(6));
+        
+        // Calculate price impact
+        const impact = calculatePriceImpact(swapAmount);
+        setPriceImpact(impact);
+        return;
+      }
+    }
+
+    // Fallback to rate-based calculation if pool info not available
     const currentRate = rate || await fetchRate();
     if (currentRate) {
-      const calculated = parseFloat(value) * currentRate;
+      const calculated = swapAmount * currentRate;
       setToAmount(calculated.toFixed(6));
       
       // Calculate price impact
-      const impact = calculatePriceImpact(parseFloat(value));
+      const impact = calculatePriceImpact(swapAmount);
       setPriceImpact(impact);
     }
   };
