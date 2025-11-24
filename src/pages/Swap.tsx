@@ -447,6 +447,9 @@ const Swap = () => {
                         <div className={`text-xs ${marketData.xrge.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                           {marketData.xrge.priceChange24h >= 0 ? '↑' : '↓'} {Math.abs(marketData.xrge.priceChange24h).toFixed(2)}%
                         </div>
+                        <div className="text-xs text-muted-foreground">
+                          MCap: ${(marketData.xrge.marketCap / 1000).toFixed(1)}K
+                        </div>
                       </div>
                     )}
                   </div>
