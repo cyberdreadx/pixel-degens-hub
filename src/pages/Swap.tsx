@@ -25,6 +25,7 @@ const Swap = () => {
   const [anchorInfo, setAnchorInfo] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [marketData, setMarketData] = useState<any>(null);
+  const [slippage, setSlippage] = useState(1); // Default 1% slippage tolerance
 
   // Fetch anchor info
   const fetchAnchorInfo = async () => {
@@ -144,6 +145,8 @@ const Swap = () => {
           toCurrency,
           amount: fromAmount,
           userPublicKey: publicKey,
+          expectedRate: rate, // Pass current rate for slippage check
+          slippageTolerance: slippage, // Pass slippage tolerance percentage
         }
       });
 
@@ -322,8 +325,31 @@ const Swap = () => {
               "Connect Wallet to Swap"
             ) : (
               "Swap"
-            )}
+          )}
           </Button>
+
+          {/* Slippage Settings */}
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <label className="text-xs text-muted-foreground mb-2 block">
+              Slippage Tolerance
+            </label>
+            <div className="flex gap-2">
+              {[0.5, 1, 3].map((percentage) => (
+                <Button
+                  key={percentage}
+                  variant={slippage === percentage ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSlippage(percentage)}
+                  className="flex-1"
+                >
+                  {percentage}%
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Maximum acceptable rate change during swap execution
+            </p>
+          </div>
         </Card>
 
         {/* Anchor Liquidity Status */}
