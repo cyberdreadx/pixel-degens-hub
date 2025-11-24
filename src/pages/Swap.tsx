@@ -24,6 +24,7 @@ const Swap = () => {
   const [anchorAddress, setAnchorAddress] = useState<string | null>(null);
   const [anchorInfo, setAnchorInfo] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [marketData, setMarketData] = useState<any>(null);
 
   // Fetch anchor info
   const fetchAnchorInfo = async () => {
@@ -42,9 +43,21 @@ const Swap = () => {
     }
   };
 
-  // Fetch anchor info on mount
+  // Fetch market data from DexScreener
+  const fetchMarketData = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('fx-market-data');
+      if (error) throw error;
+      setMarketData(data);
+    } catch (error) {
+      console.error('Failed to fetch market data:', error);
+    }
+  };
+
+  // Fetch anchor info and market data on mount
   useEffect(() => {
     fetchAnchorInfo();
+    fetchMarketData();
   }, []);
 
   // Fetch rate on mount and when currencies change
@@ -165,6 +178,40 @@ const Swap = () => {
         <h1 className="text-3xl md:text-4xl font-bold text-center mb-6 md:mb-8 text-foreground">
           Token Swap
         </h1>
+
+        {/* Market Data */}
+        {marketData && (marketData.kta || marketData.xrge) && (
+          <Card className="mb-4 p-4 bg-card border-border">
+            <h3 className="font-semibold text-sm text-foreground mb-3">Market Data</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {marketData.kta && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">KTA Price</div>
+                  <div className="font-bold text-foreground">
+                    ${marketData.kta.price.toFixed(6)}
+                  </div>
+                  <div className={`text-xs ${marketData.kta.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {marketData.kta.priceChange24h >= 0 ? '↑' : '↓'} {Math.abs(marketData.kta.priceChange24h).toFixed(2)}%
+                  </div>
+                </div>
+              )}
+              {marketData.xrge && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">XRGE Price</div>
+                  <div className="font-bold text-foreground">
+                    ${marketData.xrge.price.toFixed(6)}
+                  </div>
+                  <div className={`text-xs ${marketData.xrge.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {marketData.xrge.priceChange24h >= 0 ? '↑' : '↓'} {Math.abs(marketData.xrge.priceChange24h).toFixed(2)}%
+                  </div>
+                </div>
+              )}
+            </div>
+            {marketData.error && (
+              <p className="text-xs text-muted-foreground mt-2">{marketData.error}</p>
+            )}
+          </Card>
+        )}
 
         <Card className="p-4 md:p-6 bg-card border-border">
           {/* From Section */}

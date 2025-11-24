@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.fx-anchor-debug]
 verify_jwt = false
+
+[functions.fx-market-data]
+verify_jwt = false
