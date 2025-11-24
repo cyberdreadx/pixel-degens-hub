@@ -705,13 +705,13 @@ const Swap = () => {
             </div>
             
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="p-3 bg-muted rounded-lg hover:scale-105 transition-transform duration-200 animate-fade-in">
+              <div className="p-2 md:p-3 bg-muted rounded-lg hover:scale-105 transition-transform duration-200 animate-fade-in overflow-hidden">
                 <div className="text-xs text-muted-foreground mb-1">KTA Balance</div>
-                <div className="font-bold text-lg">{parseFloat(anchorInfo.ktaBalance || '0').toFixed(3)} KTA</div>
+                <div className="font-bold text-sm md:text-lg break-words">{parseFloat(anchorInfo.ktaBalance || '0').toFixed(3)} KTA</div>
               </div>
-              <div className="p-3 bg-muted rounded-lg hover:scale-105 transition-transform duration-200 animate-fade-in">
+              <div className="p-2 md:p-3 bg-muted rounded-lg hover:scale-105 transition-transform duration-200 animate-fade-in overflow-hidden">
                 <div className="text-xs text-muted-foreground mb-1">XRGE Balance</div>
-                <div className="font-bold text-lg">{parseFloat(anchorInfo.xrgeBalance || '0').toFixed(3)} XRGE</div>
+                <div className="font-bold text-sm md:text-lg break-words">{parseFloat(anchorInfo.xrgeBalance || '0').toFixed(3)} XRGE</div>
               </div>
             </div>
             
