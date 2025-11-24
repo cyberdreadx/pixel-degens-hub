@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { toDataURL } from "qrcode";
 import * as KeetaNet from "@keetanetwork/keetanet-client";
 import * as bip39 from "bip39";
+import { useMarketData } from "@/hooks/useMarketData";
 
 interface WalletDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface WalletDialogProps {
 
 const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
   const { connectWallet, disconnectWallet, publicKey, isConnected, balance, tokens, generateNewWallet, refreshBalance, sendTokens, network } = useWallet();
+  const { getUsdValue, formatUsd } = useMarketData();
   const [importSeed, setImportSeed] = useState("");
   const [showSeed, setShowSeed] = useState(false);
   const [generatedSeed, setGeneratedSeed] = useState("");
@@ -190,16 +192,26 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                 </Button>
               </div>
               <div className="space-y-2 sm:space-y-2.5 w-full overflow-hidden">
-                <div className="flex items-baseline gap-2 w-full overflow-hidden">
-                  <div className="text-2xl sm:text-3xl font-bold neon-glow leading-none truncate">{balance || "0.000000"}</div>
-                  <div className="text-xs sm:text-sm text-primary/70 shrink-0">KTA</div>
+                <div className="space-y-1 w-full overflow-hidden">
+                  <div className="flex items-baseline gap-2 w-full overflow-hidden">
+                    <div className="text-2xl sm:text-3xl font-bold neon-glow leading-none truncate">{balance || "0.000000"}</div>
+                    <div className="text-xs sm:text-sm text-primary/70 shrink-0">KTA</div>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatUsd(getUsdValue(parseFloat(balance || '0'), 'KTA'))}
+                  </div>
                 </div>
                 {tokens.map((token) => (
-                  <div key={token.address} className="flex items-baseline gap-2 pl-2 border-l-2 border-accent/50 w-full overflow-hidden">
-                    <div className="text-lg sm:text-xl font-bold text-accent leading-none truncate">
-                      {token.balance}
+                  <div key={token.address} className="space-y-1 pl-2 border-l-2 border-accent/50 w-full overflow-hidden">
+                    <div className="flex items-baseline gap-2 w-full overflow-hidden">
+                      <div className="text-lg sm:text-xl font-bold text-accent leading-none truncate">
+                        {token.balance}
+                      </div>
+                      <div className="text-[11px] sm:text-xs text-accent/70 shrink-0">{token.symbol}</div>
                     </div>
-                    <div className="text-[11px] sm:text-xs text-accent/70 shrink-0">{token.symbol}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatUsd(getUsdValue(parseFloat(token.balance || '0'), token.symbol as 'KTA' | 'XRGE'))}
+                    </div>
                   </div>
                 ))}
               </div>
