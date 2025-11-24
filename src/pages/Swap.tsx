@@ -383,11 +383,11 @@ const Swap = () => {
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2 bg-muted rounded">
                   <div className="text-[10px] md:text-xs text-muted-foreground mb-1">KTA Balance</div>
-                  <div className="font-bold text-xs md:text-sm">{anchorInfo.ktaBalance || '0'} KTA</div>
+                  <div className="font-bold text-xs md:text-sm">{parseFloat(anchorInfo.ktaBalance || '0').toFixed(3)} KTA</div>
                 </div>
                 <div className="p-2 bg-muted rounded">
                   <div className="text-[10px] md:text-xs text-muted-foreground mb-1">XRGE Balance</div>
-                  <div className="font-bold text-xs md:text-sm">{anchorInfo.xrgeBalance || '0'} XRGE</div>
+                  <div className="font-bold text-xs md:text-sm">{parseFloat(anchorInfo.xrgeBalance || '0').toFixed(3)} XRGE</div>
                 </div>
               </div>
               <div className="mt-2 p-2 bg-muted rounded">
