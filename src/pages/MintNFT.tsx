@@ -176,6 +176,9 @@ const MintNFT = () => {
         'metadata': 'includes full description'
       });
 
+      // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
+      builder.modifyTokenSupply(1n, { account: tokenAccount });
+
       // Set token info - Keeta SDK has confusing param names
       builder.setInfo(
         {
@@ -187,14 +190,12 @@ const MintNFT = () => {
         { account: tokenAccount }
       );
 
-      // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
-      builder.modifyTokenSupply(1n, { account: tokenAccount });
-      
-      // Transfer the minted NFT from token supply to user's wallet
-      builder.send(client.account, 1n, tokenAccount, undefined, { account: tokenAccount });
+      // Note: For NFTs (supply=1), the token automatically belongs to the creator
+      // No explicit send() needed - the balance is in the creator's account after minting
 
-      // Publish the transaction
-      await builder.publish();
+      // Compute and publish the transaction
+      await client.computeBuilderBlocks(builder);
+      await client.publishBuilder(builder);
 
       const tokenAddress = tokenAccount.publicKeyString.get();
       toast.success(`NFT minted successfully! Token: ${tokenAddress}`);
