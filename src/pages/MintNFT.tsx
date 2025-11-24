@@ -169,13 +169,11 @@ const MintNFT = () => {
       const formattedName = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '');
       // Symbol is the same as the formatted ticker
       const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
-      // Put the actual name + description in the description field
-      const fullDescription = description ? `${name} - ${description}` : name;
 
       console.log('Token Info Mapping:', {
         'On-chain name field (strict A-Z_)': formattedName,
         'On-chain symbol field': formattedSymbol,
-        'On-chain description field': fullDescription
+        'On-chain description field': description || ''
       });
 
       // Set token info with metadata
@@ -183,7 +181,7 @@ const MintNFT = () => {
         {
           name: formattedName, // On-chain: YODA
           symbol: formattedSymbol, // On-chain: YODA
-          description: fullDescription, // On-chain: Yoda#1 - USE THE FORCE
+          description: description || '', // On-chain: USE THE FORCE (separate from name)
           metadata: metadataBase64,
           defaultPermission: new KeetaNet.lib.Permissions(['ACCESS']), // Public token
         },
