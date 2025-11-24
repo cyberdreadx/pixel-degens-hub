@@ -9,12 +9,16 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('[fx-anchor-info] Function invoked, method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('[fx-anchor-info] Handling CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('[fx-anchor-info] Loading environment variables');
     const anchorAddress = Deno.env.get('ANCHOR_WALLET_ADDRESS');
     const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
     

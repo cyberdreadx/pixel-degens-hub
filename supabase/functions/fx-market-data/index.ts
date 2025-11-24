@@ -25,13 +25,16 @@ interface MarketDataResponse {
 }
 
 serve(async (req) => {
+  console.log('[fx-market-data] Function invoked, method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('[fx-market-data] Handling CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Fetching market data from DexScreener...');
+    console.log('[fx-market-data] Fetching market data from DexScreener...');
 
     // Contract addresses on BASE chain
     const KTA_CONTRACT = '0xc0634090F2Fe6c6d75e61Be2b949464aBB498973';
