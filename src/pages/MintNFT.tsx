@@ -172,14 +172,16 @@ const MintNFT = () => {
       console.log('Token Info Mapping:', {
         'name (on-chain Name)': name,
         'symbol (on-chain Symbol)': formattedSymbol,
-        'description (in metadata only)': description
+        'description (on-chain)': description || '',
+        'metadata': 'includes description'
       });
 
-      // Set token info - description only in metadata
+      // Set token info - description is REQUIRED
       builder.setInfo(
         {
           name: name, // "Yoda #1" as is
           symbol: formattedSymbol, // YODA
+          description: description || '', // Required field
           metadata: metadataBase64,
           defaultPermission: new KeetaNet.lib.Permissions(['ACCESS']),
         },
