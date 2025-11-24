@@ -159,22 +159,13 @@ const MintNFT = () => {
       // Create token using Keeta SDK
       const builder = client.initBuilder();
       
-      // Generate a new token account identifier
+      // Generate a new token account identifier  
       const pendingTokenAccount = builder.generateIdentifier(AccountKeyAlgorithm.TOKEN);
       await builder.computeBlocks();
       const tokenAccount = pendingTokenAccount.account;
 
-      // Format for Keeta SDK
-      // IMPORTANT: Keeta's naming is confusing:
-      // - "name" parameter = SYMBOL/TICKER (strict A-Z and underscores)
-      // - "description" parameter = NFT NAME (can be anything)
+      // Format ticker for Keeta SDK (strict A-Z only, max 4 characters)
       const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '').substring(0, 4);
-
-      console.log('Token Info Mapping:', {
-        'name (SDK param, actually SYMBOL)': formattedSymbol,
-        'description (SDK param, actually NFT NAME)': name,
-        'metadata': 'includes full description'
-      });
 
       // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
       builder.modifyTokenSupply(1n, { account: tokenAccount });
@@ -185,13 +176,12 @@ const MintNFT = () => {
           name: formattedSymbol, // YODA (this is the symbol/ticker, requires strict format)
           description: name, // "Yoda#1" (this is the actual NFT name)
           metadata: metadataBase64, // Contains description and other metadata
-          defaultPermission: new KeetaNet.lib.Permissions(['ACCESS']),
+          defaultPermission: new KeetaNet.lib.Permissions(['ACCESS'], []),
         },
         { account: tokenAccount }
       );
 
-      // For NFTs (supply=1), no send() needed - the NFT automatically belongs to the creator
-      // Publish the transaction
+      // Compute and publish the transaction
       await client.computeBuilderBlocks(builder);
       await client.publishBuilder(builder);
 
