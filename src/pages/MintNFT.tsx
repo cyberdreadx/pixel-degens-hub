@@ -161,34 +161,31 @@ const MintNFT = () => {
       
       // Generate a new token account identifier  
       const pendingTokenAccount = builder.generateIdentifier(AccountKeyAlgorithm.TOKEN);
-      await builder.computeBlocks();
+      
+      // CRITICAL: Compute blocks to seal the token creation
+      await client.computeBuilderBlocks(builder);
       const tokenAccount = pendingTokenAccount.account;
 
       // Format ticker for Keeta SDK (strict A-Z only, max 4 characters)
       const formattedSymbol = ticker.trim().toUpperCase().replace(/[^A-Z]/g, '').substring(0, 4);
 
-      // Hardcoded supply of 1
-      const supplyAmount = 1n;
+      // Set supply to 1 (NFT)
+      builder.modifyTokenSupply(1n, { account: tokenAccount });
 
-      // Set token info FIRST (before modifyTokenSupply)
+      // Set token info AFTER modifyTokenSupply
       builder.setInfo(
         {
-          name: formattedSymbol, // YODA (this is the symbol/ticker, requires strict format)
-          description: name, // "Yoda #1" (this is the token name)
-          metadata: metadataBase64, // Contains description and other metadata
+          name: formattedSymbol,
+          description: name,
+          metadata: metadataBase64,
           defaultPermission: new KeetaNet.lib.Permissions(['ACCESS'], []),
         },
         { account: tokenAccount }
       );
 
-      // Increase total token supply
-      builder.modifyTokenSupply(supplyAmount, { account: tokenAccount });
-      
-      // Distribute token from supply to user's wallet
-      builder.send(client.account, supplyAmount, tokenAccount, undefined, { account: tokenAccount });
-
-      // Publish the transaction
-      await builder.publish();
+      // Compute blocks and publish (no send needed - NFT belongs to creator)
+      await client.computeBuilderBlocks(builder);
+      await client.publishBuilder(builder);
 
       const tokenAddress = tokenAccount.publicKeyString.get();
       toast.success(`Token minted successfully! Token: ${tokenAddress}`);
