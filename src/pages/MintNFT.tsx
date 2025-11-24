@@ -8,6 +8,10 @@ import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 import { Upload, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import * as KeetaNet from "@keetanetwork/keetanet-client";
+
+const { Account } = KeetaNet.lib;
+const { AccountKeyAlgorithm } = Account;
 
 interface NFTAttribute {
   trait_type: string;
@@ -146,31 +150,36 @@ const MintNFT = () => {
       const metadataJson = JSON.stringify(metadata);
       const metadataBase64 = btoa(metadataJson);
 
-      // Create token with supply=1, decimals=0 (NFT)
-      const builder = client.createBuilder(account);
+      // Create token using Keeta SDK
+      const builder = client.initBuilder();
       
-      // Use identifier as token address
-      const tokenAddress = `keeta_${identifier.toLowerCase()}`;
-      
-      builder.createToken(
-        tokenAddress,
-        1, // supply = 1 (single NFT)
-        0  // decimals = 0 (not divisible)
-      );
+      // Generate a new token account identifier
+      const pendingTokenAccount = builder.generateIdentifier(AccountKeyAlgorithm.TOKEN);
+      await builder.computeBlocks();
+      const tokenAccount = pendingTokenAccount.account;
 
       // Set token info with metadata
-      builder.setInfo(tokenAddress, {
-        name,
-        symbol: ticker.toUpperCase(),
-        description: description || `${name} - Degen 8bit NFT`,
-        defaultPermission: "read",
-        metadata: metadataBase64,
-      });
+      builder.setInfo(
+        {
+          name,
+          symbol: ticker.toUpperCase(),
+          description: description || `${name} - Degen 8bit NFT`,
+          metadata: metadataBase64,
+          defaultPermission: new KeetaNet.lib.Permissions(['ACCESS']), // Public token
+        },
+        { account: tokenAccount }
+      );
 
-      // Build and send transaction
-      const transaction = await builder.build();
-      const result = await builder.send(transaction);
+      // Mint supply of 1 for NFT (decimals=0 is handled by TOKEN algorithm)
+      builder.modifyTokenSupply(1n, { account: tokenAccount });
+      
+      // Send the NFT to the minter
+      builder.send(account, 1n, tokenAccount, undefined, { account: tokenAccount });
 
+      // Publish the transaction
+      await builder.publish();
+
+      const tokenAddress = tokenAccount.publicKeyString.get();
       toast.success(`NFT minted successfully! Token: ${tokenAddress}`);
       
       // Reset form
