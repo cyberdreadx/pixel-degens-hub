@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
-import { Wallet, Home, Image, Users, Activity, ArrowDownUp, ArrowLeftRight, Menu, X, Palette, Network } from "lucide-react";
+import { Wallet, Home, Image, Users, Activity, ArrowDownUp, ArrowLeftRight, Menu, X, Palette, Network, Settings } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import WalletDialog from "./WalletDialog";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -41,6 +41,7 @@ const Navigation = () => {
     { to: "/profile", icon: Users, label: "PROFILE" },
     { to: "/swap", icon: ArrowDownUp, label: "SWAP" },
     { to: "/bridge", icon: ArrowLeftRight, label: "BRIDGE" },
+    { to: "/anchor-status", icon: Settings, label: "ANCHOR" },
   ];
 
   return (
