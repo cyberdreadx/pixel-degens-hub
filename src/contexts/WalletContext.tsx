@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import * as bip39 from "bip39";
 import { Buffer } from "buffer";
 import { getTokenAddresses } from "@/utils/keetaApi";
-import { TOKEN_DECIMALS } from "@/utils/tokenDecimals";
+import { TOKEN_DECIMALS, DISPLAY_DECIMALS } from "@/utils/tokenDecimals";
 
 const { Account } = KeetaNet.lib;
 const { AccountKeyAlgorithm } = Account;
@@ -130,9 +130,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         );
       }
       
-      // KTA uses 6 decimals based on actual testnet balance observation
+      // KTA uses 6 decimals for display, 9 for transactions
       // Raw balance example: 249007609393930 with 6 decimals = 249007609.393930
-      const decimals = TOKEN_DECIMALS.KTA;
+      const decimals = DISPLAY_DECIMALS.KTA;
       const divisor = Math.pow(10, decimals);
       const balanceNum = Number(ktaBalance) / divisor;
       const balanceStr = balanceNum.toFixed(6);
@@ -222,11 +222,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             }
           }
           
-          // Convert balance (NFTs have decimals=0, regular tokens have 18)
+          // Convert balance (NFTs have decimals=0, regular tokens use their display decimals)
           const rawBalance = BigInt(tokenInfo.balance);
+          const displayDecimals = decimals === 0 ? 0 : 
+            (symbol === 'KTA' ? DISPLAY_DECIMALS.KTA : DISPLAY_DECIMALS.XRGE);
           const readableBalance = decimals === 0 
             ? Number(rawBalance).toString() 
-            : (Number(rawBalance) / Math.pow(10, decimals)).toFixed(6);
+            : (Number(rawBalance) / Math.pow(10, displayDecimals)).toFixed(6);
           
           return {
             address: tokenAddress,
