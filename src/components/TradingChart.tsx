@@ -114,7 +114,7 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
   };
 
   return (
-    <Card className="p-3 md:p-6 bg-card border-border overflow-hidden">
+    <Card className="p-3 md:p-6 glass border-border/50 shadow-none overflow-hidden">
         <div className="space-y-3 md:space-y-4">
         {/* Header with title */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3">
