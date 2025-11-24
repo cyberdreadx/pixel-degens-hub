@@ -24,6 +24,10 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({ high: 0, low: 0, change: 0 });
 
+  // The chart shows the price of toToken in terms of fromToken
+  // So for KTA/XRGE, we show "how much KTA per XRGE" (XRGE price in KTA)
+  // This means when someone buys XRGE, XRGE price should go UP
+
   useEffect(() => {
     fetchPriceHistory();
     
@@ -51,8 +55,8 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
       const { data, error } = await supabase
         .from('price_history')
         .select('*')
-        .eq('from_token', fromToken)
-        .eq('to_token', toToken)
+        .eq('from_token', toToken)  // Inverted: we want "to" token price in "from" token terms
+        .eq('to_token', fromToken)  // So query is reversed
         .gte('timestamp', startTime.toISOString())
         .order('timestamp', { ascending: true });
 
@@ -61,7 +65,7 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
       if (data && data.length > 0) {
         const formatted = data.map((item: any) => ({
           timestamp: item.timestamp,
-          rate: parseFloat(item.rate),
+          rate: parseFloat(item.rate),  // This is now toToken/fromToken (e.g., XRGE/KTA)
           time: new Date(item.timestamp).toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit',
@@ -111,12 +115,17 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
 
   return (
     <Card className="p-4 md:p-6 bg-card border-border overflow-hidden">
-      <div className="space-y-4">
+        <div className="space-y-4">
         {/* Header with title */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h3 className="text-lg md:text-xl font-bold text-foreground">
-            {fromToken}/{toToken} Chart
-          </h3>
+          <div>
+            <h3 className="text-lg md:text-xl font-bold text-foreground">
+              {toToken}/{fromToken} Chart
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Price of {toToken} in {fromToken} terms
+            </p>
+          </div>
           
           {/* Timeframe buttons */}
           <div className="flex gap-2 flex-wrap">
