@@ -333,13 +333,13 @@ const Swap = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pt-20 px-4 pb-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-background pt-20 pb-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-6">
         <h1 className="text-3xl md:text-4xl font-bold text-center mb-6 md:mb-8 text-foreground">
           Token Swap
         </h1>
 
-        <div className="grid lg:grid-cols-[400px_1fr] gap-6 items-start">
+        <div className="grid lg:grid-cols-[400px_1fr] gap-6 items-start w-full">
           {/* Left column: Swap interface and market data */}
           <div className="space-y-4 w-full">
             {/* Market Data and Pool Rates */}
