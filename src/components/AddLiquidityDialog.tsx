@@ -10,6 +10,7 @@ import { useWallet } from "@/contexts/WalletContext";
 import { getTokenAddresses } from "@/utils/keetaApi";
 import ktaLogo from "@/assets/kta-logo.jpg";
 import xrgeLogo from "@/assets/xrge-logo.webp";
+import { useMarketData } from "@/hooks/useMarketData";
 
 interface AddLiquidityDialogProps {
   anchorAddress: string;
@@ -19,6 +20,7 @@ interface AddLiquidityDialogProps {
 
 export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: AddLiquidityDialogProps) {
   const { sendTokens, balance, tokens, network, isConnected, refreshBalance } = useWallet();
+  const { getUsdValue, formatUsd } = useMarketData();
   const [isOpen, setIsOpen] = useState(false);
   const [ktaAmount, setKtaAmount] = useState("");
   const [xrgeAmount, setXrgeAmount] = useState("");
@@ -206,9 +208,16 @@ export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: Add
                 <span className="text-sm font-medium">KTA</span>
               </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              Available: {balance || '0'} KTA
-              {!balance && <span className="text-amber-500 ml-2">(Loading...)</span>}
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">
+                Available: {balance || '0'} KTA
+                {!balance && <span className="text-amber-500 ml-2">(Loading...)</span>}
+              </div>
+              {ktaAmount && parseFloat(ktaAmount) > 0 && (
+                <div className="text-xs text-primary">
+                  ≈ {formatUsd(getUsdValue(parseFloat(ktaAmount), 'KTA'))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -231,9 +240,16 @@ export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: Add
                 <span className="text-sm font-medium">XRGE</span>
               </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              Available: {xrgeBalance} XRGE
-              {xrgeBalance === '0' && tokens.length === 0 && <span className="text-amber-500 ml-2">(Loading...)</span>}
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">
+                Available: {xrgeBalance} XRGE
+                {xrgeBalance === '0' && tokens.length === 0 && <span className="text-amber-500 ml-2">(Loading...)</span>}
+              </div>
+              {xrgeAmount && parseFloat(xrgeAmount) > 0 && (
+                <div className="text-xs text-accent">
+                  ≈ {formatUsd(getUsdValue(parseFloat(xrgeAmount), 'XRGE'))}
+                </div>
+              )}
             </div>
           </div>
 

@@ -13,11 +13,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getTokenAddresses } from "@/utils/keetaApi";
 import { AddLiquidityDialog } from "@/components/AddLiquidityDialog";
+import { useMarketData } from "@/hooks/useMarketData";
 
 const ANCHOR_ADDRESS = 'keeta_aab4yyxf3mw5mi6coye4zm6ovk2e36b2g6xxhfpa4ol4eh22vumrp4kjtbyckla';
 
 const Swap = () => {
   const { isConnected, publicKey, balance, tokens, sendTokens, refreshBalance, network } = useWallet();
+  const { getUsdValue, formatUsd } = useMarketData();
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [fromCurrency, setFromCurrency] = useState("KTA");
@@ -483,6 +485,12 @@ const Swap = () => {
                       <div className="text-xs font-medium text-foreground">
                         {parseFloat(anchorInfo.ktaBalance || '0').toFixed(2)} KTA / {parseFloat(anchorInfo.xrgeBalance || '0').toFixed(2)} XRGE
                       </div>
+                      <div className="text-xs text-primary">
+                        Total: {formatUsd(
+                          getUsdValue(parseFloat(anchorInfo.ktaBalance || '0'), 'KTA') +
+                          getUsdValue(parseFloat(anchorInfo.xrgeBalance || '0'), 'XRGE')
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -520,9 +528,9 @@ const Swap = () => {
                   } {fromCurrency}
                 </p>
               )}
-              {fromAmount && parseFloat(fromAmount) > 0 && marketData && (
-                <p className="text-xs text-muted-foreground">
-                  ≈ ${(parseFloat(fromAmount) * (fromCurrency === 'KTA' ? marketData.kta?.price || 0 : marketData.xrge?.price || 0)).toFixed(2)} USD
+              {fromAmount && parseFloat(fromAmount) > 0 && (
+                <p className="text-xs text-primary">
+                  ≈ {formatUsd(getUsdValue(parseFloat(fromAmount), fromCurrency as 'KTA' | 'XRGE'))}
                 </p>
               )}
             </div>
@@ -569,9 +577,9 @@ const Swap = () => {
                   } {toCurrency}
                 </p>
               )}
-              {toAmount && parseFloat(toAmount) > 0 && marketData && (
-                <p className="text-xs text-muted-foreground">
-                  ≈ ${(parseFloat(toAmount) * (toCurrency === 'KTA' ? marketData.kta?.price || 0 : marketData.xrge?.price || 0)).toFixed(2)} USD
+              {toAmount && parseFloat(toAmount) > 0 && (
+                <p className="text-xs text-accent">
+                  ≈ {formatUsd(getUsdValue(parseFloat(toAmount), toCurrency as 'KTA' | 'XRGE'))}
                 </p>
               )}
             </div>
