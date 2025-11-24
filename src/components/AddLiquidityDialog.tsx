@@ -18,7 +18,7 @@ interface AddLiquidityDialogProps {
 }
 
 export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: AddLiquidityDialogProps) {
-  const { sendTokens, balance, tokens, network } = useWallet();
+  const { sendTokens, balance, tokens, network, isConnected, refreshBalance } = useWallet();
   const [isOpen, setIsOpen] = useState(false);
   const [ktaAmount, setKtaAmount] = useState("");
   const [xrgeAmount, setXrgeAmount] = useState("");
@@ -28,12 +28,20 @@ export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: Add
   const xrgeToken = tokens.find(t => t.symbol === 'XRGE');
   const xrgeBalance = xrgeToken?.balance || '0';
   
+  // Refresh balances when dialog opens
+  useEffect(() => {
+    if (isOpen && isConnected) {
+      refreshBalance();
+    }
+  }, [isOpen, isConnected, refreshBalance]);
+  
   // Debug logging
   useEffect(() => {
+    console.log('[AddLiquidityDialog] Wallet Connected:', isConnected);
     console.log('[AddLiquidityDialog] KTA Balance:', balance);
     console.log('[AddLiquidityDialog] XRGE Token:', xrgeToken);
     console.log('[AddLiquidityDialog] All Tokens:', tokens);
-  }, [balance, xrgeToken, tokens]);
+  }, [isConnected, balance, xrgeToken, tokens]);
   
   // Calculate pool ratio (XRGE per KTA)
   const poolRatio = anchorInfo ? 
@@ -150,6 +158,12 @@ export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: Add
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          {!isConnected && (
+            <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-sm text-destructive">
+              Please connect your wallet first to add liquidity.
+            </div>
+          )}
+          
           {/* Match Pool Ratio Toggle */}
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
             <div className="space-y-0.5">
@@ -232,7 +246,7 @@ export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: Add
 
           <Button
             onClick={handleAddLiquidity}
-            disabled={isLoading || (!ktaAmount && !xrgeAmount)}
+            disabled={isLoading || (!ktaAmount && !xrgeAmount) || !isConnected}
             className="w-full"
           >
             {isLoading ? (
@@ -240,6 +254,8 @@ export function AddLiquidityDialog({ anchorAddress, anchorInfo, onSuccess }: Add
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Adding Liquidity...
               </>
+            ) : !isConnected ? (
+              "Connect Wallet First"
             ) : (
               "Add Liquidity"
             )}
