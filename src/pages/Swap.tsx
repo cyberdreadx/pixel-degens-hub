@@ -433,6 +433,16 @@ const Swap = () => {
                       <div className="font-bold text-foreground">
                         1 {fromCurrency} = {rate.toFixed(6)} {toCurrency}
                       </div>
+                      {fromCurrency === 'KTA' && toCurrency === 'XRGE' && (
+                        <div className="text-xs text-muted-foreground">
+                          1 XRGE = {(1 / rate).toFixed(6)} KTA
+                        </div>
+                      )}
+                      {fromCurrency === 'XRGE' && toCurrency === 'KTA' && (
+                        <div className="text-xs text-muted-foreground">
+                          1 KTA = {(1 / rate).toFixed(6)} XRGE
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <div className="text-xs text-muted-foreground">Pool Liquidity</div>
