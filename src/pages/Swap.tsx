@@ -780,6 +780,7 @@ const Swap = () => {
                     <TableHead className="animate-fade-in">Type</TableHead>
                     <TableHead className="text-right animate-fade-in">Amount</TableHead>
                     <TableHead className="text-right animate-fade-in">Rate</TableHead>
+                    <TableHead className="text-right animate-fade-in">USD Value</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -791,6 +792,16 @@ const Swap = () => {
                     const label = isBuyingXRGE ? "BUY XRGE" : "SELL XRGE";
                     const inputAmount = tx.volume_24h || 0;
                     const outputAmount = inputAmount * (tx.rate || 0);
+                    
+                    // Calculate USD value
+                    let usdValue = 0;
+                    if (marketData) {
+                      if (tx.from_token === "KTA" && marketData.kta) {
+                        usdValue = inputAmount * marketData.kta.price;
+                      } else if (tx.from_token === "XRGE" && marketData.xrge) {
+                        usdValue = inputAmount * marketData.xrge.price;
+                      }
+                    }
                     
                     return (
                       <TableRow 
@@ -818,12 +829,15 @@ const Swap = () => {
                         <TableCell className="text-right font-mono text-xs animate-fade-in">
                           {tx.rate.toFixed(6)}
                         </TableCell>
+                        <TableCell className="text-right font-mono text-sm animate-fade-in text-green-400">
+                          {usdValue > 0 ? `$${usdValue.toFixed(2)}` : '-'}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
                   {transactions.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground animate-fade-in">
+                      <TableCell colSpan={5} className="text-center text-muted-foreground animate-fade-in">
                         No transactions found
                       </TableCell>
                     </TableRow>
