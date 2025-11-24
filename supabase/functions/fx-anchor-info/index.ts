@@ -23,13 +23,28 @@ serve(async (req) => {
     console.log('[fx-anchor-info] Loading environment variables');
     console.log('[fx-anchor-info] Network:', network);
     
-    const anchorAddress = Deno.env.get('ANCHOR_WALLET_ADDRESS');
-    const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
+    // Get network-specific anchor configuration
+    const anchorAddress = network === 'test' 
+      ? Deno.env.get('ANCHOR_WALLET_ADDRESS_TESTNET')
+      : Deno.env.get('ANCHOR_WALLET_ADDRESS');
+      
+    const anchorSeed = network === 'test'
+      ? Deno.env.get('ANCHOR_WALLET_SEED_TESTNET')
+      : Deno.env.get('ANCHOR_WALLET_SEED');
+    
+    // Token addresses based on network
+    const TOKEN_ADDRS = network === 'test' ? {
+      KTA: 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52',
+      XRGE: 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s',
+    } : {
+      KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
+      XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
+    };
     
     if (!anchorAddress) {
       return new Response(
         JSON.stringify({ 
-          error: 'ANCHOR_WALLET_ADDRESS not configured.'
+          error: `ANCHOR_WALLET_ADDRESS${network === 'test' ? '_TESTNET' : ''} not configured.`
         }),
         {
           status: 500,
@@ -41,7 +56,7 @@ serve(async (req) => {
     if (!anchorSeed) {
       return new Response(
         JSON.stringify({ 
-          error: 'ANCHOR_WALLET_SEED not configured.'
+          error: `ANCHOR_WALLET_SEED${network === 'test' ? '_TESTNET' : ''} not configured.`
         }),
         {
           status: 500,
@@ -93,15 +108,9 @@ serve(async (req) => {
     
     console.log('Raw balance data:', JSON.stringify(balanceData));
     
-    // KTA is the native token - look for it with the KTA token address
-    const ktaBalance = allBalances.find((b: any) => {
-      return b.token === 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';
-    });
-    
-    // XRGE is a custom token
-    const xrgeBalance = allBalances.find((b: any) => {
-      return b.token === 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
-    });
+    // Find KTA and XRGE balances using network-specific token addresses
+    const ktaBalance = allBalances.find((b: any) => b.token === TOKEN_ADDRS.KTA);
+    const xrgeBalance = allBalances.find((b: any) => b.token === TOKEN_ADDRS.XRGE);
     
     console.log('Found KTA balance:', ktaBalance);
     console.log('Found XRGE balance:', xrgeBalance);
@@ -123,6 +132,7 @@ serve(async (req) => {
         ktaBalance: kta,
         xrgeBalance: xrge,
         method: 'Backend-derived from ANCHOR_WALLET_SEED',
+        network,
         // Extra debug fields
         intendedAddress: trimmedAddress,
         backendAddress: backendDerivedAddress,
