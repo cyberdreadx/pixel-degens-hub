@@ -18,7 +18,7 @@ interface WalletDialogProps {
 }
 
 const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
-  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, tokens, generateNewWallet, refreshBalance, sendTokens } = useWallet();
+  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, tokens, generateNewWallet, refreshBalance, sendTokens, network } = useWallet();
   const [importSeed, setImportSeed] = useState("");
   const [showSeed, setShowSeed] = useState(false);
   const [generatedSeed, setGeneratedSeed] = useState("");
@@ -170,7 +170,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
               <span className="truncate">WALLET ACTIVE</span>
             </DialogTitle>
             <DialogDescription className="text-[10px] sm:text-xs text-primary/80 font-mono truncate">
-              KEETA MAINNET • SECP256K1 • INDEX 0
+              {network === "main" ? "KEETA MAINNET" : "KEETA TESTNET"} • SECP256K1 • INDEX 0
             </DialogDescription>
           </DialogHeader>
 
@@ -391,7 +391,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
             CONNECT WALLET
           </DialogTitle>
           <DialogDescription className="text-[10px] sm:text-xs text-primary/80 font-mono">
-            KEETA MAINNET • SECP256K1 • INDEX 0
+            {network === "main" ? "KEETA MAINNET" : "KEETA TESTNET"} • SECP256K1 • INDEX 0
           </DialogDescription>
         </DialogHeader>
 
