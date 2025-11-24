@@ -335,11 +335,11 @@ const Swap = () => {
   return (
     <div className="min-h-screen bg-background pt-20 pb-8">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
-        <h1 className="text-3xl md:text-4xl font-bold text-center mb-6 md:mb-8 text-foreground">
-          Token Swap
+        <h1 className="text-3xl md:text-4xl font-bold text-center mb-6 md:mb-8 text-foreground neon-glow animate-fade-in">
+          DEGEN SWAP
         </h1>
 
-        <div className="grid lg:grid-cols-[400px_1fr] gap-6 items-start w-full">
+        <div className="grid lg:grid-cols-[400px_1fr] gap-6 items-start w-full animate-fade-in">
           {/* Left column: Swap interface and market data */}
           <div className="space-y-4 w-full">
             {/* Market Data and Pool Rates */}
@@ -365,10 +365,10 @@ const Swap = () => {
                   </div>
                 </Card>
               ) : marketData && (marketData.kta || marketData.xrge) ? (
-                <Card className="p-4 glass-light border-border/50 shadow-none">
+                <Card className="p-4 glass-light border-border/50 shadow-none hover-scale transition-all duration-300 animate-fade-in">
                   <div className="flex items-center gap-2 mb-3">
                     <h3 className="font-semibold text-sm text-foreground">BASE Chain Prices</h3>
-                    <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">External Market</span>
+                    <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full animate-pulse">External Market</span>
                   </div>
                   <div className="space-y-3">
                     {marketData.kta && (
@@ -422,10 +422,10 @@ const Swap = () => {
                   </div>
                 </Card>
               ) : rate && anchorInfo ? (
-                <Card className="p-4 glass-light border-border/50 shadow-none">
+                <Card className="p-4 glass-light border-border/50 shadow-none hover-scale transition-all duration-300 animate-fade-in">
                   <div className="flex items-center gap-2 mb-3">
                     <h3 className="font-semibold text-sm text-foreground">Keeta Pool Rate</h3>
-                    <span className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded-full">Your Swap Rate</span>
+                    <span className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded-full animate-pulse">Your Swap Rate</span>
                   </div>
                   <div className="space-y-3">
                     <div className="space-y-1">
@@ -456,9 +456,9 @@ const Swap = () => {
             </div>
 
             {/* Swap Interface Card */}
-            <Card className="p-4 md:p-6 glass border-border/50 shadow-none">
+            <Card className="p-4 md:p-6 glass border-border/50 shadow-none animate-scale-in hover-scale transition-all duration-300">
           {/* From Section */}
-          <div className="mb-4">
+          <div className="mb-4 animate-fade-in">
             <label className="text-sm text-muted-foreground mb-2 block">
               From
             </label>
@@ -468,11 +468,11 @@ const Swap = () => {
                 placeholder="0.0"
                 value={fromAmount}
                 onChange={(e) => handleFromAmountChange(e.target.value)}
-                className="flex-1"
+                className="flex-1 focus:scale-105 transition-all duration-200"
               />
-              <div className="px-4 py-2 bg-muted rounded-md flex items-center gap-2 min-w-[80px] justify-center">
-                {fromCurrency === 'KTA' && <img src={ktaLogo} alt="KTA" className="w-5 h-5 rounded-full" />}
-                {fromCurrency === 'XRGE' && <img src={xrgeLogo} alt="XRGE" className="w-5 h-5 rounded-full" />}
+              <div className="px-4 py-2 bg-muted rounded-md flex items-center gap-2 min-w-[80px] justify-center hover:scale-105 transition-transform duration-200">
+                {fromCurrency === 'KTA' && <img src={ktaLogo} alt="KTA" className="w-5 h-5 rounded-full animate-pulse" />}
+                {fromCurrency === 'XRGE' && <img src={xrgeLogo} alt="XRGE" className="w-5 h-5 rounded-full animate-pulse" />}
                 <span className="font-bold text-foreground">{fromCurrency}</span>
               </div>
             </div>
@@ -500,14 +500,14 @@ const Swap = () => {
               variant="outline"
               size="icon"
               onClick={handleSwapCurrencies}
-              className="rounded-full"
+              className="rounded-full hover:rotate-180 hover:scale-110 transition-all duration-300"
             >
               <ArrowDownUp className="h-4 w-4" />
             </Button>
           </div>
 
           {/* To Section */}
-          <div className="mb-6">
+          <div className="mb-6 animate-fade-in">
             <label className="text-sm text-muted-foreground mb-2 block">
               To
             </label>
@@ -519,9 +519,9 @@ const Swap = () => {
                 readOnly
                 className="flex-1"
               />
-              <div className="px-4 py-2 bg-muted rounded-md flex items-center gap-2 min-w-[80px] justify-center">
-                {toCurrency === 'KTA' && <img src={ktaLogo} alt="KTA" className="w-5 h-5 rounded-full" />}
-                {toCurrency === 'XRGE' && <img src={xrgeLogo} alt="XRGE" className="w-5 h-5 rounded-full" />}
+              <div className="px-4 py-2 bg-muted rounded-md flex items-center gap-2 min-w-[80px] justify-center hover:scale-105 transition-transform duration-200">
+                {toCurrency === 'KTA' && <img src={ktaLogo} alt="KTA" className="w-5 h-5 rounded-full animate-pulse" />}
+                {toCurrency === 'XRGE' && <img src={xrgeLogo} alt="XRGE" className="w-5 h-5 rounded-full animate-pulse" />}
                 <span className="font-bold text-foreground">{toCurrency}</span>
               </div>
             </div>
@@ -545,7 +545,7 @@ const Swap = () => {
 
           {/* Price Impact Display */}
           {priceImpact !== null && fromAmount && parseFloat(fromAmount) > 0 && (
-            <div className={`mb-4 p-3 rounded-lg border ${
+            <div className={`mb-4 p-3 rounded-lg border animate-fade-in hover-scale transition-all duration-200 ${
               priceImpact < 1 
                 ? 'bg-green-500/10 border-green-500/20' 
                 : priceImpact < 5 
@@ -558,14 +558,14 @@ const Swap = () => {
                   priceImpact < 1 
                     ? 'text-green-500' 
                     : priceImpact < 5 
-                    ? 'text-yellow-500'
-                    : 'text-red-500'
+                    ? 'text-yellow-500 animate-pulse'
+                    : 'text-red-500 animate-pulse'
                 }`}>
                   {priceImpact < 0.01 ? '<0.01' : priceImpact.toFixed(2)}%
                 </span>
               </div>
               {priceImpact >= 5 && (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="text-xs text-red-500 mt-1 animate-pulse">
                   ⚠️ High price impact! This trade will significantly affect the pool.
                 </p>
               )}
@@ -582,23 +582,23 @@ const Swap = () => {
           <Button
             onClick={handleSwap}
             disabled={!isConnected || isLoading || !fromAmount}
-            className="w-full"
+            className="w-full hover:scale-105 transition-all duration-300 neon-glow hover:shadow-2xl"
             size="lg"
           >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Swapping...
+                <span className="animate-pulse">Swapping...</span>
               </>
             ) : !isConnected ? (
               "Connect Wallet to Swap"
             ) : (
-              "Swap"
+              <span className="animate-pulse">Swap</span>
           )}
           </Button>
 
           {/* Slippage Settings */}
-          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg animate-fade-in">
             <label className="text-xs text-muted-foreground mb-2 block">
               Slippage Tolerance
             </label>
@@ -609,7 +609,7 @@ const Swap = () => {
                   variant={slippage === percentage ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSlippage(percentage)}
-                  className="flex-1 min-w-[50px]"
+                  className="flex-1 min-w-[50px] hover:scale-110 transition-all duration-200"
                 >
                   {percentage}%
                 </Button>
@@ -623,7 +623,7 @@ const Swap = () => {
       </div>
 
       {/* Right column: Trading Chart */}
-      <div className="w-full lg:min-w-0">
+      <div className="w-full lg:min-w-0 animate-fade-in">
         <TradingChart fromToken={fromCurrency} toToken={toCurrency} />
       </div>
     </div>
@@ -653,9 +653,9 @@ const Swap = () => {
             </div>
           </Card>
         ) : anchorInfo ? (
-          <Card className="mt-4 md:mt-6 p-4 md:p-6 bg-card border-border">
+          <Card className="mt-4 md:mt-6 p-4 md:p-6 bg-card border-border animate-scale-in hover-scale transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-base md:text-lg text-foreground">
+              <h3 className="font-semibold text-base md:text-lg text-foreground neon-glow-secondary">
                 FX Anchor Liquidity
               </h3>
               <Button
@@ -663,24 +663,24 @@ const Swap = () => {
                 size="icon"
                 onClick={fetchAnchorInfo}
                 disabled={isRefreshing}
-                className="h-8 w-8"
+                className="h-8 w-8 hover:rotate-180 transition-all duration-300"
               >
                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
             </div>
             
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="p-3 bg-muted rounded-lg">
+              <div className="p-3 bg-muted rounded-lg hover:scale-105 transition-transform duration-200 animate-fade-in">
                 <div className="text-xs text-muted-foreground mb-1">KTA Balance</div>
                 <div className="font-bold text-lg">{parseFloat(anchorInfo.ktaBalance || '0').toFixed(3)} KTA</div>
               </div>
-              <div className="p-3 bg-muted rounded-lg">
+              <div className="p-3 bg-muted rounded-lg hover:scale-105 transition-transform duration-200 animate-fade-in">
                 <div className="text-xs text-muted-foreground mb-1">XRGE Balance</div>
                 <div className="font-bold text-lg">{parseFloat(anchorInfo.xrgeBalance || '0').toFixed(3)} XRGE</div>
               </div>
             </div>
             
-            <div className="p-3 bg-muted/50 rounded-lg">
+            <div className="p-3 bg-muted/50 rounded-lg animate-fade-in">
               <div className="text-xs text-muted-foreground mb-1">Anchor Address</div>
               <div className="font-mono text-xs break-all">{anchorInfo.address}</div>
             </div>
