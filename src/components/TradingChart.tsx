@@ -96,7 +96,7 @@ const TradingChart = ({ fromToken, toToken }: TradingChartProps) => {
   };
 
   const formatRate = (value: number) => {
-    return value > 100 ? value.toFixed(2) : value.toFixed(6);
+    return value > 100 ? value.toFixed(2) : value.toFixed(5);
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
