@@ -1,6 +1,8 @@
 export interface NFTMetadata {
   platform: string;
   version: string;
+  identifier: string;
+  nft_id: number;
   name: string;
   description: string;
   image: string;
@@ -31,7 +33,12 @@ export interface NFT {
 export const isDegen8bitNFT = (metadata: any): boolean => {
   try {
     if (!metadata || typeof metadata !== "object") return false;
-    return metadata.platform === "degen8bit";
+    // Check for platform identifier and NFT_KTA_ANCHOR pattern
+    return (
+      metadata.platform === "degen8bit" &&
+      metadata.identifier &&
+      metadata.identifier.startsWith("NFT_KTA_ANCHOR_")
+    );
   } catch {
     return false;
   }

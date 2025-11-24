@@ -52,10 +52,16 @@ const MintNFT = () => {
     setIsMinting(true);
 
     try {
-      // Create metadata in our standard format
+      // Generate unique NFT identifier number
+      const nftId = Date.now();
+      const identifier = `NFT_KTA_ANCHOR_${nftId}`;
+      
+      // Create metadata in our standard format with identifier
       const metadata = {
         platform: "degen8bit",
         version: "1.0",
+        identifier: identifier,
+        nft_id: nftId,
         name,
         description,
         image: imageUrl,
@@ -70,8 +76,8 @@ const MintNFT = () => {
       // Create token with supply=1, decimals=0 (NFT)
       const builder = client.createBuilder(account);
       
-      // Generate random token address for the NFT
-      const tokenAddress = `keeta_nft${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      // Use identifier as token address
+      const tokenAddress = `keeta_${identifier.toLowerCase()}`;
       
       builder.createToken(
         tokenAddress,
@@ -244,8 +250,9 @@ const MintNFT = () => {
           {/* Info */}
           <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
             <p>• NFTs are created as tokens with supply=1 and decimals=0</p>
-            <p>• Metadata includes "degen8bit" identifier for auto-detection</p>
+            <p>• Metadata includes NFT_KTA_ANCHOR_[ID] identifier for auto-detection</p>
             <p>• Use IPFS for permanent image storage (recommended)</p>
+            <p>• Token address: keeta_nft_kta_anchor_[timestamp]</p>
           </div>
         </Card>
       </div>
