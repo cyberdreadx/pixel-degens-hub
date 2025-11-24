@@ -1,17 +1,27 @@
 import { useState } from "react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
-import { Wallet, Home, Image, Users, Activity, ArrowDownUp } from "lucide-react";
+import { Wallet, Home, Image, Users, Activity, ArrowDownUp, Menu, X } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import WalletDialog from "./WalletDialog";
+import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 
 const Navigation = () => {
   const { isConnected, publicKey, balance } = useWallet();
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
+
+  const navLinks = [
+    { to: "/", icon: Home, label: "HOME" },
+    { to: "/collection", icon: Image, label: "NFTS" },
+    { to: "/feed", icon: Activity, label: "FEED" },
+    { to: "/profile", icon: Users, label: "PROFILE" },
+    { to: "/swap", icon: ArrowDownUp, label: "SWAP" },
+  ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-sm border-b-4 border-primary">
@@ -24,51 +34,19 @@ const Navigation = () => {
             <span className="text-lg neon-glow hidden sm:inline">DEGEN</span>
           </NavLink>
 
-          <div className="flex items-center gap-2 sm:gap-6">
-            <NavLink
-              to="/"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
-              activeClassName="bg-muted"
-            >
-              <Home className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">HOME</span>
-            </NavLink>
-            
-            <NavLink
-              to="/collection"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
-              activeClassName="bg-muted"
-            >
-              <Image className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">NFTS</span>
-            </NavLink>
-            
-            <NavLink
-              to="/feed"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
-              activeClassName="bg-muted"
-            >
-              <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">FEED</span>
-            </NavLink>
-            
-            <NavLink
-              to="/profile"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
-              activeClassName="bg-muted"
-            >
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">PROFILE</span>
-            </NavLink>
-            
-            <NavLink
-              to="/swap"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
-              activeClassName="bg-muted"
-            >
-              <ArrowDownUp className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">SWAP</span>
-            </NavLink>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-2 lg:gap-6">
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
+                activeClassName="bg-muted"
+              >
+                <link.icon className="w-4 h-4" />
+                <span className="text-xs">{link.label}</span>
+              </NavLink>
+            ))}
             
             <Button
               variant="default" 
@@ -79,13 +57,59 @@ const Navigation = () => {
               <Wallet className="w-4 h-4" />
               {isConnected ? (
                 <div className="flex items-center gap-2">
-                  <span className="hidden md:inline">{balance ? `${balance} KTA` : "0.0000 KTA"}</span>
-                  <span className="hidden sm:inline">{publicKey && formatAddress(publicKey)}</span>
+                  <span className="hidden lg:inline">{balance ? `${balance} KTA` : "0.0000 KTA"}</span>
+                  <span className="hidden xl:inline">{publicKey && formatAddress(publicKey)}</span>
                 </div>
               ) : (
-                <span className="hidden sm:inline">CONNECT</span>
+                <span>CONNECT</span>
               )}
             </Button>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden items-center gap-2">
+            <Button
+              variant="default" 
+              size="sm"
+              className="pixel-border bg-primary hover:bg-primary/80 text-xs"
+              onClick={() => setWalletDialogOpen(true)}
+            >
+              <Wallet className="w-4 h-4" />
+            </Button>
+            
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="pixel-border">
+                  <Menu className="w-4 h-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="pixel-border-thick bg-card w-64">
+                <div className="flex flex-col gap-4 mt-8">
+                  {navLinks.map((link) => (
+                    <NavLink
+                      key={link.to}
+                      to={link.to}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors rounded"
+                      activeClassName="bg-muted"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <link.icon className="w-5 h-5" />
+                      <span className="text-sm font-semibold">{link.label}</span>
+                    </NavLink>
+                  ))}
+                  
+                  {isConnected && (
+                    <div className="mt-4 px-4 py-3 pixel-border bg-muted rounded space-y-2">
+                      <div className="text-xs text-muted-foreground">BALANCE</div>
+                      <div className="text-sm font-bold">{balance || "0.0000"} KTA</div>
+                      <div className="text-xs text-muted-foreground break-all">
+                        {publicKey && formatAddress(publicKey)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

@@ -9,13 +9,13 @@ const NFTDetail = () => {
   const { id } = useParams();
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
-      <div className="container mx-auto px-4">
-        <Link to="/collection" className="text-xs text-primary hover:underline mb-8 inline-block">
+    <div className="min-h-screen pt-24 pb-16 px-4">
+      <div className="container mx-auto">
+        <Link to="/collection" className="text-xs text-primary hover:underline mb-6 md:mb-8 inline-block">
           ← BACK TO COLLECTION
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
           {/* Image Section */}
           <div className="space-y-4">
             <div className="aspect-square bg-muted pixel-border-thick overflow-hidden">
@@ -29,30 +29,30 @@ const NFTDetail = () => {
           </div>
 
           {/* Details Section */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <div>
-              <div className="inline-block pixel-border bg-secondary/20 px-3 py-1 mb-4">
+              <div className="inline-block pixel-border bg-secondary/20 px-3 py-1 mb-3 md:mb-4">
                 <span className="text-xs neon-glow-secondary">GENESIS COLLECTION</span>
               </div>
-              <h1 className="text-3xl md:text-5xl font-bold neon-glow mb-4">
+              <h1 className="text-2xl md:text-3xl lg:text-5xl font-bold neon-glow mb-3 md:mb-4">
                 CYBER ROBOT #{id}
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 Owned by <span className="text-primary">0xDEGEN...4f2a</span>
               </p>
             </div>
 
             <Card className="pixel-border-thick bg-card">
-              <CardContent className="p-6 space-y-4">
+              <CardContent className="p-4 md:p-6 space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">CURRENT PRICE</span>
                   <div className="text-right">
-                    <div className="text-2xl font-bold neon-glow">0.5 KTA</div>
+                    <div className="text-xl md:text-2xl font-bold neon-glow">0.5 KTA</div>
                     <div className="text-xs text-muted-foreground">$125 USD</div>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button className="flex-1 pixel-border bg-primary hover:bg-primary/80 gap-2 text-xs">
                     <ShoppingCart className="w-4 h-4" />
                     BUY NOW
@@ -79,9 +79,9 @@ const NFTDetail = () => {
             </Card>
 
             <Card className="pixel-border-thick bg-card">
-              <CardContent className="p-6 space-y-4">
-                <h3 className="font-bold text-sm">PROPERTIES</h3>
-                <div className="grid grid-cols-2 gap-3">
+              <CardContent className="p-4 md:p-6 space-y-4">
+                <h3 className="font-bold text-xs md:text-sm">PROPERTIES</h3>
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <div className="pixel-border bg-muted p-3 text-center">
                     <div className="text-xs text-muted-foreground">TYPE</div>
                     <div className="font-bold text-xs mt-1">ROBOT</div>
@@ -103,8 +103,8 @@ const NFTDetail = () => {
             </Card>
 
             <Card className="pixel-border-thick bg-card">
-              <CardContent className="p-6 space-y-4">
-                <h3 className="font-bold text-sm">ABOUT</h3>
+              <CardContent className="p-4 md:p-6 space-y-4">
+                <h3 className="font-bold text-xs md:text-sm">ABOUT</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   A legendary cyber robot from the genesis collection. Equipped with advanced 
                   neon circuitry and unmatched digital prowess. Only 100 exist in the metaverse.
@@ -115,10 +115,10 @@ const NFTDetail = () => {
         </div>
 
         {/* Comments Section */}
-        <div className="mt-12 max-w-4xl">
+        <div className="mt-8 md:mt-12 max-w-4xl">
           <Card className="pixel-border-thick bg-card">
-            <CardContent className="p-6 space-y-6">
-              <h3 className="font-bold text-lg">COMMENTS (12)</h3>
+            <CardContent className="p-4 md:p-6 space-y-4 md:space-y-6">
+              <h3 className="font-bold text-base md:text-lg">COMMENTS (12)</h3>
               
               <div className="space-y-4">
                 <div className="space-y-2">

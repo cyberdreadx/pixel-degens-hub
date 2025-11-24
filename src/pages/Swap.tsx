@@ -241,13 +241,13 @@ const Swap = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pt-20 px-4">
+    <div className="min-h-screen bg-background pt-20 px-4 pb-8">
       <div className="max-w-md mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8 text-foreground">
+        <h1 className="text-3xl md:text-4xl font-bold text-center mb-6 md:mb-8 text-foreground">
           Token Swap
         </h1>
 
-        <Card className="p-6 bg-card border-border">
+        <Card className="p-4 md:p-6 bg-card border-border">
           {/* From Section */}
           <div className="mb-4">
             <label className="text-sm text-muted-foreground mb-2 block">
@@ -333,8 +333,8 @@ const Swap = () => {
         </Card>
 
         {/* Info Section */}
-        <Card className="mt-6 p-4 bg-card border-border">
-          <h3 className="font-semibold text-foreground mb-2">FX Anchor Status (Frontend Derivation)</h3>
+        <Card className="mt-4 md:mt-6 p-3 md:p-4 bg-card border-border">
+          <h3 className="font-semibold text-sm md:text-base text-foreground mb-2">FX Anchor Status (Frontend Derivation)</h3>
           
           <div className="space-y-2 text-sm mb-4">
             <label className="text-xs text-muted-foreground">
@@ -344,13 +344,13 @@ const Swap = () => {
               placeholder="Paste 24-word anchor seed phrase..."
               value={compareMnemonic}
               onChange={(e) => setCompareMnemonic(e.target.value)}
-              className="w-full min-h-[80px] p-2 text-xs font-mono bg-muted border border-border rounded"
+              className="w-full min-h-[60px] md:min-h-[80px] p-2 text-xs font-mono bg-muted border border-border rounded"
             />
             <Button
               onClick={() => deriveFrontendAnchor(compareMnemonic)}
               disabled={!compareMnemonic.trim()}
               variant="default"
-              className="w-full"
+              className="w-full text-xs"
               size="sm"
             >
               Derive Address (Frontend Method)
@@ -359,9 +359,9 @@ const Swap = () => {
 
           {frontendAnchorAddress && (
             <div className="space-y-2 text-sm">
-              <div className="p-3 bg-muted rounded">
+              <div className="p-2 md:p-3 bg-muted rounded">
                 <div className="text-xs text-muted-foreground mb-1">Frontend Derived Address (secp256k1, Index 0)</div>
-                <div className="font-mono text-xs break-all">{frontendAnchorAddress}</div>
+                <div className="font-mono text-[10px] md:text-xs break-all">{frontendAnchorAddress}</div>
               </div>
               
               <div className="p-2 bg-primary/10 border border-primary/20 rounded text-xs">
@@ -382,22 +382,22 @@ const Swap = () => {
               <h4 className="text-xs font-semibold text-muted-foreground mb-2">Backend Anchor (for balance reference):</h4>
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2 bg-muted rounded">
-                  <div className="text-xs text-muted-foreground mb-1">KTA Balance</div>
-                  <div className="font-bold text-xs">{anchorInfo.ktaBalance || '0'} KTA</div>
+                  <div className="text-[10px] md:text-xs text-muted-foreground mb-1">KTA Balance</div>
+                  <div className="font-bold text-xs md:text-sm">{anchorInfo.ktaBalance || '0'} KTA</div>
                 </div>
                 <div className="p-2 bg-muted rounded">
-                  <div className="text-xs text-muted-foreground mb-1">XRGE Balance</div>
-                  <div className="font-bold text-xs">{anchorInfo.xrgeBalance || '0'} XRGE</div>
+                  <div className="text-[10px] md:text-xs text-muted-foreground mb-1">XRGE Balance</div>
+                  <div className="font-bold text-xs md:text-sm">{anchorInfo.xrgeBalance || '0'} XRGE</div>
                 </div>
               </div>
               <div className="mt-2 p-2 bg-muted rounded">
-                <div className="text-xs text-muted-foreground mb-1">Backend Address</div>
-                <div className="font-mono text-xs break-all">{anchorInfo.address}</div>
+                <div className="text-[10px] md:text-xs text-muted-foreground mb-1">Backend Address</div>
+                <div className="font-mono text-[10px] md:text-xs break-all">{anchorInfo.address}</div>
               </div>
             </div>
           )}
           
-          <div className="space-y-2 pt-2 border-t border-border">
+          <div className="space-y-2 pt-2 border-t border-border mt-3">
             <label className="text-xs text-muted-foreground">
               PASTE YOUR WALLET MNEMONIC TO COMPARE WITH ANCHOR_WALLET_SEED:
             </label>
@@ -405,7 +405,7 @@ const Swap = () => {
               placeholder="Paste your 24-word phrase here..."
               value={compareMnemonic}
               onChange={(e) => setCompareMnemonic(e.target.value)}
-              className="w-full min-h-[80px] p-2 text-xs font-mono bg-muted border border-border rounded"
+              className="w-full min-h-[60px] md:min-h-[80px] p-2 text-xs font-mono bg-muted border border-border rounded"
             />
             <Button
               onClick={handleCompareMnemonic}
@@ -419,35 +419,35 @@ const Swap = () => {
           </div>
 
           {compareResults && (
-            <div className={`mt-4 p-3 rounded text-sm border ${
+            <div className={`mt-4 p-2 md:p-3 rounded text-sm border ${
               compareResults.match 
                 ? 'bg-green-500/10 border-green-500/20' 
                 : 'bg-destructive/10 border-destructive/20'
             }`}>
-              <div className="font-semibold mb-2">
+              <div className="font-semibold mb-2 text-xs md:text-sm">
                 {compareResults.match ? '✅ MATCH!' : '✗ MISMATCH'}
               </div>
               
               <div className="space-y-2 text-xs">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <div className="text-muted-foreground">Your Mnemonic:</div>
-                    <div className="font-mono text-xs break-all">{compareResults.userAddress}</div>
-                    <div className="text-muted-foreground mt-1">Words: {compareResults.userMnemonicWordCount}</div>
-                    <div className="text-muted-foreground">First: {compareResults.userFirstWord}</div>
-                    <div className="text-muted-foreground">Last: {compareResults.userLastWord}</div>
+                    <div className="text-muted-foreground text-[10px] md:text-xs">Your Mnemonic:</div>
+                    <div className="font-mono text-[10px] break-all">{compareResults.userAddress}</div>
+                    <div className="text-muted-foreground mt-1 text-[10px]">Words: {compareResults.userMnemonicWordCount}</div>
+                    <div className="text-muted-foreground text-[10px]">First: {compareResults.userFirstWord}</div>
+                    <div className="text-muted-foreground text-[10px]">Last: {compareResults.userLastWord}</div>
                   </div>
                   
                   <div>
-                    <div className="text-muted-foreground">ANCHOR_WALLET_SEED:</div>
-                    <div className="font-mono text-xs break-all">{compareResults.anchorAddress}</div>
-                    <div className="text-muted-foreground mt-1">Words: {compareResults.anchorMnemonicWordCount}</div>
-                    <div className="text-muted-foreground">First: {compareResults.anchorFirstWord}</div>
-                    <div className="text-muted-foreground">Last: {compareResults.anchorLastWord}</div>
+                    <div className="text-muted-foreground text-[10px] md:text-xs">ANCHOR_WALLET_SEED:</div>
+                    <div className="font-mono text-[10px] break-all">{compareResults.anchorAddress}</div>
+                    <div className="text-muted-foreground mt-1 text-[10px]">Words: {compareResults.anchorMnemonicWordCount}</div>
+                    <div className="text-muted-foreground text-[10px]">First: {compareResults.anchorFirstWord}</div>
+                    <div className="text-muted-foreground text-[10px]">Last: {compareResults.anchorLastWord}</div>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-border/50">
+                <div className="pt-2 border-t border-border/50 text-[10px] md:text-xs">
                   <div>Intermediate seeds match: {compareResults.seedsMatch ? '✓' : '✗'}</div>
                   <div>Final addresses match: {compareResults.addressesMatch ? '✓' : '✗'}</div>
                 </div>
@@ -456,21 +456,21 @@ const Swap = () => {
           )}
 
           {scanResults && scanResults.matchFound && (
-            <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded text-sm">
-              <div className="font-semibold text-primary mb-2">✅ Match Found!</div>
+            <div className="mt-4 p-2 md:p-3 bg-primary/10 border border-primary/20 rounded text-sm">
+              <div className="font-semibold text-primary mb-2 text-xs md:text-sm">✅ Match Found!</div>
               <div className="text-xs space-y-1">
-                <div>Method: <span className="font-mono">{scanResults.matchFound.method}</span></div>
-                <div>Index: <span className="font-mono">{scanResults.matchFound.index}</span></div>
-                <div className="font-mono text-xs break-all">{scanResults.matchFound.address}</div>
+                <div className="text-[10px] md:text-xs">Method: <span className="font-mono">{scanResults.matchFound.method}</span></div>
+                <div className="text-[10px] md:text-xs">Index: <span className="font-mono">{scanResults.matchFound.index}</span></div>
+                <div className="font-mono text-[10px] break-all">{scanResults.matchFound.address}</div>
               </div>
             </div>
           )}
           
           {scanResults && !scanResults.matchFound && scanResults.results && (
-            <div className="mt-4 p-3 bg-muted rounded text-xs">
-              <div className="font-semibold mb-2">No match found in either method</div>
+            <div className="mt-4 p-2 md:p-3 bg-muted rounded text-xs">
+              <div className="font-semibold mb-2 text-xs md:text-sm">No match found in either method</div>
               {scanResults.mnemonicInfo && (
-                <div className="space-y-1 text-muted-foreground">
+                <div className="space-y-1 text-muted-foreground text-[10px] md:text-xs">
                   <div>Word count: {scanResults.mnemonicInfo.wordCount}</div>
                   <div>First word: {scanResults.mnemonicInfo.firstWord}</div>
                   <div>Last word: {scanResults.mnemonicInfo.lastWord}</div>
