@@ -1,0 +1,171 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { useWallet } from "@/contexts/WalletContext";
+import { getTokenAddresses } from "@/utils/keetaApi";
+import ktaLogo from "@/assets/kta-logo.jpg";
+import xrgeLogo from "@/assets/xrge-logo.webp";
+
+interface AddLiquidityDialogProps {
+  anchorAddress: string;
+  onSuccess?: () => void;
+}
+
+export function AddLiquidityDialog({ anchorAddress, onSuccess }: AddLiquidityDialogProps) {
+  const { sendTokens, balance, tokens, network } = useWallet();
+  const [isOpen, setIsOpen] = useState(false);
+  const [ktaAmount, setKtaAmount] = useState("");
+  const [xrgeAmount, setXrgeAmount] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const xrgeBalance = tokens.find(t => t.symbol === 'XRGE')?.balance || '0';
+
+  const handleAddLiquidity = async () => {
+    const ktaValue = parseFloat(ktaAmount);
+    const xrgeValue = parseFloat(xrgeAmount);
+
+    if (!ktaValue && !xrgeValue) {
+      toast.error("Please enter at least one token amount");
+      return;
+    }
+
+    if (ktaValue && ktaValue > parseFloat(balance || '0')) {
+      toast.error(`Insufficient KTA balance. You have ${balance} KTA`);
+      return;
+    }
+
+    if (xrgeValue && xrgeValue > parseFloat(xrgeBalance)) {
+      toast.error(`Insufficient XRGE balance. You have ${xrgeBalance} XRGE`);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const tokenAddresses = getTokenAddresses(network);
+
+      // Send KTA if amount specified
+      if (ktaValue > 0) {
+        await sendTokens(anchorAddress, ktaAmount);
+        toast.success(`Sent ${ktaAmount} KTA to liquidity pool`);
+      }
+
+      // Send XRGE if amount specified
+      if (xrgeValue > 0) {
+        await sendTokens(anchorAddress, xrgeAmount, tokenAddresses.XRGE);
+        toast.success(`Sent ${xrgeAmount} XRGE to liquidity pool`);
+      }
+
+      // Reset form and close dialog
+      setKtaAmount("");
+      setXrgeAmount("");
+      setIsOpen(false);
+
+      // Call success callback
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      toast.success("Liquidity added successfully!");
+    } catch (error: any) {
+      console.error("Failed to add liquidity:", error);
+      toast.error(error.message || "Failed to add liquidity");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button 
+          variant="default" 
+          size="sm"
+          className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+        >
+          <Plus className="w-4 h-4" />
+          Add Liquidity
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogHeader>
+          <DialogTitle className="text-foreground">Add Liquidity to Pool</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="kta-amount" className="text-sm text-muted-foreground">
+              KTA Amount
+            </Label>
+            <div className="relative">
+              <Input
+                id="kta-amount"
+                type="number"
+                placeholder="0.0"
+                value={ktaAmount}
+                onChange={(e) => setKtaAmount(e.target.value)}
+                className="pr-20"
+                disabled={isLoading}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <img src={ktaLogo} alt="KTA" className="w-5 h-5 rounded-full" />
+                <span className="text-sm font-medium">KTA</span>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Available: {balance || '0'} KTA
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="xrge-amount" className="text-sm text-muted-foreground">
+              XRGE Amount
+            </Label>
+            <div className="relative">
+              <Input
+                id="xrge-amount"
+                type="number"
+                placeholder="0.0"
+                value={xrgeAmount}
+                onChange={(e) => setXrgeAmount(e.target.value)}
+                className="pr-20"
+                disabled={isLoading}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <img src={xrgeLogo} alt="XRGE" className="w-5 h-5 rounded-full" />
+                <span className="text-sm font-medium">XRGE</span>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Available: {xrgeBalance} XRGE
+            </div>
+          </div>
+
+          <div className="bg-muted/50 p-3 rounded-lg">
+            <p className="text-xs text-muted-foreground">
+              <strong>Note:</strong> You can add KTA, XRGE, or both tokens to the liquidity pool. 
+              Tokens will be sent to the anchor address: <span className="font-mono text-[10px] break-all">{anchorAddress}</span>
+            </p>
+          </div>
+
+          <Button
+            onClick={handleAddLiquidity}
+            disabled={isLoading || (!ktaAmount && !xrgeAmount)}
+            className="w-full"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Adding Liquidity...
+              </>
+            ) : (
+              "Add Liquidity"
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

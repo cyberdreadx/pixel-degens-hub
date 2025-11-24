@@ -12,6 +12,7 @@ import ktaLogo from "@/assets/kta-logo.jpg";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getTokenAddresses } from "@/utils/keetaApi";
+import { AddLiquidityDialog } from "@/components/AddLiquidityDialog";
 
 const ANCHOR_ADDRESS = 'keeta_aab4yyxf3mw5mi6coye4zm6ovk2e36b2g6xxhfpa4ol4eh22vumrp4kjtbyckla';
 
@@ -691,15 +692,24 @@ const Swap = () => {
               <h3 className="font-semibold text-base md:text-lg text-foreground neon-glow-secondary">
                 FX Anchor Liquidity
               </h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={fetchAnchorInfo}
-                disabled={isRefreshing}
-                className="h-8 w-8 hover:rotate-180 transition-all duration-300"
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </Button>
+              <div className="flex items-center gap-2">
+                <AddLiquidityDialog 
+                  anchorAddress={anchorInfo.address} 
+                  onSuccess={() => {
+                    fetchAnchorInfo();
+                    refreshBalance();
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={fetchAnchorInfo}
+                  disabled={isRefreshing}
+                  className="h-8 w-8 hover:rotate-180 transition-all duration-300"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-3 mb-4">
