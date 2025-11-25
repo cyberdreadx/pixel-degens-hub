@@ -133,7 +133,7 @@ export async function fetchExchangeRate(
 ): Promise<{ rate: number; ktaBalance: number; xrgeBalance: number }> {
   try {
     const TOKEN_DECIMALS = {
-      KTA: 6,
+      KTA: 9,
       XRGE: 18,
     };
     
