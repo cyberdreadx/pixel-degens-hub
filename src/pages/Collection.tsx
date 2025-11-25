@@ -1,10 +1,12 @@
+import { useState } from "react";
 import NFTCard from "@/components/NFTCard";
 import { Button } from "@/components/ui/button";
-import { Filter, Search, Sparkles } from "lucide-react";
+import { Filter, Search, Sparkles, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useWallet } from "@/contexts/WalletContext";
 import { ipfsToHttp } from "@/utils/nftUtils";
 import { Link } from "react-router-dom";
+import ListNFTDialog from "@/components/ListNFTDialog";
 import nft1 from "@/assets/nft1.png";
 import nft2 from "@/assets/nft2.png";
 import nft3 from "@/assets/nft3.png";
@@ -71,6 +73,11 @@ const mockNFTs = [
 
 const Collection = () => {
   const { tokens, isConnected } = useWallet();
+  const [listingToken, setListingToken] = useState<{
+    address: string;
+    name: string;
+    image: string;
+  } | null>(null);
   
   // Filter for NFTs only
   const nfts = tokens.filter(token => token.isNFT && token.metadata);
@@ -122,21 +129,45 @@ const Collection = () => {
             {/* Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {nfts.map((nft) => (
-                <NFTCard 
-                  key={nft.address}
-                  id={nft.address}
-                  title={nft.metadata.name || nft.name}
-                  creator={nft.metadata.version || "degen8bit v1.0"}
-                  price={nft.balance}
-                  image={ipfsToHttp(nft.metadata.image)}
-                  likes={0}
-                  comments={0}
-                />
+                <div key={nft.address} className="space-y-3">
+                  <NFTCard 
+                    id={nft.address}
+                    title={nft.metadata.name || nft.name}
+                    creator={nft.metadata.version || "degen8bit v1.0"}
+                    price={nft.balance}
+                    image={ipfsToHttp(nft.metadata.image)}
+                    likes={0}
+                    comments={0}
+                  />
+                  <Button 
+                    className="w-full pixel-border gap-2 text-xs"
+                    variant="outline"
+                    onClick={() => setListingToken({
+                      address: nft.address,
+                      name: nft.metadata.name || nft.name,
+                      image: ipfsToHttp(nft.metadata.image)
+                    })}
+                  >
+                    <Tag className="w-3 h-3" />
+                    LIST FOR SALE
+                  </Button>
+                </div>
               ))}
             </div>
           </>
         )}
       </div>
+
+      {/* List NFT Dialog */}
+      {listingToken && (
+        <ListNFTDialog
+          open={!!listingToken}
+          onOpenChange={(open) => !open && setListingToken(null)}
+          tokenAddress={listingToken.address}
+          tokenName={listingToken.name}
+          tokenImage={listingToken.image}
+        />
+      )}
     </div>
   );
 };

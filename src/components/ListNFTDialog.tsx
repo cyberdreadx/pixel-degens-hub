@@ -62,10 +62,12 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
       }
       
       const swapBlock = blocks[0];
-      const swapBlockBytes = Array.from(swapBlock.toBytes())
-        .map(b => String.fromCharCode(b))
-        .join('');
-      const swapBlockBase64 = btoa(swapBlockBytes);
+      const swapBlockBytes = swapBlock.toBytes();
+      const swapBlockBase64 = btoa(
+        Array.from(swapBlockBytes as Uint8Array)
+          .map(b => String.fromCharCode(b))
+          .join('')
+      );
 
       // Call the edge function to complete listing
       const { data, error } = await supabase.functions.invoke('fx-list-nft', {
