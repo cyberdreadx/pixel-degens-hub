@@ -8,6 +8,7 @@ import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 import { Upload, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import * as KeetaNet from "@keetanetwork/keetanet-client";
 
 const { Account } = KeetaNet.lib;
@@ -20,6 +21,7 @@ interface NFTAttribute {
 
 const MintNFT = () => {
   const { client, account, isConnected, network, balance } = useWallet();
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
   const [description, setDescription] = useState("");
@@ -200,20 +202,10 @@ const MintNFT = () => {
       await builder.publish();
 
       const tokenAddress = tokenAccount.publicKeyString.get();
-      toast.success(`Token minted successfully! Token: ${tokenAddress}`);
+      toast.success(`Token minted successfully!`);
       
-      // Reset form
-      setName("");
-      setTicker("");
-      setDescription("");
-      setImageUrl("");
-      setExternalUrl("");
-      setAttributes([]);
-      setSelectedFile(null);
-      setPreviewUrl("");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      // Redirect to the newly minted NFT detail page
+      navigate(`/nft/${tokenAddress}`);
     } catch (error: any) {
       console.error("Error minting token:", error);
       toast.error(`Failed to mint token: ${error.message || "Unknown error"}`);
