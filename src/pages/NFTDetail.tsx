@@ -329,16 +329,16 @@ const NFTDetail = () => {
   const isOwner = owner?.isYou || false;
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4">
-      <div className="container mx-auto">
-        <Link to="/collection" className="text-xs text-primary hover:underline mb-6 md:mb-8 inline-block">
+    <div className="min-h-screen pt-20 sm:pt-24 pb-12 sm:pb-16 px-2 sm:px-4">
+      <div className="container mx-auto max-w-7xl">
+        <Link to="/collection" className="text-[10px] sm:text-xs text-primary hover:underline mb-4 sm:mb-6 inline-block">
           ← BACK TO COLLECTION
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           {/* Image Section */}
-          <div className="space-y-4">
-            <div className="aspect-square bg-muted pixel-border-thick overflow-hidden">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="aspect-square bg-muted pixel-border-thick overflow-hidden w-full">
               {imageUrl ? (
                 <img 
                   src={imageUrl} 
@@ -347,7 +347,7 @@ const NFTDetail = () => {
                   style={{ imageRendering: "pixelated" }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-6xl">
+                <div className="w-full h-full flex items-center justify-center text-4xl sm:text-6xl">
                   {tokenData.isNFT ? '🎨' : '🪙'}
                 </div>
               )}
@@ -355,21 +355,21 @@ const NFTDetail = () => {
           </div>
 
           {/* Details Section */}
-          <div className="space-y-4 md:space-y-6">
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             <div>
               {activeListing && (
-                <div className="inline-block pixel-border bg-secondary/20 px-3 py-1 mb-3 md:mb-4">
-                  <span className="text-xs neon-glow-secondary">
-                    {sellerUsername || `${activeListing.seller_address.slice(0, 12)}...${activeListing.seller_address.slice(-8)}`}
+                <div className="inline-block pixel-border bg-secondary/20 px-2 sm:px-3 py-1 mb-2 sm:mb-3">
+                  <span className="text-[10px] sm:text-xs neon-glow-secondary break-all">
+                    {sellerUsername || `${activeListing.seller_address.slice(0, 8)}...${activeListing.seller_address.slice(-6)}`}
                   </span>
                 </div>
               )}
               {!tokenData.isNFT && (
-                <div className="inline-block pixel-border bg-accent/20 px-3 py-1 mb-3 md:mb-4 ml-2">
-                  <span className="text-xs text-accent">TOKEN</span>
+                <div className="inline-block pixel-border bg-accent/20 px-2 sm:px-3 py-1 mb-2 sm:mb-3 ml-2">
+                  <span className="text-[10px] sm:text-xs text-accent">TOKEN</span>
                 </div>
               )}
-              <h1 className="text-2xl md:text-3xl lg:text-5xl font-bold neon-glow mb-3 md:mb-4">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-5xl font-bold neon-glow mb-2 sm:mb-3 break-words leading-tight">
                 {metadata?.name || tokenData.name}
               </h1>
             </div>
@@ -377,28 +377,28 @@ const NFTDetail = () => {
             {/* Owner Info */}
             {!isLoadingOwnership && owner && (
               <Card className="pixel-border-thick bg-card">
-                <CardContent className="p-4 md:p-6 space-y-3">
+                <CardContent className="p-3 sm:p-4 md:p-6 space-y-2 sm:space-y-3">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    <h3 className="font-bold text-xs md:text-sm">CURRENT OWNER</h3>
+                    <User className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <h3 className="font-bold text-[10px] sm:text-xs md:text-sm">CURRENT OWNER</h3>
                   </div>
                   {owner.isAnchor ? (
-                    <div className="space-y-3">
-                      <div className="bg-accent/20 pixel-border p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <ShoppingCart className="w-4 h-4 text-accent" />
-                          <span className="text-xs font-bold text-accent">LISTED FOR SALE</span>
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="bg-accent/20 pixel-border p-2 sm:p-3">
+                        <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                          <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 text-accent" />
+                          <span className="text-[10px] sm:text-xs font-bold text-accent">LISTED FOR SALE</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground leading-relaxed">
                           This NFT is currently in escrow and available for purchase.
                         </p>
                       </div>
                       {activeListing && (
                         <>
-                          <div className="bg-muted pixel-border p-3">
-                            <div className="text-xs text-muted-foreground mb-2">Seller:</div>
-                            <div className="flex items-center gap-2">
-                              <code className="text-xs flex-1 truncate">
+                          <div className="bg-muted pixel-border p-2 sm:p-3">
+                            <div className="text-[10px] sm:text-xs text-muted-foreground mb-1 sm:mb-2">Seller:</div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <code className="text-[10px] sm:text-xs flex-1 truncate min-w-0">
                                 {activeListing.seller_address === publicKey ? (
                                   <span className="text-primary font-bold">YOU ({formatAddress(activeListing.seller_address)})</span>
                                 ) : (
@@ -408,38 +408,36 @@ const NFTDetail = () => {
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-8 w-8 flex-shrink-0"
+                                className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
                                 onClick={() => copyToClipboard(activeListing.seller_address)}
                               >
                                 <Copy className="w-3 h-3" />
                               </Button>
                             </div>
-                            <div className="mt-3 pt-3 border-t border-border">
-                              <div className="text-xs text-muted-foreground mb-1">Price:</div>
-                              <div className="text-lg font-bold text-primary">
+                            <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border">
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">Price:</div>
+                              <div className="text-base sm:text-lg font-bold text-primary">
                                 {activeListing.currency === 'KTA' ? activeListing.price_kta : activeListing.price_xrge} {activeListing.currency}
                               </div>
                             </div>
                           </div>
                           {publicKey && activeListing.seller_address === publicKey ? (
                             <Button 
-                              className="w-full pixel-border-thick gap-2"
+                              className="w-full pixel-border-thick gap-1 sm:gap-2 text-xs sm:text-sm h-10 sm:h-11"
                               variant="destructive"
-                              size="lg"
                               onClick={handleCancelListing}
                               disabled={isCancelling}
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-3 h-3 sm:w-4 sm:h-4" />
                               {isCancelling ? "CANCELLING..." : "CANCEL LISTING"}
                             </Button>
                           ) : publicKey && activeListing.seller_address !== publicKey ? (
                             <Button 
-                              className="w-full pixel-border-thick gap-2"
-                              size="lg"
+                              className="w-full pixel-border-thick gap-1 sm:gap-2 text-xs sm:text-sm h-10 sm:h-11"
                               onClick={() => setShowBuyDialog(true)}
                               disabled={isBuying}
                             >
-                              <Wallet className="w-4 h-4" />
+                              <Wallet className="w-3 h-3 sm:w-4 sm:h-4" />
                               BUY NOW
                             </Button>
                           ) : null}
@@ -448,8 +446,8 @@ const NFTDetail = () => {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 bg-muted p-3 pixel-border">
-                        <code className="text-xs flex-1 truncate">
+                      <div className="flex items-center gap-1 sm:gap-2 bg-muted p-2 sm:p-3 pixel-border">
+                        <code className="text-[10px] sm:text-xs flex-1 truncate min-w-0">
                           {owner.isYou ? (
                             <span className="text-primary font-bold">YOU ({formatAddress(owner.address)})</span>
                           ) : (
@@ -457,10 +455,10 @@ const NFTDetail = () => {
                           )}
                         </code>
                         {owner.address !== 'Unknown' && !owner.isYou && (
-                          <Button 
+                          <Button
                             variant="ghost" 
                             size="icon" 
-                            className="h-8 w-8 flex-shrink-0"
+                            className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
                             onClick={() => copyToClipboard(owner.address)}
                           >
                             <Copy className="w-3 h-3" />
@@ -469,11 +467,11 @@ const NFTDetail = () => {
                       </div>
                       {owner.isYou && !owner.isAnchor && (
                         <Button 
-                          className="w-full pixel-border gap-2 text-xs"
+                          className="w-full pixel-border gap-1 sm:gap-2 text-xs h-10 sm:h-11"
                           variant="default"
                           onClick={() => setShowListDialog(true)}
                         >
-                          <Tag className="w-3 h-3" />
+                          <Tag className="w-3 h-3 sm:w-4 sm:h-4" />
                           LIST FOR SALE
                         </Button>
                       )}
@@ -485,14 +483,14 @@ const NFTDetail = () => {
 
             {/* Contract Address */}
             <Card className="pixel-border-thick bg-card">
-              <CardContent className="p-4 md:p-6 space-y-3">
-                <h3 className="font-bold text-xs md:text-sm">CONTRACT ADDRESS</h3>
-                <div className="flex items-center gap-2 bg-muted p-3 pixel-border">
-                  <code className="text-xs flex-1 truncate">{id}</code>
+              <CardContent className="p-3 sm:p-4 md:p-6 space-y-2 sm:space-y-3">
+                <h3 className="font-bold text-[10px] sm:text-xs md:text-sm">CONTRACT ADDRESS</h3>
+                <div className="flex items-center gap-1 sm:gap-2 bg-muted p-2 sm:p-3 pixel-border overflow-hidden">
+                  <code className="text-[10px] sm:text-xs flex-1 truncate min-w-0">{id}</code>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-8 w-8 flex-shrink-0"
+                    className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
                     onClick={copyAddress}
                   >
                     <Copy className="w-3 h-3" />
@@ -501,10 +499,10 @@ const NFTDetail = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full pixel-border gap-2 text-xs"
+                  className="w-full pixel-border gap-1 sm:gap-2 text-[10px] sm:text-xs h-10 sm:h-11"
                   onClick={() => window.open(explorerUrl, '_blank')}
                 >
-                  <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
                   VIEW ON {network === 'test' ? 'TESTNET' : 'MAINNET'} EXPLORER
                 </Button>
               </CardContent>
@@ -513,13 +511,13 @@ const NFTDetail = () => {
             {/* Traits/Attributes */}
             {metadata?.attributes && metadata.attributes.length > 0 && (
               <Card className="pixel-border-thick bg-card">
-                <CardContent className="p-4 md:p-6 space-y-4">
-                  <h3 className="font-bold text-xs md:text-sm">TRAITS</h3>
+                <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
+                  <h3 className="font-bold text-[10px] sm:text-xs md:text-sm">TRAITS</h3>
                   <div className="grid grid-cols-2 gap-2 md:gap-3">
                     {metadata.attributes.map((attr, idx) => (
-                      <div key={idx} className="pixel-border bg-muted p-3">
-                        <div className="text-xs text-muted-foreground">{attr.trait_type.toUpperCase()}</div>
-                        <div className="font-bold text-xs mt-1">{attr.value}</div>
+                      <div key={idx} className="pixel-border bg-muted p-2 sm:p-3">
+                        <div className="text-[9px] sm:text-[10px] text-muted-foreground break-words">{attr.trait_type.toUpperCase()}</div>
+                        <div className="font-bold text-[10px] sm:text-xs mt-1 break-words">{attr.value}</div>
                       </div>
                     ))}
                   </div>
@@ -530,9 +528,9 @@ const NFTDetail = () => {
             {/* Description */}
             {metadata?.description && (
               <Card className="pixel-border-thick bg-card">
-                <CardContent className="p-4 md:p-6 space-y-4">
-                  <h3 className="font-bold text-xs md:text-sm">DESCRIPTION</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
+                  <h3 className="font-bold text-[10px] sm:text-xs md:text-sm">DESCRIPTION</h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground leading-relaxed break-words">
                     {metadata.description}
                   </p>
                 </CardContent>
@@ -541,9 +539,9 @@ const NFTDetail = () => {
 
             {/* Token Info */}
             <Card className="pixel-border-thick bg-card">
-              <CardContent className="p-4 md:p-6 space-y-3">
-                <h3 className="font-bold text-xs md:text-sm">TOKEN INFO</h3>
-                <div className="space-y-2 text-xs">
+              <CardContent className="p-3 sm:p-4 md:p-6 space-y-2 sm:space-y-3">
+                <h3 className="font-bold text-[10px] sm:text-xs md:text-sm">TOKEN INFO</h3>
+                <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Type:</span>
                     <span className="font-bold">{tokenData.isNFT ? 'NFT' : 'Token'}</span>
@@ -563,9 +561,9 @@ const NFTDetail = () => {
                     </div>
                   )}
                   {metadata?.identifier && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Identifier:</span>
-                      <span className="font-bold truncate max-w-[200px]">{metadata.identifier}</span>
+                    <div className="flex justify-between gap-1 sm:gap-2">
+                      <span className="text-muted-foreground flex-shrink-0">Identifier:</span>
+                      <span className="font-bold truncate text-right max-w-[60%]">{metadata.identifier}</span>
                     </div>
                   )}
                   {metadata?.nft_id && (
@@ -582,51 +580,51 @@ const NFTDetail = () => {
 
         {/* Price History Chart */}
         {id && (
-          <div className="mt-8">
+          <div className="mt-4 sm:mt-6 lg:mt-8">
             <NFTPriceChart tokenAddress={id} network={network} />
           </div>
         )}
 
         {/* Transaction History */}
         {!isLoadingOwnership && transactions.length > 0 && (
-          <div className="mt-8">
+          <div className="mt-4 sm:mt-6 lg:mt-8">
             <Card className="pixel-border-thick bg-card">
-              <CardContent className="p-4 md:p-6 space-y-4">
+              <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
                 <div className="flex items-center gap-2">
-                  <History className="w-4 h-4" />
-                  <h3 className="font-bold text-xs md:text-sm">TRANSACTION HISTORY</h3>
+                  <History className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <h3 className="font-bold text-[10px] sm:text-xs md:text-sm">TRANSACTION HISTORY</h3>
                 </div>
                 <div className="space-y-2">
                   {transactions.map((tx) => (
-                    <div key={tx.id} className="pixel-border bg-muted p-3">
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2">
+                    <div key={tx.id} className="pixel-border bg-muted p-2 sm:p-3">
+                      <div className="flex items-center justify-between gap-1 sm:gap-2 mb-1 sm:mb-2">
+                        <div className="flex items-center gap-1 sm:gap-2">
                           {tx.type === 'list' && <Tag className="w-3 h-3 text-accent" />}
                           {tx.type === 'sale' && <ShoppingCart className="w-3 h-3 text-primary" />}
                           {tx.type === 'transfer' && <ArrowRight className="w-3 h-3 text-secondary" />}
-                          <span className="text-xs font-bold">
+                          <span className="text-[10px] sm:text-xs font-bold">
                             {tx.type === 'list' && 'LISTED'}
                             {tx.type === 'sale' && 'SOLD'}
                             {tx.type === 'transfer' && 'TRANSFERRED'}
                           </span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-[9px] sm:text-[10px] text-muted-foreground whitespace-nowrap">
                           {formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true })}
                         </span>
                       </div>
-                      <div className="text-xs space-y-1">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <span>From:</span>
+                      <div className="text-[10px] sm:text-xs space-y-1">
+                        <div className="flex items-center gap-1 sm:gap-2 text-muted-foreground">
+                          <span className="flex-shrink-0">From:</span>
                           <Link 
                             to={`/profile/${tx.from}`}
-                            className="hover:text-primary transition-colors"
+                            className="hover:text-primary transition-colors truncate min-w-0"
                           >
-                            <code>{formatAddress(tx.from)}</code>
+                            <code className="break-all">{formatAddress(tx.from)}</code>
                           </Link>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-5 w-5"
+                            className="h-5 w-5 flex-shrink-0"
                             onClick={(e) => {
                               e.stopPropagation();
                               copyToClipboard(tx.from);
@@ -635,18 +633,18 @@ const NFTDetail = () => {
                             <Copy className="w-2 h-2" />
                           </Button>
                         </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <span>To:</span>
+                        <div className="flex items-center gap-1 sm:gap-2 text-muted-foreground">
+                          <span className="flex-shrink-0">To:</span>
                           <Link 
                             to={`/profile/${tx.to}`}
-                            className="hover:text-primary transition-colors"
+                            className="hover:text-primary transition-colors truncate min-w-0"
                           >
-                            <code>{formatAddress(tx.to)}</code>
+                            <code className="break-all">{formatAddress(tx.to)}</code>
                           </Link>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-5 w-5"
+                            className="h-5 w-5 flex-shrink-0"
                             onClick={(e) => {
                               e.stopPropagation();
                               copyToClipboard(tx.to);
