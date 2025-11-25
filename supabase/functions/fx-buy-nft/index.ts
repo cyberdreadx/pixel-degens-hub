@@ -121,8 +121,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: 'NFT purchased successfully',
-        transaction: result
+        message: 'NFT purchased successfully'
       }),
       { 
         status: 200, 
