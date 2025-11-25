@@ -118,14 +118,14 @@ export default function PublicProfile() {
       
       // Load token info for listed NFTs
       if (data && data.length > 0) {
-        await loadListedNFTs(data.map(l => l.token_address));
+        await loadListedNFTs(data);
       }
     } catch (error: any) {
       console.error('[PublicProfile] Error loading listings:', error);
     }
   };
 
-  const loadListedNFTs = async (tokenAddresses: string[]) => {
+  const loadListedNFTs = async (listingsData: NFTListing[]) => {
     try {
       const passphrase = 'temporary-read-only-seed-for-public-profile-viewing-on-keeta-network-degen8bit-application';
       const tempSeed = await KeetaNet.lib.Account.seedFromPassphrase(passphrase);
@@ -133,13 +133,13 @@ export default function PublicProfile() {
 
       const listedTokens: TokenWithMetadata[] = [];
 
-      for (const tokenAddress of tokenAddresses) {
+      for (const listing of listingsData) {
         try {
+          const tokenAddress = listing.token_address;
           const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
           
-          // Find the listing to get its network
-          const listing = listings.find(l => l.token_address === tokenAddress);
-          const tokenNetwork = listing?.network || 'test';
+          // Use the listing's network directly
+          const tokenNetwork = listing.network;
           
           // Fetch token info using the listing's network
           const response = await fetch(`https://rep3.${tokenNetwork === 'test' ? 'test.' : ''}main.network.api.keeta.com/api/account/${tokenAddress}/info`);
@@ -166,7 +166,7 @@ export default function PublicProfile() {
             metadata
           });
         } catch (error) {
-          console.error('[PublicProfile] Error loading listed NFT:', tokenAddress, error);
+          console.error('[PublicProfile] Error loading listed NFT:', listing.token_address, error);
         }
       }
 
