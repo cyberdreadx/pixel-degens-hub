@@ -41,6 +41,9 @@ export default function PublicProfile() {
   
   // Default to testnet for now - could be made configurable later
   const network = 'test';
+  
+  // XRGE token address for testnet
+  const XRGE_ADDRESS = 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s';
 
   console.log('🔍 [PublicProfile] COMPONENT RENDER');
   console.log('🔍 [PublicProfile] walletAddress from URL:', walletAddress);
@@ -124,6 +127,11 @@ export default function PublicProfile() {
         
         const supply = BigInt(tokenInfo.info.supply || '0');
         const isNFT = supply === 1n;
+        const tokenAddress = tokenInfo.entity.publicKeyString.toString();
+        const isXRGE = tokenAddress === XRGE_ADDRESS;
+        
+        // Only show NFTs and XRGE token
+        if (!isNFT && !isXRGE) continue;
         
         console.log('[PublicProfile] Token:', {
           address: tokenInfo.entity.publicKeyString.toString(),
