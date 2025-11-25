@@ -1,6 +1,6 @@
 // Token decimal places for Keeta network tokens
 export const TOKEN_DECIMALS = {
-  KTA: 9,   // Keeta base token uses 9 decimals on testnet/mainnet
+  KTA: 18,  // Keeta base token uses 18 decimals on testnet/mainnet
   XRGE: 18, // XRGE uses standard 18 decimals
 } as const;
 

@@ -45,7 +45,7 @@ export async function fetchAccountBalances(
 ): Promise<{ kta: number; xrge: number }> {
   try {
     const TOKEN_DECIMALS = {
-      KTA: 6,
+      KTA: 18,
       XRGE: 18,
     };
     
