@@ -78,7 +78,7 @@ const NFTDetail = () => {
         const ktaBalance = await client.balance(ktaTokenObj);
         const xrgeBalance = await client.balance(xrgeTokenObj);
 
-        const KTA_DECIMALS = 6;
+        const KTA_DECIMALS = 9;
         const XRGE_DECIMALS = 18;
 
         setUserKTABalance(Number(ktaBalance) / Math.pow(10, KTA_DECIMALS));
@@ -168,7 +168,7 @@ const NFTDetail = () => {
         ? tokenAddresses.KTA 
         : tokenAddresses.XRGE;
       
-      const TOKEN_DECIMALS = activeListing.currency === 'KTA' ? 6 : 18;
+      const TOKEN_DECIMALS = activeListing.currency === 'KTA' ? 9 : 18;
       const amountInSmallestUnit = BigInt(Math.floor(paymentAmount * Math.pow(10, TOKEN_DECIMALS)));
       
       // Get anchor address
