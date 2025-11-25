@@ -158,6 +158,22 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Get base token address for comparison
       const baseTokenAddr = client.baseToken.publicKeyString.toString();
       
+      // Get token info for all tokens with ACL permissions
+      let tokenInfoMap: Map<string, any> = new Map();
+      try {
+        const tokensWithInfo = await client.listACLsByPrincipalWithInfo({ account });
+        tokensWithInfo.forEach((entry: any) => {
+          if (entry.entity && entry.info) {
+            const tokenAddr = entry.entity.publicKeyString?.toString() || entry.entity.publicKeyString?.get();
+            if (tokenAddr) {
+              tokenInfoMap.set(tokenAddr, entry.info);
+            }
+          }
+        });
+      } catch (e) {
+        console.log('Could not fetch token info list:', e);
+      }
+      
       // Fetch token info for each balance to detect NFTs and metadata
       const tokenPromises = balances
         .filter((balanceData: any) => {
@@ -171,16 +187,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const tokenInfo = JSON.parse(JSON.stringify(balanceData, (k: string, v: any) => typeof v === 'bigint' ? v.toString() : v));
           const tokenAddress = tokenInfo.token;
           
-          // Try to get token info from blockchain
-          let info: any = null;
+          // Get token info from the map we fetched earlier
+          const info = tokenInfoMap.get(tokenAddress);
           let isNFT = false;
           let metadata: any = null;
           
-          try {
-            info = await client.getInfo(tokenAddress);
-          } catch (e) {
-            console.log('Could not fetch info for token:', tokenAddress);
-          }
+          console.log('[Token Info]', tokenAddress, info);
           
           // Identify known tokens (mainnet and testnet)
           const XRGE_MAINNET = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
@@ -205,26 +217,37 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             // For custom tokens, use info from blockchain
             symbol = info.name || 'UNKNOWN';
             name = info.description || info.name || 'Unknown Token';
-            // Custom tokens default to 0 decimals (NFT-style) unless metadata specifies otherwise
-          }
-          
-          // Check if this is an NFT (supply=1, decimals=0)
-          // Note: We'll need to check token supply from info if available
-          if (info && info.metadata) {
-            try {
-              const metadataJson = atob(info.metadata);
-              metadata = JSON.parse(metadataJson);
-              
-              // Check if this is a Degen 8bit NFT
-              if (metadata.platform === "degen8bit") {
-                isNFT = true;
-                symbol = 'NFT';
-                name = metadata.name || name;
-                decimals = 0;
+            
+            // Check metadata for decimal places
+            if (info.metadata) {
+              try {
+                const metadataJson = atob(info.metadata);
+                metadata = JSON.parse(metadataJson);
+                
+                // Check if metadata specifies decimal places
+                if (metadata.decimalPlaces !== undefined) {
+                  decimals = parseInt(metadata.decimalPlaces);
+                } else if (metadata.decimals !== undefined) {
+                  decimals = parseInt(metadata.decimals);
+                }
+                
+                // Check if this is a Degen 8bit NFT
+                if (metadata.platform === "degen8bit") {
+                  isNFT = true;
+                  symbol = info.name || 'NFT';
+                  name = metadata.name || name;
+                  decimals = 0;
+                }
+              } catch (e) {
+                // Not valid metadata, ignore
               }
-            } catch (e) {
-              // Not valid metadata, ignore
             }
+            
+            console.log('[Token Parsed]', { symbol, name, decimals, supply: info.supply });
+          } else {
+            // No info available - token exists but we don't have details
+            symbol = tokenAddress.substring(0, 12) + '...';
+            name = 'Unknown Token';
           }
           
           // Convert balance (NFTs have decimals=0, regular tokens use proper decimals)
