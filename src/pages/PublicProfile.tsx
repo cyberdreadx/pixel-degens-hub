@@ -7,6 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, User, ExternalLink, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useWallet } from "@/contexts/WalletContext";
+import * as KeetaNet from "@keetanetwork/keetanet-client";
+import NFTCard from "@/components/NFTCard";
+import { ipfsToHttp } from "@/utils/nftUtils";
 
 interface Profile {
   id: string;
@@ -18,18 +21,30 @@ interface Profile {
   created_at: string;
 }
 
+interface TokenWithMetadata {
+  address: string;
+  name: string;
+  symbol: string;
+  balance: string;
+  isNFT: boolean;
+  metadata: any;
+}
+
 export default function PublicProfile() {
   const { walletAddress } = useParams<{ walletAddress: string }>();
-  const { publicKey } = useWallet();
+  const { publicKey, network } = useWallet();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [tokens, setTokens] = useState<TokenWithMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const isOwnProfile = publicKey === walletAddress;
 
   useEffect(() => {
     if (walletAddress) {
       loadProfile();
+      loadTokens();
     }
-  }, [walletAddress]);
+  }, [walletAddress, network]);
 
   const loadProfile = async () => {
     if (!walletAddress) return;
@@ -52,6 +67,56 @@ export default function PublicProfile() {
       toast.error("Failed to load profile");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadTokens = async () => {
+    if (!walletAddress) return;
+    
+    setIsLoadingTokens(true);
+    try {
+      const accountObj = KeetaNet.lib.Account.fromPublicKeyString(walletAddress);
+      const client = KeetaNet.UserClient.fromNetwork(network, accountObj.assertAccount());
+      
+      // Fetch tokens with info
+      const tokensWithInfo = await client.listACLsByPrincipalWithInfo({ account: accountObj });
+      
+      const processedTokens: TokenWithMetadata[] = [];
+      
+      for (const tokenInfo of tokensWithInfo) {
+        if (!tokenInfo.entity.isToken()) continue;
+        
+        const balance = tokenInfo.balances?.[0]?.balance || 0n;
+        if (balance <= 0n) continue;
+        
+        const supply = BigInt(tokenInfo.info.supply || '0');
+        const isNFT = supply === 1n;
+        
+        let metadata = null;
+        if (tokenInfo.info.metadata) {
+          try {
+            const metadataBuffer = Buffer.from(tokenInfo.info.metadata, 'base64');
+            metadata = JSON.parse(metadataBuffer.toString('utf8'));
+          } catch (e) {
+            console.error('Failed to parse metadata:', e);
+          }
+        }
+        
+        processedTokens.push({
+          address: tokenInfo.entity.publicKeyString.toString(),
+          name: tokenInfo.info.name || 'Unknown',
+          symbol: '', // Symbol is not directly available from AccountInfo
+          balance: balance.toString(),
+          isNFT,
+          metadata
+        });
+      }
+      
+      setTokens(processedTokens);
+    } catch (error: any) {
+      console.error("Error loading tokens:", error);
+    } finally {
+      setIsLoadingTokens(false);
     }
   };
 
@@ -151,12 +216,33 @@ export default function PublicProfile() {
             </div>
           )}
 
-          {/* NFTs Section - Placeholder */}
+          {/* NFTs Section */}
           <div className="pt-6 border-t border-border">
-            <h3 className="text-lg font-bold mb-4">NFTs</h3>
-            <div className="text-center py-8 text-muted-foreground">
-              <p>NFT collection coming soon</p>
-            </div>
+            <h3 className="text-lg font-bold mb-4">NFTs ({tokens.filter(t => t.isNFT && t.metadata).length})</h3>
+            {isLoadingTokens ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+              </div>
+            ) : tokens.filter(t => t.isNFT && t.metadata).length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No NFTs yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tokens.filter(t => t.isNFT && t.metadata).map((nft) => (
+                  <NFTCard 
+                    key={nft.address}
+                    id={nft.address}
+                    title={nft.metadata.name || nft.name}
+                    creator={nft.metadata.version || "degen8bit v1.0"}
+                    price={nft.balance}
+                    image={ipfsToHttp(nft.metadata.image)}
+                    likes={0}
+                    comments={0}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Activity Section - Placeholder */}
