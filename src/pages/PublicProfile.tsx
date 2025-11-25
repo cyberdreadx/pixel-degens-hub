@@ -75,16 +75,23 @@ export default function PublicProfile() {
     
     setIsLoadingTokens(true);
     try {
+      console.log('[PublicProfile] Loading tokens for:', walletAddress);
+      console.log('[PublicProfile] Network:', network);
+      
       // Create a temporary account for read-only access
       const tempSeed = 'temporary-read-only-seed-for-public-profile-viewing';
       const tempAccount = KeetaNet.lib.Account.fromSeed(tempSeed, 0, KeetaNet.lib.Account.AccountKeyAlgorithm.ECDSA_SECP256K1);
-      const client = KeetaNet.UserClient.fromNetwork(network, tempAccount);
+      const client = KeetaNet.UserClient.fromNetwork(network || 'test', tempAccount);
       
       // Get the actual account we want to view
       const accountObj = KeetaNet.lib.Account.fromPublicKeyString(walletAddress);
       
+      console.log('[PublicProfile] Fetching tokens...');
+      
       // Fetch tokens with info for the target account
       const tokensWithInfo = await client.listACLsByPrincipalWithInfo({ account: accountObj });
+      
+      console.log('[PublicProfile] Found tokens:', tokensWithInfo.length);
       
       const processedTokens: TokenWithMetadata[] = [];
       
@@ -97,13 +104,22 @@ export default function PublicProfile() {
         const supply = BigInt(tokenInfo.info.supply || '0');
         const isNFT = supply === 1n;
         
+        console.log('[PublicProfile] Token:', {
+          address: tokenInfo.entity.publicKeyString.toString(),
+          name: tokenInfo.info.name,
+          balance: balance.toString(),
+          supply: supply.toString(),
+          isNFT
+        });
+        
         let metadata = null;
         if (tokenInfo.info.metadata) {
           try {
             const metadataBuffer = Buffer.from(tokenInfo.info.metadata, 'base64');
             metadata = JSON.parse(metadataBuffer.toString('utf8'));
+            console.log('[PublicProfile] Metadata parsed:', metadata);
           } catch (e) {
-            console.error('Failed to parse metadata:', e);
+            console.error('[PublicProfile] Failed to parse metadata:', e);
           }
         }
         
@@ -117,9 +133,12 @@ export default function PublicProfile() {
         });
       }
       
+      console.log('[PublicProfile] Processed tokens:', processedTokens.length);
+      console.log('[PublicProfile] NFTs:', processedTokens.filter(t => t.isNFT && t.metadata).length);
+      
       setTokens(processedTokens);
     } catch (error: any) {
-      console.error("Error loading tokens:", error);
+      console.error("[PublicProfile] Error loading tokens:", error);
     } finally {
       setIsLoadingTokens(false);
     }
