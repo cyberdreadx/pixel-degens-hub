@@ -72,14 +72,15 @@ serve(async (req) => {
 
     console.log('[fx-buy-nft] Anchor address:', anchorAddress);
 
-    // Verify anchor holds the NFT
+    // Verify anchor holds the NFT BEFORE updating listing status
     const tokenAccountObj = KeetaNet.lib.Account.fromPublicKeyString(listing.token_address);
     const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(anchorAddress);
     const anchorBalance = await anchorClient.balance(tokenAccountObj, { account: anchorAccountObj });
     
     if (anchorBalance <= 0n) {
+      console.error('[fx-buy-nft] NFT not in escrow, balance:', anchorBalance.toString());
       return new Response(
-        JSON.stringify({ error: 'NFT not in escrow' }),
+        JSON.stringify({ error: 'NFT not in escrow - listing may be invalid' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
