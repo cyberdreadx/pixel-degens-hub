@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ExternalLink, Copy, User, History, ArrowRight, ShoppingCart, Tag } from "lucide-react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useWallet } from "@/contexts/WalletContext";
 import { ipfsToHttp } from "@/utils/nftUtils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,12 +14,20 @@ import ListNFTDialog from "@/components/ListNFTDialog";
 
 const NFTDetail = () => {
   const { id } = useParams(); // This is the token address
-  const { network, publicKey } = useWallet();
+  const location = useLocation();
+  const { network, publicKey, fetchTokens } = useWallet();
   const [tokenData, setTokenData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const { owner, transactions, isLoading: isLoadingOwnership } = useNFTOwnership(id || '');
   const [showListDialog, setShowListDialog] = useState(false);
+
+  // Refresh wallet data if this is a fresh mint
+  useEffect(() => {
+    if (location.state?.freshMint) {
+      fetchTokens();
+    }
+  }, [location.state, fetchTokens]);
 
   useEffect(() => {
     if (!id) return;
