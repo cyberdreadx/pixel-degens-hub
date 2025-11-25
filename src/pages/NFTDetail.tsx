@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ExternalLink, Copy, User, History, ArrowRight, ShoppingCart, Tag } from "lucide-react";
+import { ExternalLink, Copy, User, History, ArrowRight, ShoppingCart, Tag, Wallet } from "lucide-react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { useWallet } from "@/contexts/WalletContext";
+import * as KeetaNet from "@keetanetwork/keetanet-client";
 import { ipfsToHttp } from "@/utils/nftUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -16,13 +17,14 @@ import ListNFTDialog from "@/components/ListNFTDialog";
 const NFTDetail = () => {
   const { id } = useParams(); // This is the token address
   const location = useLocation();
-  const { network, publicKey, fetchTokens } = useWallet();
+  const { network, publicKey, fetchTokens, client } = useWallet();
   const [tokenData, setTokenData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const { owner, transactions, isLoading: isLoadingOwnership } = useNFTOwnership(id || '');
   const [showListDialog, setShowListDialog] = useState(false);
   const [activeListing, setActiveListing] = useState<any>(null);
+  const [isBuying, setIsBuying] = useState(false);
 
   // Refresh wallet data if this is a fresh mint
   useEffect(() => {
@@ -84,7 +86,102 @@ const NFTDetail = () => {
     }
   };
 
-  const explorerUrl = network === 'test' 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard!");
+  };
+
+  const formatAddress = (addr: string) => {
+    if (!addr || addr === 'Unknown') return addr;
+    return `${addr.substring(0, 10)}...${addr.substring(addr.length - 8)}`;
+  };
+
+  const handleBuyNFT = async () => {
+    if (!publicKey || !client) {
+      toast.error("Please connect your wallet to buy this NFT");
+      return;
+    }
+
+    if (!activeListing) {
+      toast.error("No active listing found");
+      return;
+    }
+
+    setIsBuying(true);
+
+    try {
+      // Step 1: User sends payment to anchor
+      toast.info("Sending payment to escrow...");
+      
+      const paymentAmount = activeListing.currency === 'KTA' 
+        ? activeListing.price_kta 
+        : activeListing.price_xrge;
+      
+      const tokenAddresses = network === 'test' ? {
+        KTA: 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52',
+        XRGE: 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s',
+      } : {
+        KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
+        XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
+      };
+      
+      const paymentTokenAddress = activeListing.currency === 'KTA' 
+        ? tokenAddresses.KTA 
+        : tokenAddresses.XRGE;
+      
+      const TOKEN_DECIMALS = activeListing.currency === 'KTA' ? 6 : 18;
+      const amountInSmallestUnit = BigInt(Math.floor(paymentAmount * Math.pow(10, TOKEN_DECIMALS)));
+      
+      // Get anchor address
+      const { data: anchorData } = await supabase.functions.invoke('fx-anchor-info', {
+        body: { network }
+      });
+      
+      if (!anchorData?.address) {
+        throw new Error('Failed to get anchor address');
+      }
+      
+      const anchorAddress = anchorData.address;
+      
+      // Send payment to anchor
+      const builder = client.initBuilder();
+      const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(anchorAddress);
+      const paymentTokenObj = KeetaNet.lib.Account.fromPublicKeyString(paymentTokenAddress);
+      
+      builder.send(anchorAccountObj, amountInSmallestUnit, paymentTokenObj);
+      
+      await builder.computeBlocks();
+      await builder.publish();
+      
+      toast.info("Processing purchase...");
+      
+      // Wait for blockchain
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Step 2: Call backend to complete swap
+      const { data, error } = await supabase.functions.invoke('fx-buy-nft', {
+        body: {
+          listingId: activeListing.id,
+          buyerAddress: publicKey,
+          network,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      toast.success("NFT purchased successfully!");
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error buying NFT:', error);
+      toast.error(`Failed to buy NFT: ${error.message}`);
+    } finally {
+      setIsBuying(false);
+    }
+  };
+
+  const explorerUrl = network === 'test'
     ? `https://explorer.test.keeta.com/token/${id}`
     : `https://explorer.keeta.com/token/${id}`;
 
@@ -130,16 +227,6 @@ const NFTDetail = () => {
   const metadata = tokenData.metadata;
   const imageUrl = metadata?.image ? ipfsToHttp(metadata.image) : '';
   const isOwner = owner?.isYou || false;
-
-  const formatAddress = (address: string) => {
-    if (address === 'Unknown') return 'Unknown';
-    return `${address.slice(0, 8)}...${address.slice(-6)}`;
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Address copied!");
-  };
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4">
@@ -205,32 +292,45 @@ const NFTDetail = () => {
                         </p>
                       </div>
                       {activeListing && (
-                        <div className="bg-muted pixel-border p-3">
-                          <div className="text-xs text-muted-foreground mb-2">Seller:</div>
-                          <div className="flex items-center gap-2">
-                            <code className="text-xs flex-1 truncate">
-                              {activeListing.seller_address === publicKey ? (
-                                <span className="text-primary font-bold">YOU ({formatAddress(activeListing.seller_address)})</span>
-                              ) : (
-                                formatAddress(activeListing.seller_address)
-                              )}
-                            </code>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 flex-shrink-0"
-                              onClick={() => copyToClipboard(activeListing.seller_address)}
-                            >
-                              <Copy className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          <div className="mt-3 pt-3 border-t border-border">
-                            <div className="text-xs text-muted-foreground mb-1">Price:</div>
-                            <div className="text-lg font-bold text-primary">
-                              {activeListing.currency === 'KTA' ? activeListing.price_kta : activeListing.price_xrge} {activeListing.currency}
+                        <>
+                          <div className="bg-muted pixel-border p-3">
+                            <div className="text-xs text-muted-foreground mb-2">Seller:</div>
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs flex-1 truncate">
+                                {activeListing.seller_address === publicKey ? (
+                                  <span className="text-primary font-bold">YOU ({formatAddress(activeListing.seller_address)})</span>
+                                ) : (
+                                  formatAddress(activeListing.seller_address)
+                                )}
+                              </code>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 flex-shrink-0"
+                                onClick={() => copyToClipboard(activeListing.seller_address)}
+                              >
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-border">
+                              <div className="text-xs text-muted-foreground mb-1">Price:</div>
+                              <div className="text-lg font-bold text-primary">
+                                {activeListing.currency === 'KTA' ? activeListing.price_kta : activeListing.price_xrge} {activeListing.currency}
+                              </div>
                             </div>
                           </div>
-                        </div>
+                          {publicKey && activeListing.seller_address !== publicKey && (
+                            <Button 
+                              className="w-full pixel-border-thick gap-2"
+                              size="lg"
+                              onClick={handleBuyNFT}
+                              disabled={isBuying}
+                            >
+                              <Wallet className="w-4 h-4" />
+                              {isBuying ? "PROCESSING..." : "BUY NOW"}
+                            </Button>
+                          )}
+                        </>
                       )}
                     </div>
                   ) : (
