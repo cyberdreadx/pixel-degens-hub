@@ -11,6 +11,8 @@ import { Loader2, User, Wallet, Upload, Eye } from "lucide-react";
 import { toast } from "sonner";
 import AvatarCropDialog from "@/components/AvatarCropDialog";
 import { Link } from "react-router-dom";
+import NFTCard from "@/components/NFTCard";
+import { ipfsToHttp } from "@/utils/nftUtils";
 
 interface Profile {
   id: string;
@@ -23,7 +25,7 @@ interface Profile {
 }
 
 export default function Profile() {
-  const { isConnected, publicKey } = useWallet();
+  const { isConnected, publicKey, tokens } = useWallet();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,6 +37,9 @@ export default function Profile() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
+
+  // Filter for NFTs
+  const nfts = tokens.filter(token => token.isNFT && token.metadata);
 
   useEffect(() => {
     if (isConnected && publicKey) {
@@ -411,6 +416,39 @@ export default function Profile() {
               )}
             </div>
           )}
+
+          {/* NFTs Section */}
+          <div className="pt-6 border-t border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Your NFTs ({nfts.length})</h3>
+              <Link to="/collection">
+                <Button variant="outline" size="sm">View All</Button>
+              </Link>
+            </div>
+            {nfts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">No NFTs yet</p>
+                <Link to="/mint">
+                  <Button className="mt-4" size="sm">Mint Your First NFT</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {nfts.slice(0, 6).map((nft) => (
+                  <NFTCard 
+                    key={nft.address}
+                    id={nft.address}
+                    title={nft.metadata.name || nft.name}
+                    creator={nft.metadata.version || "degen8bit v1.0"}
+                    price={nft.balance}
+                    image={ipfsToHttp(nft.metadata.image)}
+                    likes={0}
+                    comments={0}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </Card>
 
