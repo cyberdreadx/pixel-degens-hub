@@ -62,9 +62,8 @@ serve(async (req) => {
 
     // Verify anchor received the NFT (it should have been transferred by seller already)
     const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(anchorAddress);
-    const tokenAccountObj = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
     
-    const anchorBalance = await anchorClient.balance(tokenAccountObj, { account: anchorAccountObj });
+    const anchorBalance = await anchorClient.balance(tokenAddress, { account: anchorAccountObj });
     
     console.log('[fx-list-nft] Checking anchor balance for token:', tokenAddress);
     console.log('[fx-list-nft] Anchor balance:', anchorBalance.toString());
@@ -72,7 +71,7 @@ serve(async (req) => {
     if (anchorBalance <= 0n) {
       // Check if seller still owns it
       const sellerAccountObj = KeetaNet.lib.Account.fromPublicKeyString(sellerAddress);
-      const sellerBalance = await anchorClient.balance(tokenAccountObj, { account: sellerAccountObj });
+      const sellerBalance = await anchorClient.balance(tokenAddress, { account: sellerAccountObj });
       
       console.log('[fx-list-nft] Seller balance:', sellerBalance.toString());
       
