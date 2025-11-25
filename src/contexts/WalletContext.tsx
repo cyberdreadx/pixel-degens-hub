@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import * as bip39 from "bip39";
 import { Buffer } from "buffer";
 import { getTokenAddresses } from "@/utils/keetaApi";
-import { TOKEN_DECIMALS, DISPLAY_DECIMALS } from "@/utils/tokenDecimals";
+import { getTokenDecimals, getNetworkDecimals, DISPLAY_DECIMALS } from "@/utils/tokenDecimals";
 
 const { Account } = KeetaNet.lib;
 const { AccountKeyAlgorithm } = Account;
@@ -130,8 +130,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         );
       }
       
-      // KTA uses 18 decimals on-chain, display with 3 decimal places
-      const decimals = TOKEN_DECIMALS.KTA;
+      // KTA uses network-specific decimals: testnet=9, mainnet=18
+      const decimals = getTokenDecimals('KTA', network);
       const divisor = Math.pow(10, decimals);
       const balanceNum = Number(ktaBalance) / divisor;
       const balanceStr = balanceNum.toFixed(3);
@@ -208,11 +208,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (tokenAddress === XRGE_MAINNET || tokenAddress === XRGE_TESTNET) {
             symbol = 'XRGE';
             name = 'XRGE Token';
-            decimals = TOKEN_DECIMALS.XRGE; // 18
+            decimals = getTokenDecimals('XRGE', network);
           } else if (tokenAddress === KTA_MAINNET || tokenAddress === KTA_TESTNET) {
             symbol = 'KTA';
             name = 'Keeta Token';
-            decimals = TOKEN_DECIMALS.KTA; // 18
+            decimals = getTokenDecimals('KTA', network);
           } else if (info) {
             // For custom tokens, use info from blockchain
             symbol = info.name || 'UNKNOWN';
@@ -390,10 +390,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Create recipient account from public key string
       const recipientAccount = Account.fromPublicKeyString(to);
       
-      // Determine decimals based on token (KTA uses 18, others may use 18)
+      // Determine decimals based on token and network
       const baseTokenAddr = client.baseToken.publicKeyString.toString();
       const isKTA = !tokenAddress || tokenAddress === baseTokenAddr;
-      const decimals = isKTA ? TOKEN_DECIMALS.KTA : 18; // Default to 18 for other tokens
+      const decimals = isKTA ? getTokenDecimals('KTA', network) : 18; // Default to 18 for other tokens
       
       console.log('[sendTokens] Input amount:', amount);
       console.log('[sendTokens] Is KTA:', isKTA);

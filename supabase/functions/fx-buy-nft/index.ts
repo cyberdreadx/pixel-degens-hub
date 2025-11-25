@@ -85,7 +85,10 @@ serve(async (req) => {
           : 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6');
     
     const expectedAmount = listing.currency === 'KTA' ? listing.price_kta : listing.price_xrge;
-    const TOKEN_DECIMALS_VALUE = listing.currency === 'KTA' ? 18 : 18;
+    // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+    const TOKEN_DECIMALS_VALUE = listing.currency === 'KTA' 
+      ? (network === 'test' ? 9 : 18)
+      : 18;
     const expectedAmountInSmallestUnit = BigInt(Math.floor(expectedAmount * Math.pow(10, TOKEN_DECIMALS_VALUE)));
     
     // Get buyer's payment token account to check recent transactions
