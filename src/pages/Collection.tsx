@@ -129,7 +129,7 @@ const Collection = () => {
                   key={nft.tokenAddress}
                   id={nft.tokenAddress}
                   title={nft.metadata?.name || nft.tokenInfo?.name || 'Unknown NFT'}
-                  creator={nft.metadata?.platform || "degen8bit"}
+                  creator={nft.sellerUsername || `${nft.sellerAddress.slice(0, 12)}...${nft.sellerAddress.slice(-8)}`}
                   price={`${nft.price} ${nft.currency}`}
                   image={nft.metadata?.image ? ipfsToHttp(nft.metadata.image) : ''}
                   likes={0}

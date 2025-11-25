@@ -6,6 +6,7 @@ export interface MarketplaceNFT {
   id: string;
   tokenAddress: string;
   sellerAddress: string;
+  sellerUsername?: string | null;
   price: number;
   currency: string;
   status: string;
@@ -54,6 +55,17 @@ export function useMarketplaceNFTs(network: "main" | "test" = "test") {
           console.log('[useMarketplaceNFTs] All listing networks:', allListings.map(l => l.network));
         }
 
+        // Fetch seller profiles for all listings
+        const sellerAddresses = [...new Set((listings || []).map(l => l.seller_address))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('wallet_address, username')
+          .in('wallet_address', sellerAddresses);
+        
+        const profileMap = new Map(
+          (profiles || []).map(p => [p.wallet_address, p.username])
+        );
+
         // Fetch metadata for each NFT
         const nftsWithMetadata: MarketplaceNFT[] = [];
 
@@ -65,6 +77,7 @@ export function useMarketplaceNFTs(network: "main" | "test" = "test") {
               id: listing.id,
               tokenAddress: listing.token_address,
               sellerAddress: listing.seller_address,
+              sellerUsername: profileMap.get(listing.seller_address),
               price: listing.currency === 'KTA' ? listing.price_kta : listing.price_xrge,
               currency: listing.currency,
               status: listing.status,
@@ -80,6 +93,7 @@ export function useMarketplaceNFTs(network: "main" | "test" = "test") {
               id: listing.id,
               tokenAddress: listing.token_address,
               sellerAddress: listing.seller_address,
+              sellerUsername: profileMap.get(listing.seller_address),
               price: listing.currency === 'KTA' ? listing.price_kta : listing.price_xrge,
               currency: listing.currency,
               status: listing.status,
