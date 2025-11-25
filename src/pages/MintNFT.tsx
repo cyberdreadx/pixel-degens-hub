@@ -204,8 +204,11 @@ const MintNFT = () => {
       const tokenAddress = tokenAccount.publicKeyString.get();
       toast.success(`Token minted successfully!`);
       
+      // Wait a moment for blockchain to process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       // Redirect to the newly minted NFT detail page
-      navigate(`/nft/${tokenAddress}`);
+      navigate(`/nft/${tokenAddress}`, { state: { freshMint: true } });
     } catch (error: any) {
       console.error("Error minting token:", error);
       toast.error(`Failed to mint token: ${error.message || "Unknown error"}`);
