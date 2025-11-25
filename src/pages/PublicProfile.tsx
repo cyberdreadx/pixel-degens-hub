@@ -53,11 +53,11 @@ export default function PublicProfile() {
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const isOwnProfile = publicKey === walletAddress;
   
-  // Default to testnet for now - could be made configurable later
-  const network = 'test';
+  // Public profiles display mainnet data only
+  const network = 'main';
   
-  // XRGE token address for testnet
-  const XRGE_ADDRESS = 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s';
+  // XRGE token address for mainnet
+  const XRGE_ADDRESS = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
 
   console.log('🔍 [PublicProfile] COMPONENT RENDER');
   console.log('🔍 [PublicProfile] walletAddress from URL:', walletAddress);
@@ -110,7 +110,8 @@ export default function PublicProfile() {
         .from('nft_listings')
         .select('*')
         .eq('seller_address', walletAddress)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .eq('network', 'main');
 
       if (error) throw error;
       
