@@ -96,8 +96,8 @@ export default function PublicProfile() {
       console.log('[PublicProfile] Network:', network);
       
       // Create a temporary account for read-only access
-      // Use seedFromPassphrase to convert a passphrase to a proper seed
-      const passphrase = 'temporary-read-only-seed-for-public-profile-viewing';
+      // Use seedFromPassphrase to convert a passphrase to a proper seed (needs to be long enough)
+      const passphrase = 'temporary-read-only-seed-for-public-profile-viewing-on-keeta-network-degen8bit-application';
       const tempSeed = await KeetaNet.lib.Account.seedFromPassphrase(passphrase);
       const tempAccount = KeetaNet.lib.Account.fromSeed(tempSeed, 0, KeetaNet.lib.Account.AccountKeyAlgorithm.ECDSA_SECP256K1);
       const client = KeetaNet.UserClient.fromNetwork(network, tempAccount);
