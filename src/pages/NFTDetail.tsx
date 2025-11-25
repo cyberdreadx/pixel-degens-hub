@@ -31,6 +31,7 @@ const NFTDetail = () => {
   const [showBuyDialog, setShowBuyDialog] = useState(false);
   const [userKTABalance, setUserKTABalance] = useState(0);
   const [userXRGEBalance, setUserXRGEBalance] = useState(0);
+  const [sellerUsername, setSellerUsername] = useState<string | null>(null);
 
   // Refresh wallet data if this is a fresh mint
   useEffect(() => {
@@ -53,6 +54,17 @@ const NFTDetail = () => {
         .maybeSingle();
 
       setActiveListing(data);
+
+      // Fetch seller profile if listing exists
+      if (data?.seller_address) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('wallet_address', data.seller_address)
+          .maybeSingle();
+        
+        setSellerUsername(profile?.username || null);
+      }
     };
 
     fetchListing();
@@ -345,9 +357,11 @@ const NFTDetail = () => {
           {/* Details Section */}
           <div className="space-y-4 md:space-y-6">
             <div>
-              {metadata?.platform && (
+              {activeListing && (
                 <div className="inline-block pixel-border bg-secondary/20 px-3 py-1 mb-3 md:mb-4">
-                  <span className="text-xs neon-glow-secondary">{metadata.platform.toUpperCase()}</span>
+                  <span className="text-xs neon-glow-secondary">
+                    {sellerUsername || `${activeListing.seller_address.slice(0, 12)}...${activeListing.seller_address.slice(-8)}`}
+                  </span>
                 </div>
               )}
               {!tokenData.isNFT && (
