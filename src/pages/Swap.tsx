@@ -137,6 +137,9 @@ const Swap = () => {
 
   // Fetch anchor info and market data on mount and when network changes
   useEffect(() => {
+    // Clear transactions immediately when network changes to prevent showing wrong network data
+    setTransactions([]);
+    
     fetchAnchorInfo();
     fetchMarketData();
     fetchTransactions();
