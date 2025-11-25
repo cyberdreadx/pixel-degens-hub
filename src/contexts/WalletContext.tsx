@@ -189,9 +189,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const KTA_TESTNET = 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52';
           
           let symbol = 'UNKNOWN';
-          let name = info?.name || 'Unknown Token';
-          let decimals = 18; // Default
+          let name = 'Unknown Token';
+          let decimals = 0; // Default to 0 for custom tokens (assume NFT unless specified)
           
+          // Check for known tokens first
           if (tokenAddress === XRGE_MAINNET || tokenAddress === XRGE_TESTNET) {
             symbol = 'XRGE';
             name = 'XRGE Token';
@@ -199,7 +200,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           } else if (tokenAddress === KTA_MAINNET || tokenAddress === KTA_TESTNET) {
             symbol = 'KTA';
             name = 'Keeta Token';
-            decimals = TOKEN_DECIMALS.KTA; // 7
+            decimals = TOKEN_DECIMALS.KTA; // 6
+          } else if (info) {
+            // For custom tokens, use info from blockchain
+            symbol = info.name || 'UNKNOWN';
+            name = info.description || info.name || 'Unknown Token';
+            // Custom tokens default to 0 decimals (NFT-style) unless metadata specifies otherwise
           }
           
           // Check if this is an NFT (supply=1, decimals=0)
