@@ -6,13 +6,42 @@ import { useWallet } from "@/contexts/WalletContext";
 import { ipfsToHttp } from "@/utils/nftUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { fetchTokenInfo } from "@/utils/keetaApi";
+import { useEffect, useState } from "react";
 
 const NFTDetail = () => {
   const { id } = useParams(); // This is the token address
-  const { tokens, isConnected, network, publicKey } = useWallet();
+  const { network, publicKey } = useWallet();
+  const [tokenData, setTokenData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  // Find the NFT by token address
-  const nft = tokens.find(token => token.address === id && token.isNFT);
+  useEffect(() => {
+    if (!id) return;
+    
+    const loadTokenData = async () => {
+      setLoading(true);
+      setError(false);
+      
+      try {
+        const data = await fetchTokenInfo(id, network);
+        console.log('[NFTDetail] Loaded token data:', data);
+        
+        if (!data.isNFT) {
+          console.warn('[NFTDetail] Token is not an NFT:', data);
+        }
+        
+        setTokenData(data);
+      } catch (err) {
+        console.error('[NFTDetail] Error loading token:', err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadTokenData();
+  }, [id, network]);
 
   const copyAddress = () => {
     if (id) {
@@ -25,21 +54,24 @@ const NFTDetail = () => {
     ? `https://explorer.test.keeta.com/token/${id}`
     : `https://explorer.keeta.com/token/${id}`;
 
-  if (!isConnected) {
+  if (loading) {
     return (
-      <div className="min-h-screen pt-24 pb-16 px-4 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="text-6xl">🔒</div>
-          <h2 className="text-2xl font-bold">CONNECT YOUR WALLET</h2>
-          <p className="text-sm text-muted-foreground">
-            Connect your wallet to view NFT details
-          </p>
+      <div className="min-h-screen pt-24 pb-16 px-4">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            <Skeleton className="aspect-square w-full" />
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-3/4" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!nft) {
+  if (error || !tokenData) {
     return (
       <div className="min-h-screen pt-24 pb-16 px-4">
         <div className="container mx-auto">
@@ -48,9 +80,9 @@ const NFTDetail = () => {
           </Link>
           <div className="text-center py-20 space-y-4">
             <div className="text-6xl">❌</div>
-            <h2 className="text-2xl font-bold">NFT NOT FOUND</h2>
+            <h2 className="text-2xl font-bold">TOKEN NOT FOUND</h2>
             <p className="text-sm text-muted-foreground">
-              This NFT doesn't exist in your collection
+              Unable to load token data from the blockchain
             </p>
           </div>
         </div>
@@ -58,8 +90,9 @@ const NFTDetail = () => {
     );
   }
 
-  const metadata = nft.metadata;
+  const metadata = tokenData.metadata;
   const imageUrl = metadata?.image ? ipfsToHttp(metadata.image) : '';
+  const isOwner = publicKey && tokenData.owner === publicKey;
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4">
@@ -75,12 +108,14 @@ const NFTDetail = () => {
               {imageUrl ? (
                 <img 
                   src={imageUrl} 
-                  alt={metadata.name || 'NFT'}
+                  alt={metadata?.name || tokenData.name || 'Token'}
                   className="w-full h-full object-cover"
                   style={{ imageRendering: "pixelated" }}
                 />
               ) : (
-                <Skeleton className="w-full h-full" />
+                <div className="w-full h-full flex items-center justify-center text-6xl">
+                  {tokenData.isNFT ? '🎨' : '🪙'}
+                </div>
               )}
             </div>
           </div>
@@ -93,12 +128,19 @@ const NFTDetail = () => {
                   <span className="text-xs neon-glow-secondary">{metadata.platform.toUpperCase()}</span>
                 </div>
               )}
+              {!tokenData.isNFT && (
+                <div className="inline-block pixel-border bg-accent/20 px-3 py-1 mb-3 md:mb-4 ml-2">
+                  <span className="text-xs text-accent">TOKEN</span>
+                </div>
+              )}
               <h1 className="text-2xl md:text-3xl lg:text-5xl font-bold neon-glow mb-3 md:mb-4">
-                {metadata?.name || nft.name}
+                {metadata?.name || tokenData.name}
               </h1>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                Owned by <span className="text-primary">{publicKey?.substring(0, 8)}...{publicKey?.substring(publicKey.length - 6)}</span>
-              </p>
+              {isOwner && (
+                <p className="text-xs md:text-sm text-muted-foreground">
+                  Owned by <span className="text-primary">You</span>
+                </p>
+              )}
             </div>
 
             {/* Contract Address */}
@@ -163,13 +205,23 @@ const NFTDetail = () => {
                 <h3 className="font-bold text-xs md:text-sm">TOKEN INFO</h3>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Type:</span>
+                    <span className="font-bold">{tokenData.isNFT ? 'NFT' : 'Token'}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Network:</span>
                     <span className="font-bold">{network === 'test' ? 'Testnet' : 'Mainnet'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Supply:</span>
-                    <span className="font-bold">{nft.balance}</span>
+                    <span className="font-bold">{tokenData.supply}</span>
                   </div>
+                  {tokenData.decimals !== undefined && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Decimals:</span>
+                      <span className="font-bold">{tokenData.decimals}</span>
+                    </div>
+                  )}
                   {metadata?.identifier && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Identifier:</span>
