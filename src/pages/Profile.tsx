@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, User, Wallet, Upload, Eye } from "lucide-react";
 import { toast } from "sonner";
 import AvatarCropDialog from "@/components/AvatarCropDialog";
@@ -25,7 +26,7 @@ interface Profile {
 }
 
 export default function Profile() {
-  const { isConnected, publicKey, tokens } = useWallet();
+  const { isConnected, publicKey, tokens, network } = useWallet();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -37,17 +38,37 @@ export default function Profile() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
+  const [listedNFTs, setListedNFTs] = useState<Set<string>>(new Set());
 
   // Filter for NFTs
   const nfts = tokens.filter(token => token.isNFT && token.metadata);
+  const unlistedNFTs = nfts.filter(nft => !listedNFTs.has(nft.address));
 
   useEffect(() => {
     if (isConnected && publicKey) {
       loadProfile();
+      loadListedNFTs();
     } else {
       setIsLoading(false);
     }
-  }, [isConnected, publicKey]);
+  }, [isConnected, publicKey, network]);
+
+  const loadListedNFTs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('nft_listings')
+        .select('token_address')
+        .eq('status', 'active')
+        .eq('network', network);
+
+      if (error) throw error;
+
+      const listedAddresses = new Set(data?.map(listing => listing.token_address) || []);
+      setListedNFTs(listedAddresses);
+    } catch (error) {
+      console.error('Error loading listed NFTs:', error);
+    }
+  };
 
   const loadProfile = async () => {
     if (!publicKey) return;
@@ -420,11 +441,12 @@ export default function Profile() {
           {/* NFTs Section */}
           <div className="pt-6 border-t border-border">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Your NFTs ({nfts.length})</h3>
+              <h3 className="text-lg font-bold">Your NFTs</h3>
               <Link to="/collection">
                 <Button variant="outline" size="sm">Marketplace</Button>
               </Link>
             </div>
+            
             {nfts.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <p className="text-sm">No NFTs yet</p>
@@ -433,28 +455,65 @@ export default function Profile() {
                 </Link>
               </div>
             ) : (
-              <>
-                {/* Helpful notice */}
-                <div className="mb-4 p-3 bg-primary/10 border border-primary/30 pixel-border">
-                  <p className="text-xs text-muted-foreground">
-                    💡 <strong>Want to see your NFTs on the Feed?</strong> Click an NFT below to view it, then list it for sale!
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {nfts.slice(0, 6).map((nft) => (
-                    <NFTCard 
-                      key={nft.address}
-                      id={nft.address}
-                      title={nft.metadata.name || nft.name}
-                      creator={nft.metadata.version || "degen8bit v1.0"}
-                      price={nft.balance}
-                      image={ipfsToHttp(nft.metadata.image)}
-                      likes={0}
-                      comments={0}
-                    />
-                  ))}
-                </div>
-              </>
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="all">All NFTs ({nfts.length})</TabsTrigger>
+                  <TabsTrigger value="unlisted">Unlisted ({unlistedNFTs.length})</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="all" className="space-y-4">
+                  {/* Helpful notice */}
+                  <div className="p-3 bg-primary/10 border border-primary/30 pixel-border">
+                    <p className="text-xs text-muted-foreground">
+                      💡 <strong>Want to see your NFTs on the Feed?</strong> Click an NFT below to view it, then list it for sale!
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {nfts.map((nft) => (
+                      <NFTCard 
+                        key={nft.address}
+                        id={nft.address}
+                        title={nft.metadata.name || nft.name}
+                        creator={nft.metadata.version || "degen8bit v1.0"}
+                        price={nft.balance}
+                        image={ipfsToHttp(nft.metadata.image)}
+                        likes={0}
+                        comments={0}
+                      />
+                    ))}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="unlisted" className="space-y-4">
+                  {unlistedNFTs.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="text-sm">All your NFTs are currently listed for sale</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="p-3 bg-accent/10 border border-accent/30 pixel-border">
+                        <p className="text-xs text-muted-foreground">
+                          💎 These NFTs are in your wallet and not listed for sale
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {unlistedNFTs.map((nft) => (
+                          <NFTCard 
+                            key={nft.address}
+                            id={nft.address}
+                            title={nft.metadata.name || nft.name}
+                            creator={nft.metadata.version || "degen8bit v1.0"}
+                            price={nft.balance}
+                            image={ipfsToHttp(nft.metadata.image)}
+                            likes={0}
+                            comments={0}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </TabsContent>
+              </Tabs>
             )}
           </div>
         </div>
