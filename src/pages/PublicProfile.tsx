@@ -30,11 +30,24 @@ interface TokenWithMetadata {
   metadata: any;
 }
 
+interface NFTListing {
+  id: string;
+  token_address: string;
+  seller_address: string;
+  price_kta: number | null;
+  price_xrge: number | null;
+  currency: string;
+  status: string;
+  created_at: string;
+}
+
 export default function PublicProfile() {
   const { walletAddress } = useParams<{ walletAddress: string }>();
   const { publicKey } = useWallet();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tokens, setTokens] = useState<TokenWithMetadata[]>([]);
+  const [listings, setListings] = useState<NFTListing[]>([]);
+  const [listedNFTs, setListedNFTs] = useState<TokenWithMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const isOwnProfile = publicKey === walletAddress;
@@ -58,6 +71,7 @@ export default function PublicProfile() {
       console.log('🔍 [PublicProfile] Component mounted with address:', walletAddress);
       loadProfile();
       loadTokens();
+      loadListings();
     } else {
       console.log('❌ [PublicProfile] NO walletAddress!');
     }
@@ -84,6 +98,78 @@ export default function PublicProfile() {
       toast.error("Failed to load profile");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadListings = async () => {
+    if (!walletAddress) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('nft_listings')
+        .select('*')
+        .eq('seller_address', walletAddress)
+        .eq('status', 'active')
+        .eq('network', network);
+
+      if (error) throw error;
+      
+      setListings(data || []);
+      
+      // Load token info for listed NFTs
+      if (data && data.length > 0) {
+        await loadListedNFTs(data.map(l => l.token_address));
+      }
+    } catch (error: any) {
+      console.error('[PublicProfile] Error loading listings:', error);
+    }
+  };
+
+  const loadListedNFTs = async (tokenAddresses: string[]) => {
+    try {
+      const passphrase = 'temporary-read-only-seed-for-public-profile-viewing-on-keeta-network-degen8bit-application';
+      const tempSeed = await KeetaNet.lib.Account.seedFromPassphrase(passphrase);
+      const tempAccount = KeetaNet.lib.Account.fromSeed(tempSeed, 0, KeetaNet.lib.Account.AccountKeyAlgorithm.ECDSA_SECP256K1);
+      const client = KeetaNet.UserClient.fromNetwork(network, tempAccount);
+
+      const listedTokens: TokenWithMetadata[] = [];
+
+      for (const tokenAddress of tokenAddresses) {
+        try {
+          const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
+          
+          // Fetch token info using the anchor client approach
+          const response = await fetch(`https://rep3.${network === 'test' ? 'test.' : ''}main.network.api.keeta.com/api/account/${tokenAddress}/info`);
+          if (!response.ok) continue;
+          
+          const tokenInfo = await response.json();
+          
+          let metadata = null;
+          if (tokenInfo.metadata) {
+            try {
+              const metadataBuffer = Buffer.from(tokenInfo.metadata, 'base64');
+              metadata = JSON.parse(metadataBuffer.toString('utf8'));
+            } catch (e) {
+              console.error('[PublicProfile] Failed to parse listed NFT metadata:', e);
+            }
+          }
+
+          listedTokens.push({
+            address: tokenAddress,
+            name: tokenInfo.name || 'Unknown',
+            symbol: '',
+            balance: '1',
+            isNFT: true,
+            metadata
+          });
+        } catch (error) {
+          console.error('[PublicProfile] Error loading listed NFT:', tokenAddress, error);
+        }
+      }
+
+      setListedNFTs(listedTokens);
+    } catch (error: any) {
+      console.error('[PublicProfile] Error loading listed NFTs:', error);
     }
   };
 
@@ -205,6 +291,7 @@ export default function PublicProfile() {
 
   const displayName = profile?.username || `${walletAddress?.slice(0, 12)}...${walletAddress?.slice(-8)}`;
   const nfts = tokens.filter(t => t.isNFT);
+  const activeListings = listings.filter(l => l.status === 'active');
 
   return (
     <div className="min-h-screen pt-16 bg-gradient-to-br from-background via-background to-purple-950/20">
@@ -277,7 +364,7 @@ export default function PublicProfile() {
                 )}
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
                   {/* NFT Count */}
                   <div className="relative group">
                     <div className="absolute inset-0 bg-primary/20 rounded-lg blur group-hover:bg-primary/30 transition-colors" />
@@ -287,12 +374,21 @@ export default function PublicProfile() {
                     </div>
                   </div>
 
+                  {/* Listed NFTs Count */}
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-accent/20 rounded-lg blur group-hover:bg-accent/30 transition-colors" />
+                    <div className="relative bg-background/80 backdrop-blur-sm rounded-lg p-6 border border-accent/30 text-center pixel-border hover:border-accent/50 transition-all">
+                      <div className="text-4xl font-bold font-pixel text-accent neon-glow mb-2">{activeListings.length}</div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-widest font-pixel">NFTs LISTED</div>
+                    </div>
+                  </div>
+
                   {/* Member Since */}
                   {profile?.created_at && (
                     <div className="relative group">
-                      <div className="absolute inset-0 bg-accent/20 rounded-lg blur group-hover:bg-accent/30 transition-colors" />
-                      <div className="relative bg-background/80 backdrop-blur-sm rounded-lg p-6 border border-accent/30 text-center pixel-border hover:border-accent/50 transition-all">
-                        <div className="text-sm font-bold font-pixel text-accent mb-2">
+                      <div className="absolute inset-0 bg-secondary/20 rounded-lg blur group-hover:bg-secondary/30 transition-colors" />
+                      <div className="relative bg-background/80 backdrop-blur-sm rounded-lg p-6 border border-secondary/30 text-center pixel-border hover:border-secondary/50 transition-all">
+                        <div className="text-sm font-bold font-pixel text-secondary mb-2">
                           {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                         </div>
                         <div className="text-xs text-muted-foreground uppercase tracking-widest font-pixel">MEMBER SINCE</div>
@@ -303,14 +399,14 @@ export default function PublicProfile() {
                   {/* IPFS */}
                   {profile?.ipfs_hash && (
                     <div className="relative group">
-                      <div className="absolute inset-0 bg-secondary/20 rounded-lg blur group-hover:bg-secondary/30 transition-colors" />
+                      <div className="absolute inset-0 bg-muted/20 rounded-lg blur group-hover:bg-muted/30 transition-colors" />
                       <a
                         href={`https://gateway.pinata.cloud/ipfs/${profile.ipfs_hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="relative block bg-background/80 backdrop-blur-sm rounded-lg p-6 border border-secondary/30 text-center pixel-border hover:border-secondary/50 transition-all"
+                        className="relative block bg-background/80 backdrop-blur-sm rounded-lg p-6 border border-muted/30 text-center pixel-border hover:border-muted/50 transition-all"
                       >
-                        <div className="text-xs font-mono text-secondary mb-2 truncate">
+                        <div className="text-xs font-mono text-muted-foreground mb-2 truncate">
                           {profile.ipfs_hash.slice(0, 12)}...
                         </div>
                         <div className="text-xs text-muted-foreground uppercase tracking-widest font-pixel flex items-center justify-center gap-1">
@@ -363,6 +459,51 @@ export default function PublicProfile() {
               </div>
             )}
           </div>
+
+          {/* Listed NFTs Section */}
+          {activeListings.length > 0 && (
+            <div className="relative overflow-hidden rounded-xl bg-background/95 backdrop-blur-sm border border-border/50 p-6 md:p-8 animate-fade-in mt-8" style={{ animationDelay: '0.2s' }}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold font-pixel text-accent neon-glow">LISTED FOR SALE</h2>
+                <div className="pixel-border px-4 py-2 bg-accent/10 rounded">
+                  <span className="text-sm font-bold font-pixel text-accent">{activeListings.length} ITEMS</span>
+                </div>
+              </div>
+
+              {listedNFTs.length === 0 ? (
+                <div className="text-center py-10">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-accent neon-glow" />
+                  <p className="text-muted-foreground font-pixel">LOADING LISTINGS...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {listedNFTs.map((nft, index) => {
+                    const listing = listings.find(l => l.token_address === nft.address);
+                    return (
+                      <div key={nft.address} className="animate-scale-in" style={{ animationDelay: `${index * 0.05}s` }}>
+                        <div className="relative">
+                          <NFTCard 
+                            id={nft.address}
+                            title={nft.metadata?.name || nft.name}
+                            creator={nft.metadata?.platform || nft.metadata?.version || "keeta network"}
+                            price={listing?.price_kta ? listing.price_kta.toString() : listing?.price_xrge ? listing.price_xrge.toString() : '0'}
+                            image={nft.metadata?.image ? ipfsToHttp(nft.metadata.image) : ''}
+                            likes={0}
+                            comments={0}
+                          />
+                          <div className="absolute top-2 right-2 bg-accent/90 backdrop-blur-sm px-3 py-1 rounded pixel-border">
+                            <span className="text-xs font-pixel text-background font-bold">
+                              {listing?.price_kta ? `${listing.price_kta} KTA` : listing?.price_xrge ? `${listing.price_xrge} XRGE` : 'LISTED'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
