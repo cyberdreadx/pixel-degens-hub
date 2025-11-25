@@ -42,11 +42,21 @@ export default function PublicProfile() {
   // Default to testnet for now - could be made configurable later
   const network = 'test';
 
+  console.log('🔍 [PublicProfile] COMPONENT RENDER');
+  console.log('🔍 [PublicProfile] walletAddress from URL:', walletAddress);
+  console.log('🔍 [PublicProfile] publicKey:', publicKey);
+  console.log('🔍 [PublicProfile] network:', network);
+
   useEffect(() => {
+    console.log('🔍 [PublicProfile] useEffect triggered');
+    console.log('🔍 [PublicProfile] walletAddress in useEffect:', walletAddress);
+    
     if (walletAddress) {
-      console.log('[PublicProfile] Component mounted with address:', walletAddress);
+      console.log('🔍 [PublicProfile] Component mounted with address:', walletAddress);
       loadProfile();
       loadTokens();
+    } else {
+      console.log('❌ [PublicProfile] NO walletAddress!');
     }
   }, [walletAddress]);
 
