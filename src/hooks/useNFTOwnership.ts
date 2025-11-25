@@ -25,13 +25,29 @@ export function useNFTOwnership(tokenAddress: string) {
   const [owner, setOwner] = useState<NFTOwner | null>(null);
   const [transactions, setTransactions] = useState<NFTTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [anchorAddress, setAnchorAddress] = useState<string | null>(null);
 
-  const ANCHOR_ADDRESS = network === 'test'
-    ? 'keeta_aabszsbrqppriqddrkptq5awubshpq3cgsoi4rc624xm6phdt74vo5w7wipwtmi'
-    : 'keeta_aabszsbrqppriqddrkptq5awubshpq3cgsoi4rc624xm6phdt74vo5w7wipwtmi';
+  // Fetch the correct anchor address from backend
+  useEffect(() => {
+    const fetchAnchorAddress = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('fx-anchor-info', {
+          body: { network }
+        });
+        
+        if (!error && data?.address) {
+          setAnchorAddress(data.address);
+        }
+      } catch (error) {
+        console.error('[useNFTOwnership] Error fetching anchor address:', error);
+      }
+    };
+
+    fetchAnchorAddress();
+  }, [network]);
 
   useEffect(() => {
-    if (!tokenAddress) return;
+    if (!tokenAddress || !anchorAddress) return;
 
     const loadOwnership = async () => {
       setIsLoading(true);
@@ -48,12 +64,12 @@ export function useNFTOwnership(tokenAddress: string) {
         const tokenAccountObj = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
         
         // Check anchor first (most likely if listed)
-        const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(ANCHOR_ADDRESS);
+        const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(anchorAddress);
         const anchorBalance = await clientToUse.balance(tokenAccountObj, { account: anchorAccountObj });
         
         if (anchorBalance > 0n) {
           setOwner({
-            address: ANCHOR_ADDRESS,
+            address: anchorAddress,
             isAnchor: true,
             isYou: false,
           });
@@ -107,7 +123,7 @@ export function useNFTOwnership(tokenAddress: string) {
               id: `list-${listing.id}`,
               type: 'list',
               from: listing.seller_address,
-              to: ANCHOR_ADDRESS,
+              to: anchorAddress,
               price: listing.currency === 'KTA' ? listing.price_kta : listing.price_xrge,
               currency: listing.currency,
               timestamp: listing.created_at,
@@ -138,7 +154,7 @@ export function useNFTOwnership(tokenAddress: string) {
     };
 
     loadOwnership();
-  }, [client, tokenAddress, network, publicKey, ANCHOR_ADDRESS]);
+  }, [client, tokenAddress, network, publicKey, anchorAddress]);
 
   return { owner, transactions, isLoading };
 }
