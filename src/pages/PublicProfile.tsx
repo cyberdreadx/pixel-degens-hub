@@ -123,23 +123,31 @@ export default function PublicProfile() {
         if (!tokenInfo.entity.isToken()) continue;
         
         const balance = tokenInfo.balances?.[0]?.balance || 0n;
-        if (balance <= 0n) continue;
-        
         const supply = BigInt(tokenInfo.info.supply || '0');
         const isNFT = supply === 1n;
         const tokenAddress = tokenInfo.entity.publicKeyString.toString();
         const isXRGE = tokenAddress === XRGE_ADDRESS;
         
-        // Only show NFTs and XRGE token
-        if (!isNFT && !isXRGE) continue;
-        
-        console.log('[PublicProfile] Token:', {
-          address: tokenInfo.entity.publicKeyString.toString(),
+        // Log ALL tokens found (even with 0 balance) for debugging
+        console.log('[PublicProfile] Token Found:', {
+          address: tokenAddress.slice(0, 20) + '...',
           name: tokenInfo.info.name,
           balance: balance.toString(),
           supply: supply.toString(),
-          isNFT
+          isNFT,
+          willBeIncluded: balance > 0n && (isNFT || isXRGE)
         });
+        
+        // Skip tokens with 0 balance (they were transferred/listed)
+        if (balance <= 0n) {
+          console.log('[PublicProfile] ⚠️ Skipping token (balance is 0 - may be listed for sale)');
+          continue;
+        }
+        
+        // Only show NFTs and XRGE token
+        if (!isNFT && !isXRGE) continue;
+        
+        console.log('[PublicProfile] ✅ Including token:', tokenInfo.info.name);
         
         let metadata = null;
         if (tokenInfo.info.metadata) {
@@ -163,7 +171,18 @@ export default function PublicProfile() {
       }
       
       console.log('[PublicProfile] Processed tokens:', processedTokens.length);
-      console.log('[PublicProfile] NFTs:', processedTokens.filter(t => t.isNFT && t.metadata).length);
+      console.log('[PublicProfile] NFTs detected:', processedTokens.filter(t => t.isNFT).length);
+      console.log('[PublicProfile] NFTs with metadata:', processedTokens.filter(t => t.isNFT && t.metadata).length);
+      
+      // Log each NFT for debugging
+      processedTokens.filter(t => t.isNFT).forEach(nft => {
+        console.log('[PublicProfile] NFT Found:', {
+          name: nft.name,
+          address: nft.address.slice(0, 20) + '...',
+          hasMetadata: !!nft.metadata,
+          metadataKeys: nft.metadata ? Object.keys(nft.metadata) : []
+        });
+      });
       
       setTokens(processedTokens);
     } catch (error: any) {
@@ -271,25 +290,25 @@ export default function PublicProfile() {
 
           {/* NFTs Section */}
           <div className="pt-6 border-t border-border">
-            <h3 className="text-lg font-bold mb-4">NFTs ({tokens.filter(t => t.isNFT && t.metadata && t.metadata.image && t.metadata.platform === 'degen8bit').length})</h3>
+            <h3 className="text-lg font-bold mb-4">NFTs ({tokens.filter(t => t.isNFT).length})</h3>
             {isLoadingTokens ? (
               <div className="text-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
               </div>
-            ) : tokens.filter(t => t.isNFT && t.metadata && t.metadata.image && t.metadata.platform === 'degen8bit').length === 0 ? (
+            ) : tokens.filter(t => t.isNFT).length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <p>No NFTs yet</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {tokens.filter(t => t.isNFT && t.metadata && t.metadata.image && t.metadata.platform === 'degen8bit').map((nft) => (
+                {tokens.filter(t => t.isNFT).map((nft) => (
                   <NFTCard 
                     key={nft.address}
                     id={nft.address}
-                    title={nft.metadata.name || nft.name}
-                    creator={nft.metadata.version || "degen8bit v1.0"}
+                    title={nft.metadata?.name || nft.name}
+                    creator={nft.metadata?.platform || nft.metadata?.version || "keeta network"}
                     price={nft.balance}
-                    image={ipfsToHttp(nft.metadata.image)}
+                    image={nft.metadata?.image ? ipfsToHttp(nft.metadata.image) : ''}
                     likes={0}
                     comments={0}
                   />

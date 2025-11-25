@@ -10,6 +10,7 @@ import { fetchTokenInfo } from "@/utils/keetaBlockchain";
 import { useEffect, useState } from "react";
 import { useNFTOwnership } from "@/hooks/useNFTOwnership";
 import { formatDistanceToNow } from "date-fns";
+import ListNFTDialog from "@/components/ListNFTDialog";
 
 const NFTDetail = () => {
   const { id } = useParams(); // This is the token address
@@ -18,6 +19,7 @@ const NFTDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const { owner, transactions, isLoading: isLoadingOwnership } = useNFTOwnership(id || '');
+  const [showListDialog, setShowListDialog] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -173,22 +175,34 @@ const NFTDetail = () => {
                       </p>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 bg-muted p-3 pixel-border">
-                      <code className="text-xs flex-1 truncate">
-                        {owner.isYou ? (
-                          <span className="text-primary font-bold">YOU ({formatAddress(owner.address)})</span>
-                        ) : (
-                          owner.address !== 'Unknown' ? formatAddress(owner.address) : 'Unknown Owner'
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 bg-muted p-3 pixel-border">
+                        <code className="text-xs flex-1 truncate">
+                          {owner.isYou ? (
+                            <span className="text-primary font-bold">YOU ({formatAddress(owner.address)})</span>
+                          ) : (
+                            owner.address !== 'Unknown' ? formatAddress(owner.address) : 'Unknown Owner'
+                          )}
+                        </code>
+                        {owner.address !== 'Unknown' && !owner.isYou && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 flex-shrink-0"
+                            onClick={() => copyToClipboard(owner.address)}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
                         )}
-                      </code>
-                      {owner.address !== 'Unknown' && !owner.isYou && (
+                      </div>
+                      {owner.isYou && !owner.isAnchor && (
                         <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 flex-shrink-0"
-                          onClick={() => copyToClipboard(owner.address)}
+                          className="w-full pixel-border gap-2 text-xs"
+                          variant="default"
+                          onClick={() => setShowListDialog(true)}
                         >
-                          <Copy className="w-3 h-3" />
+                          <Tag className="w-3 h-3" />
+                          LIST FOR SALE
                         </Button>
                       )}
                     </div>
@@ -376,6 +390,17 @@ const NFTDetail = () => {
           </div>
         )}
       </div>
+
+      {/* List NFT Dialog */}
+      {tokenData && owner?.isYou && (
+        <ListNFTDialog
+          open={showListDialog}
+          onOpenChange={setShowListDialog}
+          tokenAddress={id || ''}
+          tokenName={metadata?.name || tokenData.name || 'NFT'}
+          tokenImage={imageUrl}
+        />
+      )}
     </div>
   );
 };

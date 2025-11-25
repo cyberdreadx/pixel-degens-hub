@@ -422,7 +422,7 @@ export default function Profile() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold">Your NFTs ({nfts.length})</h3>
               <Link to="/collection">
-                <Button variant="outline" size="sm">View All</Button>
+                <Button variant="outline" size="sm">Marketplace</Button>
               </Link>
             </div>
             {nfts.length === 0 ? (
@@ -433,20 +433,28 @@ export default function Profile() {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {nfts.slice(0, 6).map((nft) => (
-                  <NFTCard 
-                    key={nft.address}
-                    id={nft.address}
-                    title={nft.metadata.name || nft.name}
-                    creator={nft.metadata.version || "degen8bit v1.0"}
-                    price={nft.balance}
-                    image={ipfsToHttp(nft.metadata.image)}
-                    likes={0}
-                    comments={0}
-                  />
-                ))}
-              </div>
+              <>
+                {/* Helpful notice */}
+                <div className="mb-4 p-3 bg-primary/10 border border-primary/30 pixel-border">
+                  <p className="text-xs text-muted-foreground">
+                    💡 <strong>Want to see your NFTs on the Feed?</strong> Click an NFT below to view it, then list it for sale!
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {nfts.slice(0, 6).map((nft) => (
+                    <NFTCard 
+                      key={nft.address}
+                      id={nft.address}
+                      title={nft.metadata.name || nft.name}
+                      creator={nft.metadata.version || "degen8bit v1.0"}
+                      price={nft.balance}
+                      image={ipfsToHttp(nft.metadata.image)}
+                      likes={0}
+                      comments={0}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>

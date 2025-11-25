@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchTokenInfo } from "@/utils/keetaBlockchain";
+import * as KeetaNet from "@keetanetwork/keetanet-client";
 
 export interface FeedActivity {
   id: string;

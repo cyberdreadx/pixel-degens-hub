@@ -9,10 +9,11 @@ import { Link } from "react-router-dom";
 import ListNFTDialog from "@/components/ListNFTDialog";
 import { useMarketplaceNFTs } from "@/hooks/useMarketplaceNFTs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 
 const Collection = () => {
   const { tokens, isConnected, network } = useWallet();
-  const { nfts: marketplaceNFTs, isLoading: isLoadingMarketplace } = useMarketplaceNFTs(network);
+  const { nfts: marketplaceNFTs, isLoading: isLoadingMarketplace, error: marketplaceError } = useMarketplaceNFTs(network);
   const [listingToken, setListingToken] = useState<{
     address: string;
     name: string;
@@ -21,6 +22,12 @@ const Collection = () => {
   
   // Filter for NFTs only from user's wallet
   const userNfts = tokens.filter(token => token.isNFT && token.metadata);
+  
+  // Debug logging
+  console.log('[Collection] Network:', network);
+  console.log('[Collection] Marketplace NFTs:', marketplaceNFTs.length);
+  console.log('[Collection] Loading:', isLoadingMarketplace);
+  console.log('[Collection] Error:', marketplaceError);
   
   return (
     <div className="relative min-h-screen pt-24 pb-16">
@@ -50,6 +57,47 @@ const Collection = () => {
             </Link>
           </div>
         </div>
+
+        {/* Debug Panel - Remove this after debugging */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-4 bg-yellow-500/10 border border-yellow-500 pixel-border">
+            <div className="text-xs space-y-2">
+              <div>🔍 <strong>Debug Info:</strong></div>
+              <div>Network: {network}</div>
+              <div>Loading: {isLoadingMarketplace ? 'Yes' : 'No'}</div>
+              <div>Error: {marketplaceError || 'None'}</div>
+              <div>Listings Found: {marketplaceNFTs.length}</div>
+              <div className="flex gap-2 mt-2">
+                <button 
+                  onClick={async () => {
+                    const { data } = await supabase.from('nft_listings').select('*');
+                    console.log('ALL LISTINGS:', data);
+                    alert(`Total listings in DB: ${data?.length || 0}. Check console for details.`);
+                  }}
+                  className="px-3 py-1 bg-yellow-500 text-black text-xs pixel-border"
+                >
+                  Check Database
+                </button>
+                <button 
+                  onClick={async () => {
+                    const { data, error } = await supabase.functions.invoke('fx-recover-listings', {
+                      body: { network }
+                    });
+                    if (error) {
+                      alert('Error: ' + error.message);
+                    } else {
+                      console.log('RECOVERY SCAN:', data);
+                      alert(`Scan complete!\nNFTs in escrow: ${data.nftsInEscrow}\nOrphaned: ${data.orphanedNFTs?.length || 0}\n\nCheck console for details.`);
+                    }
+                  }}
+                  className="px-3 py-1 bg-orange-500 text-black text-xs pixel-border"
+                >
+                  🔧 Scan for Orphaned NFTs
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         {isLoadingMarketplace ? (

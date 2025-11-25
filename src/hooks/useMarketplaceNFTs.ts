@@ -26,6 +26,8 @@ export function useMarketplaceNFTs(network: "main" | "test" = "test") {
       setError(null);
       
       try {
+        console.log('[useMarketplaceNFTs] Fetching listings for network:', network);
+        
         // Fetch all active listings from database
         const { data: listings, error: listingsError } = await supabase
           .from('nft_listings')
@@ -35,10 +37,22 @@ export function useMarketplaceNFTs(network: "main" | "test" = "test") {
           .order('created_at', { ascending: false });
 
         if (listingsError) {
+          console.error('[useMarketplaceNFTs] Error fetching listings:', listingsError);
           throw listingsError;
         }
 
-        console.log(`[useMarketplaceNFTs] Fetched ${listings?.length || 0} active listings`);
+        console.log(`[useMarketplaceNFTs] Fetched ${listings?.length || 0} active listings for ${network}`);
+        
+        // Also check all listings regardless of network
+        const { data: allListings } = await supabase
+          .from('nft_listings')
+          .select('*')
+          .eq('status', 'active');
+        
+        console.log(`[useMarketplaceNFTs] Total active listings (all networks):`, allListings?.length || 0);
+        if (allListings && allListings.length > 0) {
+          console.log('[useMarketplaceNFTs] All listing networks:', allListings.map(l => l.network));
+        }
 
         // Fetch metadata for each NFT
         const nftsWithMetadata: MarketplaceNFT[] = [];

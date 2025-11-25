@@ -66,14 +66,30 @@ serve(async (req) => {
     
     const anchorBalance = await anchorClient.balance(tokenAccountObj, { account: anchorAccountObj });
     
+    console.log('[fx-list-nft] Checking anchor balance for token:', tokenAddress);
+    console.log('[fx-list-nft] Anchor balance:', anchorBalance.toString());
+    
     if (anchorBalance <= 0n) {
+      // Check if seller still owns it
+      const sellerAccountObj = KeetaNet.lib.Account.fromPublicKeyString(sellerAddress);
+      const sellerBalance = await anchorClient.balance(tokenAccountObj, { account: sellerAccountObj });
+      
+      console.log('[fx-list-nft] Seller balance:', sellerBalance.toString());
+      
       return new Response(
-        JSON.stringify({ error: 'NFT not yet received by anchor. Transfer NFT to anchor first.' }),
+        JSON.stringify({ 
+          error: 'NFT not yet received by anchor. Transfer may still be processing.',
+          details: {
+            anchorBalance: anchorBalance.toString(),
+            sellerBalance: sellerBalance.toString(),
+            message: 'Please wait a few seconds and try listing again.'
+          }
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('[fx-list-nft] Anchor holds NFT, balance:', anchorBalance.toString());
+    console.log('[fx-list-nft] ✅ Anchor holds NFT, balance:', anchorBalance.toString());
 
     // Store the listing in database
     const { data: listing, error: dbError } = await supabaseClient

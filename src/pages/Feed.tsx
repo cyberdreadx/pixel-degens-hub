@@ -169,30 +169,38 @@ const Feed = () => {
             <CardContent className="p-12 text-center">
               <div className="text-6xl mb-4">🏪</div>
               <h3 className="text-xl font-bold mb-2">NO MARKETPLACE ACTIVITY YET</h3>
-              <p className="text-sm text-muted-foreground mb-2">
-                The feed shows NFTs that are listed for sale and token swaps.
-              </p>
-              <p className="text-sm text-muted-foreground mb-6">
-                {nftCount === 0 ? 
-                  "No NFTs have been listed on the marketplace yet!" :
-                  "Be the first to make a move on " + (network === 'test' ? 'testnet' : 'mainnet') + "!"
-                }
-              </p>
+              <div className="max-w-md mx-auto space-y-3 mb-6">
+                <p className="text-sm text-muted-foreground">
+                  <strong>This feed shows marketplace activity:</strong>
+                </p>
+                <div className="text-xs text-muted-foreground space-y-1 text-left bg-muted/50 p-3 pixel-border">
+                  <div>✅ NFTs <strong>listed for sale</strong></div>
+                  <div>✅ NFTs <strong>sold</strong></div>
+                  <div>✅ Token <strong>swaps</strong></div>
+                  <div className="mt-2 pt-2 border-t border-border">
+                    <div>❌ Minted NFTs (until listed)</div>
+                    <div>❌ NFTs in wallets (until listed)</div>
+                  </div>
+                </div>
+                <p className="text-xs text-primary font-bold">
+                  💡 Have NFTs? List them for sale to see them here!
+                </p>
+              </div>
               <div className="space-y-3">
                 <div className="text-xs text-muted-foreground font-bold">GET STARTED:</div>
                 <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  <Link to="/collection">
-                    <Button variant="default" className="pixel-border-thick text-xs w-full sm:w-auto">
+                  <Link to="/profile">
+                    <Button variant="default" className="pixel-border-thick text-xs w-full sm:w-auto gap-1">
                       📦 LIST YOUR NFTs
                     </Button>
                   </Link>
                   <Link to="/mint">
-                    <Button variant="outline" className="pixel-border text-xs w-full sm:w-auto">
+                    <Button variant="outline" className="pixel-border text-xs w-full sm:w-auto gap-1">
                       🎨 MINT NEW NFT
                     </Button>
                   </Link>
                   <Link to="/swap">
-                    <Button variant="outline" className="pixel-border text-xs w-full sm:w-auto">
+                    <Button variant="outline" className="pixel-border text-xs w-full sm:w-auto gap-1">
                       🔄 SWAP TOKENS
                     </Button>
                   </Link>

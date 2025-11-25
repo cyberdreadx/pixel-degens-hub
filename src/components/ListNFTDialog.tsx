@@ -50,18 +50,31 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
       const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(anchorAddress);
       const tokenAccountObj = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
       
-      // Step 1: Transfer NFT to anchor (escrow)
-      toast.info("Transferring NFT to escrow...");
+      // Check if anchor already has the NFT
+      console.log('Checking if anchor already has NFT...');
+      const anchorBalance = await client.balance(tokenAccountObj, { account: anchorAccountObj });
       
-      const builder = client.initBuilder();
-      builder.send(anchorAccountObj, 1n, tokenAccountObj);
-      
-      await builder.computeBlocks();
-      const result = await builder.publish();
-      
-      console.log('NFT transferred to anchor:', result);
-      
-      toast.info("Creating listing...");
+      if (anchorBalance > 0n) {
+        console.log('✅ Anchor already has NFT, skipping transfer');
+        toast.info("NFT already in escrow, creating listing...");
+      } else {
+        // Step 1: Transfer NFT to anchor (escrow)
+        console.log('NFT not in anchor yet, transferring...');
+        toast.info("Transferring NFT to escrow...");
+        
+        const builder = client.initBuilder();
+        builder.send(anchorAccountObj, 1n, tokenAccountObj);
+        
+        await builder.computeBlocks();
+        const result = await builder.publish();
+        
+        console.log('NFT transferred to anchor:', result);
+        
+        toast.info("Creating listing...");
+        
+        // Wait a moment for blockchain to process the transfer
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
       
       // Step 2: Create the listing in database
       // The edge function will verify the anchor received the NFT
@@ -75,14 +88,27 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        // Try to get more details from the error
+        const errorMessage = error.message || 'Unknown error';
+        throw new Error(errorMessage);
+      }
 
       toast.success("NFT listed successfully!");
       onOpenChange(false);
       setPrice("");
     } catch (error: any) {
       console.error('Error listing NFT:', error);
-      toast.error(`Failed to list NFT: ${error.message}`);
+      
+      // Show more helpful error messages
+      let errorMessage = error.message || 'Unknown error';
+      
+      if (errorMessage.includes('NFT not yet received')) {
+        errorMessage = 'Transfer is still processing. Please wait a moment and try again.';
+      }
+      
+      toast.error(`Failed to list NFT: ${errorMessage}`);
     } finally {
       setIsListing(false);
     }
