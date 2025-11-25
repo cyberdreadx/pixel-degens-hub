@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      nft_listings: {
+        Row: {
+          buyer_address: string | null
+          created_at: string
+          currency: string
+          id: string
+          network: string
+          price_kta: number | null
+          price_xrge: number | null
+          seller_address: string
+          sold_at: string | null
+          status: string
+          token_address: string
+        }
+        Insert: {
+          buyer_address?: string | null
+          created_at?: string
+          currency: string
+          id?: string
+          network?: string
+          price_kta?: number | null
+          price_xrge?: number | null
+          seller_address: string
+          sold_at?: string | null
+          status?: string
+          token_address: string
+        }
+        Update: {
+          buyer_address?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          network?: string
+          price_kta?: number | null
+          price_xrge?: number | null
+          seller_address?: string
+          sold_at?: string | null
+          status?: string
+          token_address?: string
+        }
+        Relationships: []
+      }
       price_history: {
         Row: {
           from_token: string
