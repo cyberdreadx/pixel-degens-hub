@@ -30,6 +30,18 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
   const [sendAmount, setSendAmount] = useState("");
   const [selectedToken, setSelectedToken] = useState<string>("KTA");
   const [isSending, setIsSending] = useState(false);
+  
+  // XRGE token address for filtering
+  const XRGE_TESTNET = 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s';
+  const XRGE_MAINNET = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
+  const XRGE_ADDRESS = network === 'main' ? XRGE_MAINNET : XRGE_TESTNET;
+  
+  // Filter tokens to only show XRGE and NFTs
+  const filteredTokens = tokens.filter(token => {
+    const isXRGE = token.address === XRGE_ADDRESS;
+    const isNFT = token.isNFT;
+    return isXRGE || isNFT;
+  });
 
   useEffect(() => {
     if (publicKey && open) {
@@ -197,23 +209,23 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                     <div className="text-2xl sm:text-3xl font-bold neon-glow leading-none truncate">{balance || "0.000000"}</div>
                     <div className="text-xs sm:text-sm text-primary/70 shrink-0">KTA</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatUsd(getUsdValue(parseFloat(balance || '0'), 'KTA'))}
-                  </div>
-                </div>
-                {tokens.map((token) => (
-                  <div key={token.address} className="space-y-1 pl-2 border-l-2 border-accent/50 w-full overflow-hidden">
-                    <div className="flex items-baseline gap-2 w-full overflow-hidden">
-                      <div className="text-lg sm:text-xl font-bold text-accent leading-none truncate">
-                        {token.balance}
-                      </div>
-                      <div className="text-[11px] sm:text-xs text-accent/70 shrink-0">{token.symbol}</div>
-                    </div>
                     <div className="text-xs text-muted-foreground">
-                      {formatUsd(getUsdValue(parseFloat(token.balance || '0'), token.symbol as 'KTA' | 'XRGE'))}
+                      {formatUsd(getUsdValue(parseFloat(balance || '0'), 'KTA'))}
                     </div>
                   </div>
-                ))}
+                  {filteredTokens.map((token) => (
+                    <div key={token.address} className="space-y-1 pl-2 border-l-2 border-accent/50 w-full overflow-hidden">
+                      <div className="flex items-baseline gap-2 w-full overflow-hidden">
+                        <div className="text-lg sm:text-xl font-bold text-accent leading-none truncate">
+                          {token.balance}
+                        </div>
+                        <div className="text-[11px] sm:text-xs text-accent/70 shrink-0">{token.symbol}</div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatUsd(getUsdValue(parseFloat(token.balance || '0'), token.symbol as 'KTA' | 'XRGE'))}
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
 
@@ -254,7 +266,7 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                     </SelectTrigger>
                     <SelectContent className="pixel-border bg-background z-50 max-w-[90vw]">
                       <SelectItem value="KTA" className="text-xs">KTA (Balance: {balance || "0.000000"})</SelectItem>
-                      {tokens.map((token) => (
+                      {filteredTokens.map((token) => (
                         <SelectItem key={token.address} value={token.address} className="text-xs">
                           {token.symbol} (Balance: {token.balance})
                         </SelectItem>
