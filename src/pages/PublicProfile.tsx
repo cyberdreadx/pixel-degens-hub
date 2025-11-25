@@ -38,6 +38,7 @@ interface NFTListing {
   price_xrge: number | null;
   currency: string;
   status: string;
+  network: string;
   created_at: string;
 }
 
@@ -109,8 +110,7 @@ export default function PublicProfile() {
         .from('nft_listings')
         .select('*')
         .eq('seller_address', walletAddress)
-        .eq('status', 'active')
-        .eq('network', network);
+        .eq('status', 'active');
 
       if (error) throw error;
       
@@ -130,7 +130,6 @@ export default function PublicProfile() {
       const passphrase = 'temporary-read-only-seed-for-public-profile-viewing-on-keeta-network-degen8bit-application';
       const tempSeed = await KeetaNet.lib.Account.seedFromPassphrase(passphrase);
       const tempAccount = KeetaNet.lib.Account.fromSeed(tempSeed, 0, KeetaNet.lib.Account.AccountKeyAlgorithm.ECDSA_SECP256K1);
-      const client = KeetaNet.UserClient.fromNetwork(network, tempAccount);
 
       const listedTokens: TokenWithMetadata[] = [];
 
@@ -138,8 +137,12 @@ export default function PublicProfile() {
         try {
           const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
           
-          // Fetch token info using the anchor client approach
-          const response = await fetch(`https://rep3.${network === 'test' ? 'test.' : ''}main.network.api.keeta.com/api/account/${tokenAddress}/info`);
+          // Find the listing to get its network
+          const listing = listings.find(l => l.token_address === tokenAddress);
+          const tokenNetwork = listing?.network || 'test';
+          
+          // Fetch token info using the listing's network
+          const response = await fetch(`https://rep3.${tokenNetwork === 'test' ? 'test.' : ''}main.network.api.keeta.com/api/account/${tokenAddress}/info`);
           if (!response.ok) continue;
           
           const tokenInfo = await response.json();
