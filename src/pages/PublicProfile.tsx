@@ -32,19 +32,23 @@ interface TokenWithMetadata {
 
 export default function PublicProfile() {
   const { walletAddress } = useParams<{ walletAddress: string }>();
-  const { publicKey, network } = useWallet();
+  const { publicKey } = useWallet();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tokens, setTokens] = useState<TokenWithMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const isOwnProfile = publicKey === walletAddress;
+  
+  // Default to testnet for now - could be made configurable later
+  const network = 'test';
 
   useEffect(() => {
     if (walletAddress) {
+      console.log('[PublicProfile] Component mounted with address:', walletAddress);
       loadProfile();
       loadTokens();
     }
-  }, [walletAddress, network]);
+  }, [walletAddress]);
 
   const loadProfile = async () => {
     if (!walletAddress) return;
@@ -71,7 +75,10 @@ export default function PublicProfile() {
   };
 
   const loadTokens = async () => {
-    if (!walletAddress) return;
+    if (!walletAddress) {
+      console.log('[PublicProfile] No wallet address');
+      return;
+    }
     
     setIsLoadingTokens(true);
     try {
@@ -81,7 +88,9 @@ export default function PublicProfile() {
       // Create a temporary account for read-only access
       const tempSeed = 'temporary-read-only-seed-for-public-profile-viewing';
       const tempAccount = KeetaNet.lib.Account.fromSeed(tempSeed, 0, KeetaNet.lib.Account.AccountKeyAlgorithm.ECDSA_SECP256K1);
-      const client = KeetaNet.UserClient.fromNetwork(network || 'test', tempAccount);
+      const client = KeetaNet.UserClient.fromNetwork(network, tempAccount);
+      
+      console.log('[PublicProfile] Client created');
       
       // Get the actual account we want to view
       const accountObj = KeetaNet.lib.Account.fromPublicKeyString(walletAddress);
@@ -126,7 +135,7 @@ export default function PublicProfile() {
         processedTokens.push({
           address: tokenInfo.entity.publicKeyString.toString(),
           name: tokenInfo.info.name || 'Unknown',
-          symbol: '', // Symbol is not directly available from AccountInfo
+          symbol: '',
           balance: balance.toString(),
           isNFT,
           metadata
