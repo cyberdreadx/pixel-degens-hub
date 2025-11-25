@@ -14,7 +14,6 @@ interface BuyNFTRequest {
   listingId: string;
   buyerAddress: string;
   network: 'test' | 'main';
-  paymentBlockBytes: string; // Base64-encoded payment block from buyer
 }
 
 serve(async (req) => {
@@ -28,12 +27,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { listingId, buyerAddress, network, paymentBlockBytes } = await req.json() as BuyNFTRequest;
+    const { listingId, buyerAddress, network } = await req.json() as BuyNFTRequest;
 
     console.log('[fx-buy-nft] Request:', { listingId, buyerAddress, network });
 
     // Validate inputs
-    if (!listingId || !buyerAddress || !network || !paymentBlockBytes) {
+    if (!listingId || !buyerAddress || !network) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -72,7 +71,8 @@ serve(async (req) => {
 
     // Verify anchor holds the NFT
     const tokenAccountObj = KeetaNet.lib.Account.fromPublicKeyString(listing.token_address);
-    const anchorBalance = await anchorClient.balance(tokenAccountObj);
+    const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(anchorAddress);
+    const anchorBalance = await anchorClient.balance(tokenAccountObj, { account: anchorAccountObj });
     
     if (anchorBalance <= 0n) {
       return new Response(
@@ -83,46 +83,22 @@ serve(async (req) => {
 
     console.log('[fx-buy-nft] Anchor holds NFT:', anchorBalance.toString());
 
-    // Decode the payment block from buyer
-    const paymentBlockBuffer = Uint8Array.from(atob(paymentBlockBytes), c => c.charCodeAt(0));
-    const paymentBlock = KeetaNet.lib.Block.fromBytes(paymentBlockBuffer);
-
-    console.log('[fx-buy-nft] Payment block received:', paymentBlock.hash);
-
-    // Build anchor's side of the atomic swap
+    // TRUSTED ANCHOR MODEL (2 transactions):
+    // Transaction 1: Buyer already sent payment to anchor (handled by frontend)
+    // Transaction 2: Anchor sends NFT to buyer
+    
+    console.log('[fx-buy-nft] Sending NFT to buyer...');
+    
     const builder = anchorClient.initBuilder();
-
     const buyerAccountObj = KeetaNet.lib.Account.fromPublicKeyString(buyerAddress);
-    const sellerAccountObj = KeetaNet.lib.Account.fromPublicKeyString(listing.seller_address);
-
-    // Anchor sends NFT to buyer
+    
+    // Send NFT to buyer
     builder.send(buyerAccountObj, 1n, tokenAccountObj);
-
-    // Anchor expects to receive payment from buyer (which goes to seller)
-    const price = listing.currency === 'KTA' ? listing.price_kta : listing.price_xrge;
-    const decimals = listing.currency === 'KTA' ? TOKEN_DECIMALS.KTA : TOKEN_DECIMALS.XRGE;
-    const priceInBaseUnits = BigInt(Math.floor(price * Math.pow(10, decimals)));
-
-    // The payment block from buyer should send to seller directly,
-    // but we use receive to enforce the constraint in the atomic swap
-    const paymentToken = listing.currency === 'KTA' ? anchorClient.baseToken : KeetaNet.lib.Account.fromPublicKeyString(
-      network === 'test' 
-        ? 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s' 
-        : 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6'
-    );
-
-    builder.receive(buyerAccountObj, priceInBaseUnits, paymentToken, true);
-
-    console.log('[fx-buy-nft] Building atomic swap for price:', price, listing.currency);
-
-    // Compute and publish the atomic swap
+    
     await builder.computeBlocks();
-    
-    // Add the buyer's payment block to create atomic swap
-    builder.addForeignBlock(paymentBlock);
-    
     const result = await builder.publish();
-    console.log('[fx-buy-nft] Atomic swap published:', result);
+    
+    console.log('[fx-buy-nft] NFT sent to buyer:', result);
 
     // Update the listing status
     const { error: updateError } = await supabaseClient

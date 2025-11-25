@@ -103,7 +103,7 @@ export const useFeedActivities = (network: "main" | "test" = "test") => {
           tokenName,
           tokenImage,
           price: listing.currency === 'KTA' ? listing.price_kta : listing.price_xrge,
-          currency: listing.currency,
+          currency: listing.currency as 'KTA' | 'XRGE',
         });
       }
       
@@ -117,8 +117,8 @@ export const useFeedActivities = (network: "main" | "test" = "test") => {
         timestamp: swap.timestamp,
         fromToken: swap.from_token,
         toToken: swap.to_token,
-        rate: parseFloat(swap.rate),
-        volume: parseFloat(swap.volume_24h),
+        rate: typeof swap.rate === 'string' ? parseFloat(swap.rate) : swap.rate,
+        volume: typeof swap.volume_24h === 'string' ? parseFloat(swap.volume_24h) : (swap.volume_24h || 0),
       }));
 
       // Sort activities with NFT activities prioritized

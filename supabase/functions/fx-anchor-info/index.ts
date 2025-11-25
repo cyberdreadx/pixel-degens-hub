@@ -110,8 +110,6 @@ serve(async (req) => {
     const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
     const allBalances = accountData?.balances || [];
     
-    console.log('Raw balance data:', JSON.stringify(balanceData));
-    
     // Find KTA and XRGE balances using network-specific token addresses
     const ktaBalance = allBalances.find((b: any) => b.token === TOKEN_ADDRS.KTA);
     const xrgeBalance = allBalances.find((b: any) => b.token === TOKEN_ADDRS.XRGE);
