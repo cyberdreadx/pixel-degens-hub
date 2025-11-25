@@ -6,7 +6,7 @@ import { useWallet } from "@/contexts/WalletContext";
 import { ipfsToHttp } from "@/utils/nftUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { fetchTokenInfo } from "@/utils/keetaApi";
+import { fetchTokenInfo } from "@/utils/keetaBlockchain";
 import { useEffect, useState } from "react";
 
 const NFTDetail = () => {
@@ -82,7 +82,10 @@ const NFTDetail = () => {
             <div className="text-6xl">❌</div>
             <h2 className="text-2xl font-bold">TOKEN NOT FOUND</h2>
             <p className="text-sm text-muted-foreground">
-              Unable to load token data from the blockchain
+              This token doesn't exist on {network === 'test' ? 'testnet' : 'mainnet'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Make sure you're on the correct network and the token address is valid
             </p>
           </div>
         </div>

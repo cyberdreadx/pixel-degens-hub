@@ -12,6 +12,7 @@ import ktaLogo from "@/assets/kta-logo.jpg";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getTokenAddresses } from "@/utils/keetaApi";
+import { fetchExchangeRate } from "@/utils/keetaBlockchain";
 import { AddLiquidityDialog } from "@/components/AddLiquidityDialog";
 import { useMarketData } from "@/hooks/useMarketData";
 
@@ -142,14 +143,19 @@ const Swap = () => {
   const fetchRate = async () => {
     setIsLoadingRate(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fx-rates', {
-        body: { from: fromCurrency, to: toCurrency, network }
-      });
-
-      if (error) throw error;
+      // Use the configured anchor address
+      const targetAnchor = anchorAddress || ANCHOR_ADDRESS;
       
-      setRate(data.rate);
-      return data.rate;
+      // Fetch rate directly from blockchain (faster!)
+      const { rate: fetchedRate } = await fetchExchangeRate(
+        targetAnchor,
+        network,
+        fromCurrency as 'KTA' | 'XRGE',
+        toCurrency as 'KTA' | 'XRGE'
+      );
+      
+      setRate(fetchedRate);
+      return fetchedRate;
     } catch (error: any) {
       console.error('Error fetching rate:', error);
       toast.error('Failed to fetch exchange rate');

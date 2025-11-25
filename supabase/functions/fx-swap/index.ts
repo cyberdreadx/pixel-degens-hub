@@ -47,21 +47,22 @@ async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddre
   try {
     // Fetch balances directly from API
     const apiEndpoint = network === 'test'
-      ? 'https://rep3.test.network.api.keeta.com/api'
-      : 'https://rep3.main.network.api.keeta.com/api';
+      ? 'https://rep2.test.network.api.keeta.com/api'
+      : 'https://rep2.main.network.api.keeta.com/api';
     
     console.log('[fx-swap] Using API endpoint:', apiEndpoint);
     
     const balanceResponse = await fetch(
-      `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
+      `${apiEndpoint}/node/ledger/accounts/${anchorAddress}`
     );
     
     if (!balanceResponse.ok) {
       throw new Error(`Failed to fetch balance: ${balanceResponse.statusText}`);
     }
     
-    const balanceData = await balanceResponse.json();
-    const allBalances = balanceData.balances || [];
+    const rawData = await balanceResponse.json();
+    const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+    const allBalances = accountData?.balances || [];
     
     const TOKENS = getTokenAddresses(network);
     let ktaBalance = 0;
@@ -96,7 +97,7 @@ async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddre
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -271,18 +272,19 @@ serve(async (req) => {
     try {
       // Fetch current pool balances
       const apiEndpoint = network === 'test'
-        ? 'https://rep3.test.network.api.keeta.com/api'
-        : 'https://rep3.main.network.api.keeta.com/api';
+        ? 'https://rep2.test.network.api.keeta.com/api'
+        : 'https://rep2.main.network.api.keeta.com/api';
       const balanceResponse = await fetch(
-        `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
+        `${apiEndpoint}/node/ledger/accounts/${anchorAddress}`
       );
       
       if (!balanceResponse.ok) {
         throw new Error('Failed to fetch pool balances');
       }
       
-      const balanceData = await balanceResponse.json();
-      const allBalances = balanceData.balances || [];
+      const rawData = await balanceResponse.json();
+      const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+      const allBalances = accountData?.balances || [];
       
       let ktaBalance = 0;
       let xrgeBalance = 0;
@@ -406,15 +408,16 @@ serve(async (req) => {
 
           // Get current pool balances after swap
           const apiEndpoint = network === 'test'
-            ? 'https://rep3.test.network.api.keeta.com/api'
-            : 'https://rep3.main.network.api.keeta.com/api';
+            ? 'https://rep2.test.network.api.keeta.com/api'
+            : 'https://rep2.main.network.api.keeta.com/api';
           const balanceResponse = await fetch(
-            `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
+            `${apiEndpoint}/node/ledger/accounts/${anchorAddress}`
           );
           
           if (balanceResponse.ok) {
-            const balanceData = await balanceResponse.json();
-            const allBalances = balanceData.balances || [];
+            const rawData = await balanceResponse.json();
+            const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+            const allBalances = accountData?.balances || [];
             
             let ktaBalance = 0;
             let xrgeBalance = 0;
@@ -540,16 +543,17 @@ serve(async (req) => {
         const postSwapRate = await getPoolRate(fromCurrency, toCurrency, anchorAddress, network);
         
         const apiEndpoint = network === 'test'
-          ? 'https://rep3.test.network.api.keeta.com/api'
-          : 'https://rep3.main.network.api.keeta.com/api';
+          ? 'https://rep2.test.network.api.keeta.com/api'
+          : 'https://rep2.main.network.api.keeta.com/api';
         
         const balanceResponse = await fetch(
-          `${apiEndpoint}/node/ledger/account/${anchorAddress}/balance`
+          `${apiEndpoint}/node/ledger/accounts/${anchorAddress}`
         );
         
         if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json();
-          const allBalances = balanceData.balances || [];
+          const rawData = await balanceResponse.json();
+          const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+          const allBalances = accountData?.balances || [];
           
           let ktaBalance = 0;
           let xrgeBalance = 0;

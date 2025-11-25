@@ -15,7 +15,7 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('[fx-anchor-info] Handling CORS preflight');
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -91,21 +91,24 @@ serve(async (req) => {
     
     // Fetch balances for the backend-derived address (the one that can actually be used)
     const apiEndpoint = network === 'test' 
-      ? 'https://rep3.test.network.api.keeta.com/api'
-      : 'https://rep3.main.network.api.keeta.com/api';
+      ? 'https://rep2.test.network.api.keeta.com/api'
+      : 'https://rep2.main.network.api.keeta.com/api';
     
     console.log('[fx-anchor-info] Using API endpoint:', apiEndpoint);
     
     const balanceResponse = await fetch(
-      `${apiEndpoint}/node/ledger/account/${backendDerivedAddress}/balance`
+      `${apiEndpoint}/node/ledger/accounts/${backendDerivedAddress}`
     );
     
     if (!balanceResponse.ok) {
       throw new Error(`Failed to fetch balance: ${balanceResponse.statusText}`);
     }
     
-    const balanceData = await balanceResponse.json();
-    const allBalances = balanceData.balances || [];
+    const rawData = await balanceResponse.json();
+    
+    // The API returns an array with account info
+    const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+    const allBalances = accountData?.balances || [];
     
     console.log('Raw balance data:', JSON.stringify(balanceData));
     

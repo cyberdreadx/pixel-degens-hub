@@ -7,7 +7,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -18,23 +18,27 @@ serve(async (req) => {
     }
 
     const apiEndpoint = network === "test"
-      ? 'https://rep3.test.network.api.keeta.com/api'
-      : 'https://rep3.main.network.api.keeta.com/api';
+      ? 'https://rep2.test.network.api.keeta.com/api'
+      : 'https://rep2.main.network.api.keeta.com/api';
 
     console.log(`[fx-token-info] Fetching token info for ${tokenAddress} on ${network} network`);
 
     // Fetch token info from API
     const infoResponse = await fetch(
-      `${apiEndpoint}/node/ledger/account/${tokenAddress}/info`
+      `${apiEndpoint}/node/ledger/accounts/${tokenAddress}`
     );
     
     if (!infoResponse.ok) {
       throw new Error(`Failed to fetch token info: ${infoResponse.statusText}`);
     }
     
-    const tokenInfo = await infoResponse.json();
+    const data = await infoResponse.json();
     
-    console.log('[fx-token-info] Raw token info:', tokenInfo);
+    console.log('[fx-token-info] Raw data:', data);
+    
+    // The API returns an array with account info
+    const accountData = Array.isArray(data) ? data[0] : data;
+    const tokenInfo = accountData?.info || {};
     
     let metadata = null;
     if (tokenInfo.metadata) {
@@ -46,16 +50,20 @@ serve(async (req) => {
       }
     }
 
+    // Convert hex supply to decimal string
+    const supplyHex = tokenInfo.supply || '0x0';
+    const supply = BigInt(supplyHex).toString();
+
     const result = {
       address: tokenAddress,
       name: tokenInfo.name || 'Unknown',
       symbol: tokenInfo.symbol || tokenInfo.name || 'UNKNOWN',
       description: tokenInfo.description || '',
-      supply: tokenInfo.supply?.toString() || '0',
+      supply,
       decimals: metadata?.decimalPlaces || metadata?.decimals || 0,
       metadata,
       isNFT: metadata?.platform === 'degen8bit' || 
-             (tokenInfo.supply?.toString() === '1' && 
+             (supply === '1' && 
               (metadata?.decimalPlaces === 0 || !metadata?.decimalPlaces))
     };
 

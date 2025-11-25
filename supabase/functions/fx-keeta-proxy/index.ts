@@ -7,7 +7,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -19,23 +19,23 @@ serve(async (req) => {
 
     // Select API endpoint based on network
     const KEETA_API = network === 'test' 
-      ? 'https://rep3.test.network.api.keeta.com/api'
-      : 'https://rep3.main.network.api.keeta.com/api';
+      ? 'https://rep2.test.network.api.keeta.com/api'
+      : 'https://rep2.main.network.api.keeta.com/api';
 
     console.log(`[fx-keeta-proxy] Fetching balances for ${address} on ${network} network using ${KEETA_API}`);
 
     // Fetch balances from Keeta API
-    const response = await fetch(`${KEETA_API}/account-balances`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ account: address }),
-    });
+    const response = await fetch(`${KEETA_API}/node/ledger/accounts/${address}`);
 
     if (!response.ok) {
       throw new Error(`Keeta API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const rawData = await response.json();
+    
+    // The API returns an array with account info
+    const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+    const data = { balances: accountData?.balances || [] };
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

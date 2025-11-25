@@ -50,8 +50,8 @@ async function getAnchorBalances(network: string) {
 
   // Select API endpoint based on network
   const apiEndpoint = network === 'test' 
-    ? 'https://rep3.test.network.api.keeta.com/api'
-    : 'https://rep3.main.network.api.keeta.com/api';
+    ? 'https://rep2.test.network.api.keeta.com/api'
+    : 'https://rep2.main.network.api.keeta.com/api';
 
   // Select token addresses based on network
   const TOKENS = network === 'test' ? TESTNET_TOKENS : MAINNET_TOKENS;
@@ -60,15 +60,16 @@ async function getAnchorBalances(network: string) {
 
   // Fetch balances
   const balanceResponse = await fetch(
-    `${apiEndpoint}/node/ledger/account/${address}/balance`
+    `${apiEndpoint}/node/ledger/accounts/${address}`
   );
   
   if (!balanceResponse.ok) {
     throw new Error(`Failed to fetch balance: ${balanceResponse.statusText}`);
   }
   
-  const balanceData = await balanceResponse.json();
-  const allBalances = balanceData.balances || [];
+  const rawData = await balanceResponse.json();
+  const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+  const allBalances = accountData?.balances || [];
   
   const ktaBalance = allBalances.find((b: any) => b.token === TOKENS.KTA);
   const xrgeBalance = allBalances.find((b: any) => b.token === TOKENS.XRGE);
@@ -81,7 +82,7 @@ async function getAnchorBalances(network: string) {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { status: 200, headers: corsHeaders });
   }
 
   try {

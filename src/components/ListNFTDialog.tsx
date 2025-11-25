@@ -52,21 +52,20 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
       // Seller sends NFT to anchor
       builder.send(anchorAccountObj, 1n, tokenAccountObj);
       
-      // Compute the block
-      await builder.computeBlocks();
+      // Compute the block using the client
+      const computed = await client.computeBuilderBlocks(builder);
       
-      // Get the block bytes
-      const blocks = builder.getBlocks();
-      if (!blocks || blocks.length === 0) {
+      if (!computed.blocks || computed.blocks.length === 0) {
         throw new Error('Failed to create swap block');
       }
       
-      const swapBlock = blocks[0];
+      console.log('Swap blocks computed:', computed.blocks.length);
+      
+      // Get the block bytes
+      const swapBlock = computed.blocks[0];
       const swapBlockBytes = swapBlock.toBytes();
       const swapBlockBase64 = btoa(
-        Array.from(swapBlockBytes as Uint8Array)
-          .map(b => String.fromCharCode(b))
-          .join('')
+        String.fromCharCode(...new Uint8Array(swapBlockBytes))
       );
 
       // Call the edge function to complete listing

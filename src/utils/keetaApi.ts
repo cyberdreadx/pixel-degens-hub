@@ -1,5 +1,10 @@
-// Keeta chain API interactions via Supabase proxy (bypasses CORS)
-import { supabase } from "@/integrations/supabase/client";
+// Keeta chain API interactions - now using direct blockchain access for speed!
+import { 
+  fetchAccountBalances as fetchAccountBalancesDirect,
+  fetchExchangeRate as fetchExchangeRateDirect,
+  fetchTokenInfo as fetchTokenInfoDirect,
+  fetchAnchorPoolInfo,
+} from "./keetaBlockchain";
 
 export const TOKENS = {
   MAINNET: {
@@ -31,33 +36,34 @@ export interface ExchangeRate {
 }
 
 /**
- * Fetch account balances from Keeta chain via proxy edge function
+ * Fetch account balances from Keeta chain - now directly from blockchain!
+ * @deprecated Use fetchAccountBalancesDirect from keetaBlockchain.ts for better performance
  */
 export async function fetchAccountBalances(
   address: string, 
   network: "main" | "test" = "main"
 ): Promise<{ kta: number; xrge: number }> {
   try {
-    const tokenAddrs = getTokenAddresses(network);
+    const TOKEN_DECIMALS = {
+      KTA: 6,
+      XRGE: 18,
+    };
     
-    const { data, error } = await supabase.functions.invoke('fx-keeta-proxy', {
-      body: { address, network }
-    });
-
-    if (error) throw error;
+    const tokenAddrs = getTokenAddresses(network);
+    const balanceData = await fetchAccountBalancesDirect(address, network);
     
     let ktaBalance = 0;
     let xrgeBalance = 0;
 
-    if (data.balances && Array.isArray(data.balances)) {
-      const ktaToken = data.balances.find((b: any) => b.token === tokenAddrs.KTA);
-      const xrgeToken = data.balances.find((b: any) => b.token === tokenAddrs.XRGE);
+    if (balanceData.balances && Array.isArray(balanceData.balances)) {
+      const ktaToken = balanceData.balances.find((b: any) => b.token === tokenAddrs.KTA);
+      const xrgeToken = balanceData.balances.find((b: any) => b.token === tokenAddrs.XRGE);
 
       if (ktaToken) {
-        ktaBalance = parseInt(ktaToken.balance, 16) / Math.pow(10, 18);
+        ktaBalance = Number(BigInt(ktaToken.balance)) / Math.pow(10, TOKEN_DECIMALS.KTA);
       }
       if (xrgeToken) {
-        xrgeBalance = parseInt(xrgeToken.balance, 16) / Math.pow(10, 18);
+        xrgeBalance = Number(BigInt(xrgeToken.balance)) / Math.pow(10, TOKEN_DECIMALS.XRGE);
       }
     }
 
@@ -69,27 +75,24 @@ export async function fetchAccountBalances(
 }
 
 /**
- * Fetch anchor info (balances and rate) directly from chain
+ * Fetch anchor info (balances and rate) - now directly from blockchain!
  */
 export async function fetchAnchorInfo(
   anchorAddress: string,
   network: "main" | "test" = "main"
 ): Promise<AnchorInfo> {
-  const balances = await fetchAccountBalances(anchorAddress, network);
+  const poolInfo = await fetchAnchorPoolInfo(anchorAddress, network);
   
-  // Calculate rate from pool balances (constant product formula)
-  const rate = balances.xrge / balances.kta;
-
   return {
     address: anchorAddress,
-    ktaBalance: balances.kta,
-    xrgeBalance: balances.xrge,
-    rate,
+    ktaBalance: poolInfo.ktaBalance,
+    xrgeBalance: poolInfo.xrgeBalance,
+    rate: poolInfo.rate,
   };
 }
 
 /**
- * Calculate exchange rate based on anchor pool balances
+ * Calculate exchange rate based on anchor pool balances - now directly from blockchain!
  */
 export async function fetchExchangeRate(
   anchorAddress: string,
@@ -97,16 +100,12 @@ export async function fetchExchangeRate(
   from: string = 'KTA',
   to: string = 'XRGE'
 ): Promise<ExchangeRate> {
-  const anchorInfo = await fetchAnchorInfo(anchorAddress, network);
-  
-  let rate: number;
-  if (from === 'KTA' && to === 'XRGE') {
-    rate = anchorInfo.rate;
-  } else if (from === 'XRGE' && to === 'KTA') {
-    rate = 1 / anchorInfo.rate;
-  } else {
-    throw new Error(`Unsupported currency pair: ${from}/${to}`);
-  }
+  const { rate } = await fetchExchangeRateDirect(
+    anchorAddress, 
+    network, 
+    from as 'KTA' | 'XRGE', 
+    to as 'KTA' | 'XRGE'
+  );
 
   return {
     from,
@@ -117,22 +116,11 @@ export async function fetchExchangeRate(
 }
 
 /**
- * Fetch token info directly from Keeta chain via edge function
+ * Fetch token info directly from Keeta chain - now from blockchain directly!
  */
 export async function fetchTokenInfo(
   tokenAddress: string,
   network: "main" | "test" = "main"
 ): Promise<any> {
-  try {
-    const { data, error } = await supabase.functions.invoke('fx-token-info', {
-      body: { tokenAddress, network }
-    });
-
-    if (error) throw error;
-    
-    return data;
-  } catch (error) {
-    console.error('Error fetching token info:', error);
-    throw error;
-  }
+  return fetchTokenInfoDirect(tokenAddress, network);
 }

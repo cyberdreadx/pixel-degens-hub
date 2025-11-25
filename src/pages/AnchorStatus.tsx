@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 import { Copy, ExternalLink, RefreshCw } from "lucide-react";
+import { fetchAnchorPoolInfo } from "@/utils/keetaBlockchain";
 
 const AnchorStatus = () => {
   const { network } = useWallet();
@@ -14,12 +15,26 @@ const AnchorStatus = () => {
   const fetchAnchorInfo = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fx-anchor-info', {
+      // First, get the anchor address from the edge function
+      // (we still need this for the address since it's stored in env vars)
+      const { data: addressData, error: addressError } = await supabase.functions.invoke('fx-anchor-info', {
         body: { network }
       });
 
-      if (error) throw error;
-      setAnchorInfo(data);
+      if (addressError) throw addressError;
+      
+      const anchorAddress = addressData.address;
+      
+      // Now fetch balances directly from blockchain (faster!)
+      const poolInfo = await fetchAnchorPoolInfo(anchorAddress, network);
+      
+      // Combine the data
+      setAnchorInfo({
+        ...addressData,
+        ktaBalance: poolInfo.ktaBalance.toFixed(6),
+        xrgeBalance: poolInfo.xrgeBalance.toFixed(6),
+        rate: poolInfo.rate,
+      });
     } catch (error: any) {
       console.error('Failed to fetch anchor info:', error);
       toast.error('Failed to load anchor status');
