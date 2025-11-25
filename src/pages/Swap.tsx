@@ -858,6 +858,7 @@ const Swap = () => {
                     <TableHead className="animate-fade-in">Time</TableHead>
                     <TableHead className="animate-fade-in">Type</TableHead>
                     <TableHead className="text-right animate-fade-in">Amount</TableHead>
+                    <TableHead className="text-right animate-fade-in">Volume</TableHead>
                     <TableHead className="text-right animate-fade-in">Rate (KTA/XRGE)</TableHead>
                     <TableHead className="text-right animate-fade-in">USD Value</TableHead>
                   </TableRow>
@@ -910,6 +911,9 @@ const Swap = () => {
                         <TableCell className="text-right font-mono animate-fade-in">
                           {inputAmount.toFixed(4)} {tx.from_token} → {outputAmount.toFixed(4)} {tx.to_token}
                         </TableCell>
+                        <TableCell className="text-right font-mono text-sm animate-fade-in text-muted-foreground">
+                          {inputAmount.toFixed(4)} {tx.from_token}
+                        </TableCell>
                         <TableCell className="text-right font-mono text-xs animate-fade-in">
                           {normalizedRate.toFixed(8)} KTA
                         </TableCell>
@@ -921,7 +925,7 @@ const Swap = () => {
                   })}
                   {transactions.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground animate-fade-in">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground animate-fade-in">
                         No transactions found
                       </TableCell>
                     </TableRow>
