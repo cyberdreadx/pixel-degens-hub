@@ -1,15 +1,35 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageSquare, Share2, Loader2, RefreshCw, TrendingUp } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Heart, MessageSquare, Share2, Loader2, RefreshCw, TrendingUp, Image } from "lucide-react";
 import { useFeedActivities } from "@/hooks/useFeedActivities";
 import { useWallet } from "@/contexts/WalletContext";
 import { ipfsToHttp } from "@/utils/nftUtils";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
+import { debugFeedData } from "@/utils/debugFeed";
 
 const Feed = () => {
   const { network } = useWallet();
-  const { activities, isLoading, error, refetch } = useFeedActivities(network);
+  // Default to 'test' network if not connected
+  const { activities, isLoading, error, refetch } = useFeedActivities(network || 'test');
+  const [filter, setFilter] = useState<'all' | 'nfts' | 'swaps'>('all');
+
+  // Filter activities based on selected tab
+  const filteredActivities = activities.filter(activity => {
+    if (filter === 'nfts') return activity.type === 'listing' || activity.type === 'sale';
+    if (filter === 'swaps') return activity.type === 'swap';
+    return true; // 'all'
+  });
+
+  const nftCount = activities.filter(a => a.type === 'listing' || a.type === 'sale').length;
+  const swapCount = activities.filter(a => a.type === 'swap').length;
+
+  // Debug on mount
+  useEffect(() => {
+    debugFeedData(network);
+  }, [network]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -62,6 +82,44 @@ const Feed = () => {
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
+
+          {/* Filter Tabs */}
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 pixel-border">
+              <TabsTrigger value="all" className="text-xs">
+                ALL ({activities.length})
+              </TabsTrigger>
+              <TabsTrigger value="nfts" className="text-xs">
+                <Image className="w-3 h-3 mr-1" />
+                NFTS ({nftCount})
+              </TabsTrigger>
+              <TabsTrigger value="swaps" className="text-xs">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                SWAPS ({swapCount})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Debug Info (remove after fixing) */}
+          {!isLoading && (
+            <Card className="pixel-border bg-yellow-500/10 border-yellow-500">
+              <CardContent className="p-4">
+                <p className="text-xs font-bold mb-2">🐛 DEBUG INFO:</p>
+                <div className="text-xs space-y-1 font-mono">
+                  <div>Network: <span className="text-primary">{network}</span></div>
+                  <div>Total Activities: <span className="text-primary">{activities.length}</span></div>
+                  <div>NFT Activities: <span className="text-primary">{nftCount}</span></div>
+                  <div>Swap Activities: <span className="text-primary">{swapCount}</span></div>
+                  <div className="text-yellow-600 mt-2">
+                    👉 Check browser console for detailed logs
+                  </div>
+                  <div className="text-yellow-600">
+                    👉 Look for [useFeedActivities] and [DEBUG] messages
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {isLoading && activities.length === 0 && (
@@ -87,35 +145,95 @@ const Feed = () => {
           </Card>
         )}
 
+        {!isLoading && !error && filteredActivities.length === 0 && activities.length > 0 && (
+          <Card className="pixel-border-thick bg-card">
+            <CardContent className="p-12 text-center">
+              <div className="text-6xl mb-4">🔍</div>
+              <h3 className="text-xl font-bold mb-2">NO {filter.toUpperCase()} FOUND</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Try selecting a different filter
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => setFilter('all')}
+                className="pixel-border text-xs"
+              >
+                SHOW ALL
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {!isLoading && !error && activities.length === 0 && (
           <Card className="pixel-border-thick bg-card">
             <CardContent className="p-12 text-center">
-              <div className="text-6xl mb-4">📭</div>
-              <h3 className="text-xl font-bold mb-2">NO ACTIVITY YET</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Be the first to mint or trade on {network === 'test' ? 'testnet' : 'mainnet'}!
+              <div className="text-6xl mb-4">🏪</div>
+              <h3 className="text-xl font-bold mb-2">NO MARKETPLACE ACTIVITY YET</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                The feed shows NFTs that are listed for sale and token swaps.
               </p>
-              <div className="flex gap-2 justify-center">
-                <Link to="/mint">
-                  <Button variant="default" className="pixel-border-thick text-xs">
-                    MINT NFT
-                  </Button>
-                </Link>
-                <Link to="/swap">
-                  <Button variant="outline" className="pixel-border text-xs">
-                    SWAP TOKENS
-                  </Button>
-                </Link>
+              <p className="text-sm text-muted-foreground mb-6">
+                {nftCount === 0 ? 
+                  "No NFTs have been listed on the marketplace yet!" :
+                  "Be the first to make a move on " + (network === 'test' ? 'testnet' : 'mainnet') + "!"
+                }
+              </p>
+              <div className="space-y-3">
+                <div className="text-xs text-muted-foreground font-bold">GET STARTED:</div>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <Link to="/collection">
+                    <Button variant="default" className="pixel-border-thick text-xs w-full sm:w-auto">
+                      📦 LIST YOUR NFTs
+                    </Button>
+                  </Link>
+                  <Link to="/mint">
+                    <Button variant="outline" className="pixel-border text-xs w-full sm:w-auto">
+                      🎨 MINT NEW NFT
+                    </Button>
+                  </Link>
+                  <Link to="/swap">
+                    <Button variant="outline" className="pixel-border text-xs w-full sm:w-auto">
+                      🔄 SWAP TOKENS
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
         <div className="space-y-6">
-          {activities.map((activity) => {
+          {/* Show section headers when both types exist and filter is 'all' */}
+          {filter === 'all' && 
+           filteredActivities.some(a => a.type === 'listing' || a.type === 'sale') && 
+           filteredActivities.some(a => a.type === 'swap') && (
+            <div className="sticky top-20 z-10 bg-background/80 backdrop-blur-sm p-2 rounded pixel-border">
+              <p className="text-xs text-muted-foreground text-center">
+                ⬇️ NFT ACTIVITIES SHOWN FIRST ⬇️
+              </p>
+            </div>
+          )}
+          
+          {filteredActivities.map((activity, index) => {
+            // Add separator between NFTs and swaps (only in 'all' view)
+            const isLastNFT = filter === 'all' && 
+              (activity.type === 'listing' || activity.type === 'sale') &&
+              filteredActivities[index + 1]?.type === 'swap';
+            const separator = isLastNFT ? (
+              <div key={`separator-nft-${index}`} className="py-4">
+                <div className="border-t-2 border-dashed border-muted relative">
+                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-4 py-1 pixel-border text-xs text-muted-foreground">
+                    TOKEN SWAPS
+                  </div>
+                </div>
+              </div>
+            ) : null;
+            
             if (activity.type === 'swap') {
               return (
-                <Card key={activity.id} className="pixel-border-thick bg-card">
+                <div key={`swap-${activity.id}`}>
+                  {separator}
+                  <Card className="pixel-border-thick bg-card opacity-80">
                   <CardHeader className="p-4 border-b-2 border-muted">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-accent pixel-border flex items-center justify-center">
@@ -140,11 +258,13 @@ const Feed = () => {
                     </div>
                   </CardHeader>
                 </Card>
+                </div>
               );
             }
 
             return (
-              <Card key={activity.id} className="pixel-border-thick bg-card">
+              <div key={`nft-${activity.id}`}>
+              <Card className="pixel-border-thick bg-card">
                 <CardHeader className="p-4 border-b-2 border-muted">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary pixel-border flex items-center justify-center">
@@ -209,6 +329,8 @@ const Feed = () => {
                   </CardContent>
                 )}
               </Card>
+              {separator}
+              </div>
             );
           })}
         </div>

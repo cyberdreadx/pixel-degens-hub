@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ExternalLink, Copy } from "lucide-react";
+import { ExternalLink, Copy, User, History, ArrowRight, ShoppingCart, Tag } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { useWallet } from "@/contexts/WalletContext";
 import { ipfsToHttp } from "@/utils/nftUtils";
@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { fetchTokenInfo } from "@/utils/keetaBlockchain";
 import { useEffect, useState } from "react";
+import { useNFTOwnership } from "@/hooks/useNFTOwnership";
+import { formatDistanceToNow } from "date-fns";
 
 const NFTDetail = () => {
   const { id } = useParams(); // This is the token address
@@ -15,6 +17,7 @@ const NFTDetail = () => {
   const [tokenData, setTokenData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const { owner, transactions, isLoading: isLoadingOwnership } = useNFTOwnership(id || '');
 
   useEffect(() => {
     if (!id) return;
@@ -95,7 +98,17 @@ const NFTDetail = () => {
 
   const metadata = tokenData.metadata;
   const imageUrl = metadata?.image ? ipfsToHttp(metadata.image) : '';
-  const isOwner = publicKey && tokenData.owner === publicKey;
+  const isOwner = owner?.isYou || false;
+
+  const formatAddress = (address: string) => {
+    if (address === 'Unknown') return 'Unknown';
+    return `${address.slice(0, 8)}...${address.slice(-6)}`;
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Address copied!");
+  };
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4">
@@ -139,12 +152,50 @@ const NFTDetail = () => {
               <h1 className="text-2xl md:text-3xl lg:text-5xl font-bold neon-glow mb-3 md:mb-4">
                 {metadata?.name || tokenData.name}
               </h1>
-              {isOwner && (
-                <p className="text-xs md:text-sm text-muted-foreground">
-                  Owned by <span className="text-primary">You</span>
-                </p>
-              )}
             </div>
+
+            {/* Owner Info */}
+            {!isLoadingOwnership && owner && (
+              <Card className="pixel-border-thick bg-card">
+                <CardContent className="p-4 md:p-6 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    <h3 className="font-bold text-xs md:text-sm">CURRENT OWNER</h3>
+                  </div>
+                  {owner.isAnchor ? (
+                    <div className="bg-accent/20 pixel-border p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ShoppingCart className="w-4 h-4 text-accent" />
+                        <span className="text-xs font-bold text-accent">LISTED FOR SALE</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        This NFT is currently in escrow (held by the marketplace anchor) and available for purchase.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-muted p-3 pixel-border">
+                      <code className="text-xs flex-1 truncate">
+                        {owner.isYou ? (
+                          <span className="text-primary font-bold">YOU ({formatAddress(owner.address)})</span>
+                        ) : (
+                          owner.address !== 'Unknown' ? formatAddress(owner.address) : 'Unknown Owner'
+                        )}
+                      </code>
+                      {owner.address !== 'Unknown' && !owner.isYou && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 flex-shrink-0"
+                          onClick={() => copyToClipboard(owner.address)}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Contract Address */}
             <Card className="pixel-border-thick bg-card">
@@ -242,6 +293,88 @@ const NFTDetail = () => {
             </Card>
           </div>
         </div>
+
+        {/* Transaction History */}
+        {!isLoadingOwnership && transactions.length > 0 && (
+          <div className="mt-8">
+            <Card className="pixel-border-thick bg-card">
+              <CardContent className="p-4 md:p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4" />
+                  <h3 className="font-bold text-xs md:text-sm">TRANSACTION HISTORY</h3>
+                </div>
+                <div className="space-y-2">
+                  {transactions.map((tx) => (
+                    <div key={tx.id} className="pixel-border bg-muted p-3">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          {tx.type === 'list' && <Tag className="w-3 h-3 text-accent" />}
+                          {tx.type === 'sale' && <ShoppingCart className="w-3 h-3 text-primary" />}
+                          {tx.type === 'transfer' && <ArrowRight className="w-3 h-3 text-secondary" />}
+                          <span className="text-xs font-bold">
+                            {tx.type === 'list' && 'LISTED'}
+                            {tx.type === 'sale' && 'SOLD'}
+                            {tx.type === 'transfer' && 'TRANSFERRED'}
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <div className="text-xs space-y-1">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span>From:</span>
+                          <Link 
+                            to={`/profile/${tx.from}`}
+                            className="hover:text-primary transition-colors"
+                          >
+                            <code>{formatAddress(tx.from)}</code>
+                          </Link>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-5 w-5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(tx.from);
+                            }}
+                          >
+                            <Copy className="w-2 h-2" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span>To:</span>
+                          <Link 
+                            to={`/profile/${tx.to}`}
+                            className="hover:text-primary transition-colors"
+                          >
+                            <code>{formatAddress(tx.to)}</code>
+                          </Link>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-5 w-5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(tx.to);
+                            }}
+                          >
+                            <Copy className="w-2 h-2" />
+                          </Button>
+                        </div>
+                        {tx.price && tx.currency && (
+                          <div className="text-primary font-bold mt-1">
+                            Price: {tx.price} {tx.currency}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

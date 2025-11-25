@@ -16,7 +16,6 @@ interface ListNFTRequest {
   price: number;
   currency: 'KTA' | 'XRGE';
   network: 'test' | 'main';
-  swapBlockBytes: string; // Base64-encoded swap block from seller
 }
 
 serve(async (req) => {
@@ -30,12 +29,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { tokenAddress, sellerAddress, price, currency, network, swapBlockBytes } = await req.json() as ListNFTRequest;
+    const { tokenAddress, sellerAddress, price, currency, network } = await req.json() as ListNFTRequest;
 
     console.log('[fx-list-nft] Request:', { tokenAddress, sellerAddress, price, currency, network });
 
     // Validate inputs
-    if (!tokenAddress || !sellerAddress || !price || !currency || !network || !swapBlockBytes) {
+    if (!tokenAddress || !sellerAddress || !price || !currency || !network) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -61,43 +60,20 @@ serve(async (req) => {
 
     console.log('[fx-list-nft] Anchor address:', anchorAddress);
 
-    // Verify seller owns the NFT by checking balance
-    const sellerAccountObj = KeetaNet.lib.Account.fromPublicKeyString(sellerAddress);
+    // Verify anchor received the NFT (it should have been transferred by seller already)
+    const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(anchorAddress);
     const tokenAccountObj = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
     
-    const sellerBalance = await anchorClient.balance(tokenAccountObj, { account: sellerAccountObj });
+    const anchorBalance = await anchorClient.balance(tokenAccountObj, { account: anchorAccountObj });
     
-    if (sellerBalance <= 0n) {
+    if (anchorBalance <= 0n) {
       return new Response(
-        JSON.stringify({ error: 'Seller does not own this NFT' }),
+        JSON.stringify({ error: 'NFT not yet received by anchor. Transfer NFT to anchor first.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('[fx-list-nft] Seller balance verified:', sellerBalance.toString());
-
-    // Decode and verify the swap block from seller
-    const swapBlockBuffer = Uint8Array.from(atob(swapBlockBytes), c => c.charCodeAt(0));
-    const swapBlock = KeetaNet.lib.Block.fromBytes(swapBlockBuffer);
-
-    console.log('[fx-list-nft] Swap block received:', swapBlock.hash);
-
-    // Build anchor's side of the atomic swap
-    const builder = anchorClient.initBuilder();
-
-    // Anchor receives the NFT from seller (1 token, since it's an NFT)
-    builder.receive(sellerAccountObj, 1n, tokenAccountObj, true);
-
-    console.log('[fx-list-nft] Building anchor receive operation');
-
-    // Compute and publish the atomic swap
-    await builder.computeBlocks();
-    
-    // Add the seller's block to create atomic swap
-    builder.addForeignBlock(swapBlock);
-    
-    const result = await builder.publish();
-    console.log('[fx-list-nft] Atomic swap published:', result);
+    console.log('[fx-list-nft] Anchor holds NFT, balance:', anchorBalance.toString());
 
     // Store the listing in database
     const { data: listing, error: dbError } = await supabaseClient

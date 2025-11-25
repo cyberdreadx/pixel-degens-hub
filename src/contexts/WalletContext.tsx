@@ -218,7 +218,14 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             symbol = info.name || 'UNKNOWN';
             name = info.description || info.name || 'Unknown Token';
             
-            // Check metadata for decimal places
+            // Check if this is an NFT (supply of 1)
+            const supply = info.supply ? BigInt(info.supply) : 0n;
+            if (supply === 1n) {
+              isNFT = true;
+              decimals = 0;
+            }
+            
+            // Check metadata for decimal places and additional NFT metadata
             if (info.metadata) {
               try {
                 const metadataJson = atob(info.metadata);
@@ -231,8 +238,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                   decimals = parseInt(metadata.decimals);
                 }
                 
-                // Check if this is a Degen 8bit NFT
-                if (metadata.platform === "degen8bit") {
+                // Check if this is a Degen 8bit NFT (or any NFT with platform metadata)
+                if (metadata.platform === "degen8bit" || (supply === 1n && metadata.image)) {
                   isNFT = true;
                   symbol = info.name || 'NFT';
                   name = metadata.name || name;
@@ -240,10 +247,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 }
               } catch (e) {
                 // Not valid metadata, ignore
+                console.error('[WalletContext] Failed to parse metadata for', tokenAddress, e);
               }
             }
             
-            console.log('[Token Parsed]', { symbol, name, decimals, supply: info.supply });
+            console.log('[Token Parsed]', { symbol, name, decimals, supply: info.supply, isNFT });
           } else {
             // No info available - token exists but we don't have details
             symbol = tokenAddress.substring(0, 12) + '...';
@@ -269,6 +277,20 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       
       const tokenList = await Promise.all(tokenPromises);
+      
+      // Debug: Log NFT detection
+      const nftList = tokenList.filter(t => t.isNFT);
+      console.log('[WalletContext] Total tokens fetched:', tokenList.length);
+      console.log('[WalletContext] NFTs detected:', nftList.length);
+      nftList.forEach(nft => {
+        console.log('[WalletContext] NFT:', {
+          name: nft.name,
+          address: nft.address,
+          hasMetadata: !!nft.metadata,
+          metadata: nft.metadata
+        });
+      });
+      
       setTokens(tokenList);
     } catch (error) {
       console.error('Failed to fetch Keeta tokens:', error);

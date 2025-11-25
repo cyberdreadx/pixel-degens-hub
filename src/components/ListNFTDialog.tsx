@@ -37,38 +37,34 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
     setIsListing(true);
 
     try {
-      // Create the seller's side of the atomic swap
-      const builder = client.initBuilder();
+      // NFT LISTING FLOW:
+      // 1. Seller transfers NFT to anchor (escrow) - simple transfer, not atomic
+      // 2. Anchor verifies receipt and creates database listing
+      // 3. When buyer purchases, atomic swap happens: payment ↔ NFT
       
-      const tokenAccountObj = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
-      
-      // Get anchor address from the backend
+      // Get anchor address
       const anchorAddress = network === 'test' 
         ? 'keeta_aabszsbrqppriqddrkptq5awubshpq3cgsoi4rc624xm6phdt74vo5w7wipwtmi'
-        : 'keeta_aabszsbrqppriqddrkptq5awubshpq3cgsoi4rc624xm6phdt74vo5w7wipwtmi'; // Update with mainnet anchor
+        : 'keeta_aabszsbrqppriqddrkptq5awubshpq3cgsoi4rc624xm6phdt74vo5w7wipwtmi';
       
       const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(anchorAddress);
+      const tokenAccountObj = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
       
-      // Seller sends NFT to anchor
+      // Step 1: Transfer NFT to anchor (escrow)
+      toast.info("Transferring NFT to escrow...");
+      
+      const builder = client.initBuilder();
       builder.send(anchorAccountObj, 1n, tokenAccountObj);
       
-      // Compute the block using the client
-      const computed = await client.computeBuilderBlocks(builder);
+      await builder.computeBlocks();
+      const result = await builder.publish();
       
-      if (!computed.blocks || computed.blocks.length === 0) {
-        throw new Error('Failed to create swap block');
-      }
+      console.log('NFT transferred to anchor:', result);
       
-      console.log('Swap blocks computed:', computed.blocks.length);
+      toast.info("Creating listing...");
       
-      // Get the block bytes
-      const swapBlock = computed.blocks[0];
-      const swapBlockBytes = swapBlock.toBytes();
-      const swapBlockBase64 = btoa(
-        String.fromCharCode(...new Uint8Array(swapBlockBytes))
-      );
-
-      // Call the edge function to complete listing
+      // Step 2: Create the listing in database
+      // The edge function will verify the anchor received the NFT
       const { data, error } = await supabase.functions.invoke('fx-list-nft', {
         body: {
           tokenAddress,
@@ -76,7 +72,6 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
           price: parseFloat(price),
           currency,
           network,
-          swapBlockBytes: swapBlockBase64,
         },
       });
 
