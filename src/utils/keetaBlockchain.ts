@@ -132,8 +132,9 @@ export async function fetchExchangeRate(
   toToken: 'KTA' | 'XRGE' = 'XRGE'
 ): Promise<{ rate: number; ktaBalance: number; xrgeBalance: number }> {
   try {
+    // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
     const TOKEN_DECIMALS = {
-      KTA: 18,
+      KTA: network === 'test' ? 9 : 18,
       XRGE: 18,
     };
     

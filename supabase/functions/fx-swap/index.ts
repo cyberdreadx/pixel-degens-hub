@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
-import { TOKEN_DECIMALS } from "../_shared/tokenDecimals.ts";
+import { getNetworkDecimals } from "../_shared/tokenDecimals.ts";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -45,6 +45,9 @@ interface SwapResponse {
 
 async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddress: string, network: string): Promise<number> {
   try {
+    // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+    const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
+    
     // Fetch balances directly from API
     const apiEndpoint = network === 'test'
       ? 'https://rep2.test.network.api.keeta.com/api'
@@ -286,6 +289,9 @@ serve(async (req) => {
       const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
       const allBalances = accountData?.balances || [];
       
+      // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+      const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
+      
       let ktaBalance = 0;
       let xrgeBalance = 0;
 
@@ -364,6 +370,9 @@ serve(async (req) => {
         
         console.log('Decoded block bytes length:', blockBytes.length);
 
+        // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+        const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
+
         // Create a builder to add anchor's side of the swap
         const builder = client.initBuilder();
         
@@ -418,6 +427,9 @@ serve(async (req) => {
             const rawData = await balanceResponse.json();
             const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
             const allBalances = accountData?.balances || [];
+            
+            // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+            const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
             
             let ktaBalance = 0;
             let xrgeBalance = 0;
@@ -504,12 +516,15 @@ serve(async (req) => {
     console.log('Using trusted anchor model (two transactions)');
     
     try {
+      // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+      const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
+      
       const builder = client.initBuilder();
       
       // Create recipient account from user's public key
       const recipient = KeetaNet.lib.Account.fromPublicKeyString(userPublicKey);
       
-      // Calculate amount in smallest units (6 decimals for KTA, 18 for XRGE)
+      // Calculate amount in smallest units (9 decimals testnet / 18 mainnet for KTA, 18 for XRGE)
       const toDecimals = toCurrency === 'KTA' ? TOKEN_DECIMALS.KTA : TOKEN_DECIMALS.XRGE;
       const amountBigInt = BigInt(Math.floor(outputAmount * Math.pow(10, toDecimals)));
       
@@ -554,6 +569,9 @@ serve(async (req) => {
           const rawData = await balanceResponse.json();
           const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
           const allBalances = accountData?.balances || [];
+          
+          // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+          const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
           
           let ktaBalance = 0;
           let xrgeBalance = 0;

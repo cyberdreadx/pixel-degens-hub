@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { TOKEN_DECIMALS } from "../_shared/tokenDecimals.ts";
+import { getNetworkDecimals } from "../_shared/tokenDecimals.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,6 +70,9 @@ async function getAnchorBalances(network: string) {
     const rawData = await balanceResponse.json();
     const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
     const allBalances = accountData?.balances || [];
+    
+    // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+    const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
     
     const TOKENS = getTokenAddresses(network);
     let ktaBalance = 0;

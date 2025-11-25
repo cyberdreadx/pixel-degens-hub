@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
-import { TOKEN_DECIMALS } from "../_shared/tokenDecimals.ts";
+import { getNetworkDecimals } from "../_shared/tokenDecimals.ts";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -116,6 +116,9 @@ serve(async (req) => {
     
     console.log('Found KTA balance:', ktaBalance);
     console.log('Found XRGE balance:', xrgeBalance);
+    
+    // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+    const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
     
     const kta = ktaBalance 
       ? (Number(BigInt(ktaBalance.balance)) / Math.pow(10, TOKEN_DECIMALS.KTA)).toFixed(6)

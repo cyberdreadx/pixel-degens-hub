@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
-import { TOKEN_DECIMALS } from "../_shared/tokenDecimals.ts";
+import { getNetworkDecimals } from "../_shared/tokenDecimals.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,6 +70,9 @@ async function getAnchorBalances(network: string) {
   const rawData = await balanceResponse.json();
   const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
   const allBalances = accountData?.balances || [];
+  
+  // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+  const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
   
   const ktaBalance = allBalances.find((b: any) => b.token === TOKENS.KTA);
   const xrgeBalance = allBalances.find((b: any) => b.token === TOKENS.XRGE);

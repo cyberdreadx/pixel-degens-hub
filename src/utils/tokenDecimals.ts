@@ -1,10 +1,20 @@
 // Token decimal places for Keeta network tokens
-// Based on keeta-cli observations and network behavior
+// CRITICAL: Testnet and mainnet use DIFFERENT decimals for KTA!
 
-export const TOKEN_DECIMALS = {
-  KTA: 18,  // Keeta base token uses 18 decimals for sending
-  XRGE: 18, // XRGE uses standard 18 decimals
+// Testnet decimals
+const TOKEN_DECIMALS_TESTNET = {
+  KTA: 9,   // Testnet KTA uses 9 decimals
+  XRGE: 18, // XRGE uses 18 decimals on both networks
 } as const;
+
+// Mainnet decimals
+const TOKEN_DECIMALS_MAINNET = {
+  KTA: 18,  // Mainnet KTA uses 18 decimals
+  XRGE: 18, // XRGE uses 18 decimals on both networks
+} as const;
+
+// Legacy export for backwards compatibility (uses mainnet)
+export const TOKEN_DECIMALS = TOKEN_DECIMALS_MAINNET;
 
 // Display decimals are different from transaction decimals for KTA
 export const DISPLAY_DECIMALS = {
@@ -12,8 +22,20 @@ export const DISPLAY_DECIMALS = {
   XRGE: 18, // XRGE display uses 18 decimals
 } as const;
 
-export function getTokenDecimals(tokenSymbol: 'KTA' | 'XRGE'): number {
-  return TOKEN_DECIMALS[tokenSymbol];
+/**
+ * Get token decimals for a specific network
+ * CRITICAL: Testnet uses 9 decimals for KTA, Mainnet uses 18
+ */
+export function getTokenDecimals(tokenSymbol: 'KTA' | 'XRGE', network: 'main' | 'test' = 'main'): number {
+  const decimals = network === 'test' ? TOKEN_DECIMALS_TESTNET : TOKEN_DECIMALS_MAINNET;
+  return decimals[tokenSymbol];
+}
+
+/**
+ * Get all token decimals for a network
+ */
+export function getNetworkDecimals(network: 'main' | 'test' = 'main') {
+  return network === 'test' ? TOKEN_DECIMALS_TESTNET : TOKEN_DECIMALS_MAINNET;
 }
 
 export function getDisplayDecimals(tokenSymbol: 'KTA' | 'XRGE'): number {

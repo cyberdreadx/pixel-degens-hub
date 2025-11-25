@@ -44,8 +44,9 @@ export async function fetchAccountBalances(
   network: "main" | "test" = "main"
 ): Promise<{ kta: number; xrge: number }> {
   try {
+    // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
     const TOKEN_DECIMALS = {
-      KTA: 18,
+      KTA: network === 'test' ? 9 : 18,
       XRGE: 18,
     };
     

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
-import { TOKEN_DECIMALS } from "../_shared/tokenDecimals.ts";
+import { getNetworkDecimals } from "../_shared/tokenDecimals.ts";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -20,6 +20,7 @@ interface BuildSwapRequest {
   toCurrency: string;
   amount: string;
   userPublicKey: string;
+  network?: string; // 'main' or 'test', defaults to 'main'
 }
 
 interface BuildSwapResponse {
@@ -34,10 +35,12 @@ interface BuildSwapResponse {
   error?: string;
 }
 
-async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddress: string): Promise<number> {
+async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddress: string, network: string = 'main'): Promise<number> {
   try {
-    // Fetch balances directly from API
-    const apiEndpoint = 'https://rep2.main.network.api.keeta.com/api';
+    // Fetch balances directly from API (network-aware)
+    const apiEndpoint = network === 'test'
+      ? 'https://rep2.test.network.api.keeta.com/api'
+      : 'https://rep2.main.network.api.keeta.com/api';
     const balanceResponse = await fetch(
       `${apiEndpoint}/node/ledger/accounts/${anchorAddress}`
     );
@@ -49,6 +52,9 @@ async function getPoolRate(fromCurrency: string, toCurrency: string, anchorAddre
     const rawData = await balanceResponse.json();
     const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
     const allBalances = accountData?.balances || [];
+    
+    // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+    const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
     
     let ktaBalance = 0;
     let xrgeBalance = 0;
@@ -86,9 +92,9 @@ serve(async (req) => {
   }
 
   try {
-    const { fromCurrency, toCurrency, amount, userPublicKey }: BuildSwapRequest = await req.json();
+    const { fromCurrency, toCurrency, amount, userPublicKey, network = 'main' }: BuildSwapRequest = await req.json();
 
-    console.log('Build swap request:', { fromCurrency, toCurrency, amount, userPublicKey });
+    console.log('Build swap request:', { fromCurrency, toCurrency, amount, userPublicKey, network });
 
     // Validate input
     if (!fromCurrency || !toCurrency || !amount || !userPublicKey) {
@@ -169,13 +175,13 @@ serve(async (req) => {
     
     // Create anchor account
     const anchorAccount = KeetaNet.lib.Account.fromSeed(trimmedSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
-    const client = KeetaNet.UserClient.fromNetwork('main', anchorAccount);
+    const client = KeetaNet.UserClient.fromNetwork(network === 'test' ? 'test' : 'main', anchorAccount);
     const anchorAddress = anchorAccount.publicKeyString.toString();
 
-    console.log('Anchor wallet:', anchorAddress);
+    console.log('Anchor wallet:', anchorAddress, 'Network:', network);
 
-    // Calculate rate from liquidity pool
-    const rate = await getPoolRate(fromCurrency, toCurrency, anchorAddress);
+    // Calculate rate from liquidity pool (network-aware)
+    const rate = await getPoolRate(fromCurrency, toCurrency, anchorAddress, network);
     
     if (!rate || rate <= 0) {
       return new Response(
@@ -209,7 +215,10 @@ serve(async (req) => {
     // Create user account
     const userAccount = KeetaNet.lib.Account.fromPublicKeyString(userPublicKey);
     
-    // Convert amounts to smallest units (18 decimals)
+    // CRITICAL: Use network-specific decimals (testnet KTA=9, mainnet KTA=18)
+    const TOKEN_DECIMALS = getNetworkDecimals(network === 'test' ? 'test' : 'main');
+    
+    // Convert amounts to smallest units (network-aware decimals)
     const fromDecimals = fromCurrency === 'KTA' ? TOKEN_DECIMALS.KTA : TOKEN_DECIMALS.XRGE;
     const toDecimals = toCurrency === 'KTA' ? TOKEN_DECIMALS.KTA : TOKEN_DECIMALS.XRGE;
     const fromAmountBigInt = BigInt(Math.floor(inputAmount * Math.pow(10, fromDecimals)));
