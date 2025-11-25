@@ -196,8 +196,8 @@ export default function PublicProfile() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 pt-20">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground text-lg">Loading profile...</p>
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary neon-glow" />
+          <p className="text-muted-foreground text-lg font-pixel">Loading profile...</p>
         </div>
       </div>
     );
@@ -207,141 +207,162 @@ export default function PublicProfile() {
   const nfts = tokens.filter(t => t.isNFT);
 
   return (
-    <div className="min-h-screen pt-16">
-      {/* Hero Section with Gradient Background */}
-      <div className="relative h-64 md:h-80 bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(var(--primary-rgb),0.1),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(var(--accent-rgb),0.1),transparent_50%)]" />
-        <div className="absolute inset-0 scanlines opacity-10" />
+    <div className="min-h-screen pt-16 bg-gradient-to-br from-background via-background to-purple-950/20">
+      {/* Animated Background Effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute inset-0 scanlines opacity-5" />
       </div>
 
       {/* Profile Content */}
-      <div className="container mx-auto px-4 -mt-24 md:-mt-32 pb-12">
-        <div className="max-w-5xl mx-auto">
-          {/* Avatar & Header Card */}
-          <Card className="p-6 md:p-8 glass border-border mb-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl" />
+      <div className="container mx-auto px-4 py-12 relative z-10">
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Profile Header Card */}
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-background/95 via-background/90 to-purple-950/30 backdrop-blur-sm border border-primary/20 pixel-border p-8 md:p-12 animate-fade-in">
+            {/* Glow Effects */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-accent/10 to-transparent rounded-full blur-3xl" />
             
-            <div className="relative flex flex-col md:flex-row items-start md:items-end gap-6">
-              {/* Large Avatar */}
-              <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-2xl ring-2 ring-primary/20">
-                <AvatarImage src={profile?.avatar_url || undefined} />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-accent">
-                  <User className="h-16 w-16 md:h-20 md:w-20 text-primary-foreground" />
-                </AvatarFallback>
-              </Avatar>
+            <div className="relative flex flex-col md:flex-row items-center md:items-start gap-8">
+              {/* Neon Avatar */}
+              <div className="relative animate-scale-in">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent rounded-full blur-xl opacity-50 animate-pulse" />
+                <Avatar className="relative h-40 w-40 md:h-48 md:w-48 border-4 border-primary/30 shadow-2xl shadow-primary/20 bg-gradient-to-br from-primary/20 to-accent/20">
+                  <AvatarImage src={profile?.avatar_url || undefined} className="object-cover" />
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-background">
+                    <User className="h-20 w-20 md:h-24 md:w-24" />
+                  </AvatarFallback>
+                </Avatar>
+              </div>
 
-              {/* Name & Info */}
-              <div className="flex-1">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                  <div>
-                    <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                      {displayName}
-                    </h1>
-                    {profile?.username && (
-                      <p className="text-sm text-muted-foreground font-mono flex items-center gap-2">
-                        {walletAddress?.slice(0, 16)}...{walletAddress?.slice(-8)}
-                        <a
-                          href={`https://explorer.keeta.com/account/${walletAddress}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:text-primary/80 transition-colors"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </p>
+              {/* Profile Info */}
+              <div className="flex-1 text-center md:text-left space-y-6">
+                <div>
+                  {/* Wallet Address with Neon Glow */}
+                  <h1 className="text-3xl md:text-5xl font-bold font-pixel mb-3 neon-glow text-primary break-all">
+                    {walletAddress?.slice(0, 16)}...{walletAddress?.slice(-10)}
+                  </h1>
+                  
+                  {profile?.username && (
+                    <p className="text-xl text-muted-foreground mb-2">@{profile.username}</p>
+                  )}
+
+                  <div className="flex items-center justify-center md:justify-start gap-3 mt-4">
+                    <a
+                      href={`https://explorer.keeta.com/account/${walletAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors pixel-border px-4 py-2 bg-primary/5 rounded hover:bg-primary/10"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span className="font-pixel">VIEW ON EXPLORER</span>
+                    </a>
+                    
+                    {isOwnProfile && (
+                      <Link to="/profile">
+                        <Button className="pixel-border font-pixel neon-glow">
+                          EDIT PROFILE
+                        </Button>
+                      </Link>
                     )}
                   </div>
-                  
-                  {isOwnProfile && (
-                    <Link to="/profile">
-                      <Button className="shadow-lg">
-                        Edit Profile
-                      </Button>
-                    </Link>
-                  )}
                 </div>
 
-                {/* Stats Row */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
-                    <div className="text-2xl md:text-3xl font-bold text-primary mb-1">{nfts.length}</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">NFTs Owned</div>
+                {/* Bio */}
+                {profile?.bio && (
+                  <div className="bg-background/50 rounded-lg p-4 border border-border/50">
+                    <p className="text-foreground leading-relaxed">{profile.bio}</p>
                   </div>
+                )}
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                  {/* NFT Count */}
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-primary/20 rounded-lg blur group-hover:bg-primary/30 transition-colors" />
+                    <div className="relative bg-background/80 backdrop-blur-sm rounded-lg p-6 border border-primary/30 text-center pixel-border hover:border-primary/50 transition-all">
+                      <div className="text-4xl font-bold font-pixel text-primary neon-glow mb-2">{nfts.length}</div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-widest font-pixel">NFTs OWNED</div>
+                    </div>
+                  </div>
+
+                  {/* Member Since */}
                   {profile?.created_at && (
-                    <div className="bg-gradient-to-br from-accent/10 to-accent/5 rounded-lg p-4 border border-accent/20">
-                      <div className="text-sm md:text-base font-bold text-accent mb-1">
-                        {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-accent/20 rounded-lg blur group-hover:bg-accent/30 transition-colors" />
+                      <div className="relative bg-background/80 backdrop-blur-sm rounded-lg p-6 border border-accent/30 text-center pixel-border hover:border-accent/50 transition-all">
+                        <div className="text-sm font-bold font-pixel text-accent mb-2">
+                          {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                        </div>
+                        <div className="text-xs text-muted-foreground uppercase tracking-widest font-pixel">MEMBER SINCE</div>
                       </div>
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Member Since</div>
                     </div>
                   )}
+
+                  {/* IPFS */}
                   {profile?.ipfs_hash && (
-                    <div className="bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-lg p-4 border border-secondary/20 col-span-2 md:col-span-1">
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-secondary/20 rounded-lg blur group-hover:bg-secondary/30 transition-colors" />
                       <a
                         href={`https://gateway.pinata.cloud/ipfs/${profile.ipfs_hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 group"
+                        className="relative block bg-background/80 backdrop-blur-sm rounded-lg p-6 border border-secondary/30 text-center pixel-border hover:border-secondary/50 transition-all"
                       >
-                        <div className="text-xs font-mono text-secondary group-hover:text-secondary/80 transition-colors">
-                          {profile.ipfs_hash.slice(0, 10)}...
+                        <div className="text-xs font-mono text-secondary mb-2 truncate">
+                          {profile.ipfs_hash.slice(0, 12)}...
                         </div>
-                        <ExternalLink className="h-3 w-3 text-secondary" />
+                        <div className="text-xs text-muted-foreground uppercase tracking-widest font-pixel flex items-center justify-center gap-1">
+                          IPFS PROFILE <ExternalLink className="h-3 w-3" />
+                        </div>
                       </a>
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide mt-1">IPFS Profile</div>
                     </div>
                   )}
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Bio Section */}
-            {profile?.bio && (
-              <div className="mt-6 pt-6 border-t border-border">
-                <p className="text-foreground leading-relaxed">{profile.bio}</p>
-              </div>
-            )}
-          </Card>
-
-          {/* NFT Collection */}
-          <Card className="p-6 md:p-8 glass border-border">
+          {/* NFT Collection Section */}
+          <div className="relative overflow-hidden rounded-xl bg-background/95 backdrop-blur-sm border border-border/50 p-6 md:p-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">NFT Collection</h2>
-              <div className="px-4 py-2 bg-primary/10 rounded-full">
-                <span className="text-sm font-medium text-primary">{nfts.length} items</span>
+              <h2 className="text-2xl md:text-3xl font-bold font-pixel text-primary neon-glow">NFT COLLECTION</h2>
+              <div className="pixel-border px-4 py-2 bg-primary/10 rounded">
+                <span className="text-sm font-bold font-pixel text-primary">{nfts.length} ITEMS</span>
               </div>
             </div>
 
             {isLoadingTokens ? (
-              <div className="text-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-                <p className="text-muted-foreground">Loading collection...</p>
+              <div className="text-center py-20">
+                <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary neon-glow" />
+                <p className="text-muted-foreground font-pixel">LOADING COLLECTION...</p>
               </div>
             ) : nfts.length === 0 ? (
-              <div className="text-center py-16 border-2 border-dashed border-border rounded-lg">
-                <div className="text-muted-foreground mb-2 text-lg">No NFTs in collection</div>
-                <p className="text-sm text-muted-foreground/60">
-                  {isOwnProfile ? "Start collecting NFTs to see them here" : "This user hasn't collected any NFTs yet"}
+              <div className="text-center py-20 border-2 border-dashed border-primary/30 rounded-lg bg-background/30 backdrop-blur-sm pixel-border">
+                <div className="text-primary font-bold text-xl mb-3 font-pixel neon-glow">NO NFTs IN COLLECTION</div>
+                <p className="text-sm text-muted-foreground font-pixel">
+                  {isOwnProfile ? "THIS USER HASN'T COLLECTED ANY NFTs YET" : "START COLLECTING NFTs TO SEE THEM HERE"}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {nfts.map((nft) => (
-                  <NFTCard 
-                    key={nft.address}
-                    id={nft.address}
-                    title={nft.metadata?.name || nft.name}
-                    creator={nft.metadata?.platform || nft.metadata?.version || "keeta network"}
-                    price={nft.balance}
-                    image={nft.metadata?.image ? ipfsToHttp(nft.metadata.image) : ''}
-                    likes={0}
-                    comments={0}
-                  />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {nfts.map((nft, index) => (
+                  <div key={nft.address} className="animate-scale-in" style={{ animationDelay: `${index * 0.05}s` }}>
+                    <NFTCard 
+                      id={nft.address}
+                      title={nft.metadata?.name || nft.name}
+                      creator={nft.metadata?.platform || nft.metadata?.version || "keeta network"}
+                      price={nft.balance}
+                      image={nft.metadata?.image ? ipfsToHttp(nft.metadata.image) : ''}
+                      likes={0}
+                      comments={0}
+                    />
+                  </div>
                 ))}
               </div>
             )}
-          </Card>
+          </div>
         </div>
       </div>
     </div>
