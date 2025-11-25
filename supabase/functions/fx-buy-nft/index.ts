@@ -85,8 +85,8 @@ serve(async (req) => {
           : 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6');
     
     const expectedAmount = listing.currency === 'KTA' ? listing.price_kta : listing.price_xrge;
-    const TOKEN_DECIMALS = listing.currency === 'KTA' ? 6 : 18;
-    const expectedAmountInSmallestUnit = BigInt(Math.floor(expectedAmount * Math.pow(10, TOKEN_DECIMALS)));
+    const TOKEN_DECIMALS_VALUE = listing.currency === 'KTA' ? 9 : 18;
+    const expectedAmountInSmallestUnit = BigInt(Math.floor(expectedAmount * Math.pow(10, TOKEN_DECIMALS_VALUE)));
     
     // Get buyer's payment token account to check recent transactions
     // For now, we'll verify the anchor received the payment by checking recent balance increase
@@ -116,18 +116,24 @@ serve(async (req) => {
     // Transaction 1: Buyer already sent payment to anchor (handled by frontend)
     // Transaction 2: Anchor sends NFT to buyer
     
-    console.log('[fx-buy-nft] Sending NFT to buyer...');
+    console.log('[fx-buy-nft] Sending NFT to buyer and payment to seller...');
     
     const builder = anchorClient.initBuilder();
     const buyerAccountObj = KeetaNet.lib.Account.fromPublicKeyString(buyerAddress);
+    const sellerAccountObj = KeetaNet.lib.Account.fromPublicKeyString(listing.seller_address);
+    const paymentTokenObj = KeetaNet.lib.Account.fromPublicKeyString(paymentTokenAddress);
     
     // Send NFT to buyer
     builder.send(buyerAccountObj, 1n, tokenAccountObj);
     
+    // Send payment to seller
+    console.log('[fx-buy-nft] Sending payment to seller:', expectedAmountInSmallestUnit.toString(), listing.currency);
+    builder.send(sellerAccountObj, expectedAmountInSmallestUnit, paymentTokenObj);
+    
     await builder.computeBlocks();
     const result = await builder.publish();
     
-    console.log('[fx-buy-nft] NFT sent to buyer:', result);
+    console.log('[fx-buy-nft] NFT sent to buyer and payment sent to seller:', result);
 
     // Update the listing status
     const { error: updateError } = await supabaseClient
