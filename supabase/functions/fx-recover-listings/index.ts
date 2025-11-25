@@ -9,7 +9,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// This function helps recover NFTs that are in anchor escrow but don't have database listings
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { status: 200, headers: corsHeaders });
@@ -18,7 +17,19 @@ serve(async (req) => {
   try {
     const { network } = await req.json();
     
-    console.log('[fx-recover-listings] Checking for NFTs in anchor for network:', network);
+    console.log('[fx-recover-listings] Scanning for orphaned NFTs on network:', network);
+
+    if (!network) {
+      return new Response(
+        JSON.stringify({ error: 'Network is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     // Initialize anchor client
     const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
@@ -32,79 +43,97 @@ serve(async (req) => {
 
     console.log('[fx-recover-listings] Anchor address:', anchorAddress);
 
-    // Get all tokens held by anchor
-    const tokensWithInfo = await anchorClient.listACLsByPrincipalWithInfo({ account: anchorAccount });
+    // Get all tokens held by anchor using Keeta API directly
+    const apiEndpoint = network === 'test' 
+      ? 'https://rep2.test.network.api.keeta.com/api'
+      : 'https://rep2.main.network.api.keeta.com/api';
     
+    const balanceResponse = await fetch(`${apiEndpoint}/node/ledger/accounts/${anchorAddress}`);
+    
+    if (!balanceResponse.ok) {
+      throw new Error(`Failed to fetch anchor balances: ${balanceResponse.statusText}`);
+    }
+    
+    const rawData = await balanceResponse.json();
+    const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+    const allBalances = accountData?.balances || [];
+    
+    console.log('[fx-recover-listings] Anchor has', allBalances.length, 'token balances');
+
+    // Check each token to see if it's an NFT
     const nftsInEscrow = [];
-    
-    for (const tokenInfo of tokensWithInfo) {
-      if (!tokenInfo.entity.isToken()) continue;
+    for (const balanceEntry of allBalances) {
+      const tokenAddress = balanceEntry.token;
+      const balance = BigInt(balanceEntry.balance);
       
-      const balance = tokenInfo.balances?.[0]?.balance || 0n;
-      if (balance <= 0n) continue;
-      
-      const supply = BigInt(tokenInfo.info.supply || '0');
-      const isNFT = supply === 1n;
-      
-      if (!isNFT) continue;
-      
-      const tokenAddress = tokenInfo.entity.publicKeyString.toString();
-      
-      nftsInEscrow.push({
-        tokenAddress,
-        name: tokenInfo.info.name,
-        balance: balance.toString(),
-        metadata: tokenInfo.info.metadata
-      });
+      if (balance > 0n) {
+        try {
+          const tokenResponse = await fetch(`${apiEndpoint}/node/ledger/token/${tokenAddress}`);
+          if (tokenResponse.ok) {
+            const tokenData = await tokenResponse.json();
+            const tokenInfo = Array.isArray(tokenData) ? tokenData[0] : tokenData;
+            
+            // Check if it's an NFT (supply = 1, decimals = 0)
+            if (tokenInfo?.supply === '1' && tokenInfo?.decimals === 0) {
+              nftsInEscrow.push({
+                tokenAddress,
+                balance: balance.toString(),
+                name: tokenInfo.name || 'Unknown NFT',
+                symbol: tokenInfo.symbol || 'NFT',
+              });
+            }
+          }
+        } catch (err) {
+          console.error(`[fx-recover-listings] Error fetching token info for ${tokenAddress}:`, err);
+        }
+      }
     }
 
     console.log('[fx-recover-listings] Found', nftsInEscrow.length, 'NFTs in escrow');
 
-    // Check which ones have listings in database
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const { data: existingListings } = await supabaseClient
+    // Get all active listings for this network
+    const { data: activeListings } = await supabaseClient
       .from('nft_listings')
       .select('token_address')
-      .eq('network', network)
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .eq('network', network);
 
-    const listedTokens = new Set(existingListings?.map(l => l.token_address) || []);
-    
-    const orphanedNFTs = nftsInEscrow.filter(nft => !listedTokens.has(nft.tokenAddress));
-    
-    console.log('[fx-recover-listings] Orphaned NFTs (in escrow but no listing):', orphanedNFTs.length);
+    const listedTokenAddresses = new Set(activeListings?.map(l => l.token_address) || []);
+
+    // Find orphaned NFTs (in escrow but not listed)
+    const orphanedNFTs = nftsInEscrow.filter(nft => !listedTokenAddresses.has(nft.tokenAddress));
+
+    console.log('[fx-recover-listings] Found', orphanedNFTs.length, 'orphaned NFTs');
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
+        network,
+        anchorAddress,
         nftsInEscrow: nftsInEscrow.length,
+        activeListings: activeListings?.length || 0,
         orphanedNFTs,
         message: orphanedNFTs.length > 0 
-          ? `Found ${orphanedNFTs.length} NFT(s) in escrow without listings` 
-          : 'All NFTs in escrow have listings'
+          ? `Found ${orphanedNFTs.length} orphaned NFT(s) in escrow`
+          : 'All NFTs in escrow have active listings',
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
 
   } catch (error: any) {
     console.error('[fx-recover-listings] Error:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message || 'Internal server error',
-        details: error.toString()
+        details: error.toString(),
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
 });
-
