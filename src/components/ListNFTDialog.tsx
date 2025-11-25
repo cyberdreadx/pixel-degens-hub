@@ -42,10 +42,18 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
       // 2. Anchor verifies receipt and creates database listing
       // 3. When buyer purchases, atomic swap happens: payment ↔ NFT
       
-      // Get anchor address
-      const anchorAddress = network === 'test' 
-        ? 'keeta_aabszsbrqppriqddrkptq5awubshpq3cgsoi4rc624xm6phdt74vo5w7wipwtmi'
-        : 'keeta_aabszsbrqppriqddrkptq5awubshpq3cgsoi4rc624xm6phdt74vo5w7wipwtmi';
+      // Get the CORRECT anchor address from backend
+      toast.info("Getting anchor address...");
+      const { data: anchorData, error: anchorError } = await supabase.functions.invoke('fx-anchor-info', {
+        body: { network }
+      });
+      
+      if (anchorError || !anchorData?.address) {
+        throw new Error('Failed to get anchor address: ' + (anchorError?.message || 'No address returned'));
+      }
+      
+      const anchorAddress = anchorData.address;
+      console.log('Using anchor address:', anchorAddress);
       
       const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(anchorAddress);
       const tokenAccountObj = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
