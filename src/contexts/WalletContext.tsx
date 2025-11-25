@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import * as bip39 from "bip39";
 import { Buffer } from "buffer";
 import { getTokenAddresses } from "@/utils/keetaApi";
-import { getTokenDecimals, getNetworkDecimals, DISPLAY_DECIMALS } from "@/utils/tokenDecimals";
+import { getTokenDecimals } from "@/utils/tokenDecimals";
 
 const { Account } = KeetaNet.lib;
 const { AccountKeyAlgorithm } = Account;
