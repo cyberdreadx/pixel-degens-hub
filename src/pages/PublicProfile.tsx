@@ -75,10 +75,15 @@ export default function PublicProfile() {
     
     setIsLoadingTokens(true);
     try {
-      const accountObj = KeetaNet.lib.Account.fromPublicKeyString(walletAddress);
-      const client = KeetaNet.UserClient.fromNetwork(network, accountObj.assertAccount());
+      // Create a temporary account for read-only access
+      const tempSeed = 'temporary-read-only-seed-for-public-profile-viewing';
+      const tempAccount = KeetaNet.lib.Account.fromSeed(tempSeed, 0, KeetaNet.lib.Account.AccountKeyAlgorithm.ECDSA_SECP256K1);
+      const client = KeetaNet.UserClient.fromNetwork(network, tempAccount);
       
-      // Fetch tokens with info
+      // Get the actual account we want to view
+      const accountObj = KeetaNet.lib.Account.fromPublicKeyString(walletAddress);
+      
+      // Fetch tokens with info for the target account
       const tokensWithInfo = await client.listACLsByPrincipalWithInfo({ account: accountObj });
       
       const processedTokens: TokenWithMetadata[] = [];
