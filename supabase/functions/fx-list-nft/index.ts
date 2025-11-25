@@ -48,10 +48,13 @@ serve(async (req) => {
       );
     }
 
-    // Initialize anchor client
-    const anchorSeed = Deno.env.get('ANCHOR_WALLET_SEED');
+    // Initialize anchor client - use network-specific seed
+    const anchorSeed = network === 'test'
+      ? Deno.env.get('ANCHOR_WALLET_SEED_TESTNET')
+      : Deno.env.get('ANCHOR_WALLET_SEED');
+      
     if (!anchorSeed) {
-      throw new Error('ANCHOR_WALLET_SEED not configured');
+      throw new Error(`ANCHOR_WALLET_SEED${network === 'test' ? '_TESTNET' : ''} not configured`);
     }
 
     const anchorAccount = KeetaNet.lib.Account.fromSeed(anchorSeed, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
