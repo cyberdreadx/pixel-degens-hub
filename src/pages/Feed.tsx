@@ -8,7 +8,6 @@ import { useWallet } from "@/contexts/WalletContext";
 import { ipfsToHttp } from "@/utils/nftUtils";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { debugFeedData } from "@/utils/debugFeed";
 
 const Feed = () => {
   const { network } = useWallet();
@@ -25,11 +24,6 @@ const Feed = () => {
 
   const nftCount = activities.filter(a => a.type === 'listing' || a.type === 'sale').length;
   const swapCount = activities.filter(a => a.type === 'swap').length;
-
-  // Debug on mount
-  useEffect(() => {
-    debugFeedData(network);
-  }, [network]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -99,27 +93,6 @@ const Feed = () => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-
-          {/* Debug Info (remove after fixing) */}
-          {!isLoading && (
-            <Card className="pixel-border bg-yellow-500/10 border-yellow-500">
-              <CardContent className="p-4">
-                <p className="text-xs font-bold mb-2">🐛 DEBUG INFO:</p>
-                <div className="text-xs space-y-1 font-mono">
-                  <div>Network: <span className="text-primary">{network}</span></div>
-                  <div>Total Activities: <span className="text-primary">{activities.length}</span></div>
-                  <div>NFT Activities: <span className="text-primary">{nftCount}</span></div>
-                  <div>Swap Activities: <span className="text-primary">{swapCount}</span></div>
-                  <div className="text-yellow-600 mt-2">
-                    👉 Check browser console for detailed logs
-                  </div>
-                  <div className="text-yellow-600">
-                    👉 Look for [useFeedActivities] and [DEBUG] messages
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {isLoading && activities.length === 0 && (
