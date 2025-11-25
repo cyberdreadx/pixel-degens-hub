@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,31 +38,42 @@ const Swap = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoadingTx, setIsLoadingTx] = useState(false);
 
-  // Calculate USD value using Keeta pool rate for swaps
-  const getPoolBasedUsdValue = (amount: number, token: 'KTA' | 'XRGE', isFromAmount: boolean = true): number => {
-    if (!rate || !hookMarketData?.kta) {
-      return getUsdValue(amount, token);
+  // Calculate USD values using pool rate - memoized to update when dependencies change
+  const fromUsdValue = useMemo(() => {
+    if (!fromAmount || parseFloat(fromAmount) <= 0 || !rate || !hookMarketData?.kta) {
+      return null;
     }
     
-    // For XRGE, always calculate value based on pool rate
-    if (token === 'XRGE') {
-      // If selling XRGE (fromCurrency is XRGE): XRGE → KTA → USD
-      if (fromCurrency === 'XRGE') {
-        const ktaAmount = amount * rate; // XRGE × (KTA per XRGE) = KTA
-        return ktaAmount * hookMarketData.kta.price;
-      }
-      // If buying XRGE (toCurrency is XRGE): Use inverse rate
-      // XRGE value = (XRGE amount / rate) × KTA price
-      // Since rate is KTA→XRGE, 1/rate is XRGE→KTA
-      if (toCurrency === 'XRGE') {
-        const ktaEquivalent = amount / rate; // XRGE / (XRGE per KTA) = KTA
-        return ktaEquivalent * hookMarketData.kta.price;
-      }
+    const amount = parseFloat(fromAmount);
+    
+    // For KTA from amount, always use BASE market price
+    if (fromCurrency === 'KTA') {
+      return getUsdValue(amount, 'KTA');
     }
     
-    // For KTA, use BASE market price
-    return getUsdValue(amount, token);
-  };
+    // For XRGE from amount, calculate via pool rate
+    // XRGE → KTA → USD
+    const ktaAmount = amount * rate; // XRGE × (KTA per XRGE) = KTA
+    return ktaAmount * hookMarketData.kta.price;
+  }, [fromAmount, fromCurrency, rate, hookMarketData, getUsdValue]);
+  
+  const toUsdValue = useMemo(() => {
+    if (!toAmount || parseFloat(toAmount) <= 0 || !rate || !hookMarketData?.kta) {
+      return null;
+    }
+    
+    const amount = parseFloat(toAmount);
+    
+    // For KTA to amount, always use BASE market price
+    if (toCurrency === 'KTA') {
+      return getUsdValue(amount, 'KTA');
+    }
+    
+    // For XRGE to amount, calculate via pool rate
+    // Amount of XRGE / rate (XRGE per KTA) = equivalent KTA
+    const ktaEquivalent = amount / rate; // XRGE / (XRGE per KTA) = KTA
+    return ktaEquivalent * hookMarketData.kta.price;
+  }, [toAmount, toCurrency, rate, hookMarketData, getUsdValue]);
 
   // Fetch anchor info and rate together
   const fetchAnchorInfo = async () => {
@@ -607,9 +618,9 @@ const Swap = () => {
                   } {fromCurrency}
                 </p>
               )}
-              {fromAmount && parseFloat(fromAmount) > 0 && (
+              {fromUsdValue !== null && (
                 <p className="text-xs text-primary">
-                  ≈ {formatUsd(getPoolBasedUsdValue(parseFloat(fromAmount), fromCurrency as 'KTA' | 'XRGE'))}
+                  ≈ {formatUsd(fromUsdValue)}
                 </p>
               )}
             </div>
@@ -656,9 +667,9 @@ const Swap = () => {
                   } {toCurrency}
                 </p>
               )}
-              {toAmount && parseFloat(toAmount) > 0 && (
+              {toUsdValue !== null && (
                 <p className="text-xs text-accent">
-                  ≈ {formatUsd(getPoolBasedUsdValue(parseFloat(toAmount), toCurrency as 'KTA' | 'XRGE', false))}
+                  ≈ {formatUsd(toUsdValue)}
                 </p>
               )}
             </div>
