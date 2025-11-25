@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,40 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState<'KTA' | 'XRGE'>('KTA');
   const [isListing, setIsListing] = useState(false);
+  const [anchorAddress, setAnchorAddress] = useState<string | null>(null);
+  const [isLoadingAnchor, setIsLoadingAnchor] = useState(false);
+
+  // Fetch anchor address when dialog opens
+  const fetchAnchorAddress = async () => {
+    if (!open) return;
+    
+    setIsLoadingAnchor(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fx-anchor-info', {
+        body: { network }
+      });
+      
+      if (error || !data?.address) {
+        console.error('Failed to get anchor address:', error);
+        toast.error('Failed to load escrow address');
+        return;
+      }
+      
+      setAnchorAddress(data.address);
+    } catch (error) {
+      console.error('Error fetching anchor:', error);
+      toast.error('Failed to load escrow address');
+    } finally {
+      setIsLoadingAnchor(false);
+    }
+  };
+
+  // Fetch anchor address when dialog opens or network changes
+  useEffect(() => {
+    if (open) {
+      fetchAnchorAddress();
+    }
+  }, [open, network]);
 
   const handleList = async () => {
     if (!client || !account || !publicKey) {
@@ -42,17 +76,11 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
       // 2. Anchor verifies receipt and creates database listing
       // 3. When buyer purchases, atomic swap happens: payment ↔ NFT
       
-      // Get the CORRECT anchor address from backend
-      toast.info("Getting anchor address...");
-      const { data: anchorData, error: anchorError } = await supabase.functions.invoke('fx-anchor-info', {
-        body: { network }
-      });
-      
-      if (anchorError || !anchorData?.address) {
-        throw new Error('Failed to get anchor address: ' + (anchorError?.message || 'No address returned'));
+      if (!anchorAddress) {
+        toast.error('Escrow address not loaded. Please close and try again.');
+        return;
       }
       
-      const anchorAddress = anchorData.address;
       console.log('Using anchor address:', anchorAddress);
       
       const anchorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(anchorAddress);
@@ -176,6 +204,25 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
             </Select>
           </div>
 
+          {/* Escrow Address Preview */}
+          <div className="space-y-2">
+            <Label className="text-xs font-bold">ESCROW ADDRESS</Label>
+            <div className="p-3 bg-muted/50 rounded pixel-border">
+              {isLoadingAnchor ? (
+                <div className="text-xs text-muted-foreground animate-pulse">Loading escrow address...</div>
+              ) : anchorAddress ? (
+                <div className="space-y-2">
+                  <div className="text-xs font-mono break-all text-foreground">{anchorAddress}</div>
+                  <div className="text-xs text-muted-foreground">
+                    ✓ Your NFT will be sent to this {network === 'test' ? 'testnet' : 'mainnet'} escrow wallet
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-red-500">⚠ Failed to load escrow address</div>
+              )}
+            </div>
+          </div>
+
           {/* Info */}
           <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
             <p>• NFT will be held in escrow until sold</p>
@@ -195,7 +242,7 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
           </Button>
           <Button
             onClick={handleList}
-            disabled={isListing || !price}
+            disabled={isListing || !price || !anchorAddress || isLoadingAnchor}
             className="pixel-border-thick text-xs"
           >
             {isListing ? "LISTING..." : "LIST FOR SALE"}
