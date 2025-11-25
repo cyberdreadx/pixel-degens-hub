@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { useNFTOwnership } from "@/hooks/useNFTOwnership";
 import { formatDistanceToNow } from "date-fns";
 import ListNFTDialog from "@/components/ListNFTDialog";
+import { BuyNFTConfirmDialog } from "@/components/BuyNFTConfirmDialog";
 
 const NFTDetail = () => {
   const { id } = useParams(); // This is the token address
@@ -26,6 +27,9 @@ const NFTDetail = () => {
   const [activeListing, setActiveListing] = useState<any>(null);
   const [isBuying, setIsBuying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showBuyDialog, setShowBuyDialog] = useState(false);
+  const [userKTABalance, setUserKTABalance] = useState(0);
+  const [userXRGEBalance, setUserXRGEBalance] = useState(0);
 
   // Refresh wallet data if this is a fresh mint
   useEffect(() => {
@@ -52,6 +56,39 @@ const NFTDetail = () => {
 
     fetchListing();
   }, [id, network, owner]);
+
+  // Fetch user balances when wallet is connected
+  useEffect(() => {
+    if (!client || !publicKey) return;
+
+    const fetchBalances = async () => {
+      try {
+        const tokenAddresses = network === 'test' ? {
+          KTA: 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52',
+          XRGE: 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s',
+        } : {
+          KTA: 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg',
+          XRGE: 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6',
+        };
+
+        const ktaTokenObj = KeetaNet.lib.Account.fromPublicKeyString(tokenAddresses.KTA);
+        const xrgeTokenObj = KeetaNet.lib.Account.fromPublicKeyString(tokenAddresses.XRGE);
+
+        const ktaBalance = await client.balance(ktaTokenObj);
+        const xrgeBalance = await client.balance(xrgeTokenObj);
+
+        const KTA_DECIMALS = 6;
+        const XRGE_DECIMALS = 18;
+
+        setUserKTABalance(Number(ktaBalance) / Math.pow(10, KTA_DECIMALS));
+        setUserXRGEBalance(Number(xrgeBalance) / Math.pow(10, XRGE_DECIMALS));
+      } catch (error) {
+        console.error('[NFTDetail] Error fetching balances:', error);
+      }
+    };
+
+    fetchBalances();
+  }, [client, publicKey, network]);
 
   useEffect(() => {
     if (!id) return;
@@ -384,11 +421,11 @@ const NFTDetail = () => {
                             <Button 
                               className="w-full pixel-border-thick gap-2"
                               size="lg"
-                              onClick={handleBuyNFT}
+                              onClick={() => setShowBuyDialog(true)}
                               disabled={isBuying}
                             >
                               <Wallet className="w-4 h-4" />
-                              {isBuying ? "PROCESSING..." : "BUY NOW"}
+                              BUY NOW
                             </Button>
                           ) : null}
                         </>
@@ -619,6 +656,20 @@ const NFTDetail = () => {
           tokenAddress={id || ''}
           tokenName={metadata?.name || tokenData.name || 'NFT'}
           tokenImage={imageUrl}
+        />
+      )}
+
+      {/* Buy NFT Confirmation Dialog */}
+      {showBuyDialog && activeListing && (
+        <BuyNFTConfirmDialog
+          open={showBuyDialog}
+          onOpenChange={setShowBuyDialog}
+          onConfirm={handleBuyNFT}
+          nftName={metadata?.name || tokenData.name || 'NFT'}
+          price={activeListing.currency === 'KTA' ? activeListing.price_kta : activeListing.price_xrge}
+          currency={activeListing.currency}
+          userBalance={activeListing.currency === 'KTA' ? userKTABalance : userXRGEBalance}
+          isProcessing={isBuying}
         />
       )}
     </div>
