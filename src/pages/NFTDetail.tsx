@@ -14,6 +14,7 @@ import { useNFTOwnership } from "@/hooks/useNFTOwnership";
 import { formatDistanceToNow } from "date-fns";
 import ListNFTDialog from "@/components/ListNFTDialog";
 import { BuyNFTConfirmDialog } from "@/components/BuyNFTConfirmDialog";
+import { NFTPriceChart } from "@/components/NFTPriceChart";
 
 const NFTDetail = () => {
   const { id } = useParams(); // This is the token address
@@ -564,6 +565,13 @@ const NFTDetail = () => {
             </Card>
           </div>
         </div>
+
+        {/* Price History Chart */}
+        {id && (
+          <div className="mt-8">
+            <NFTPriceChart tokenAddress={id} network={network} />
+          </div>
+        )}
 
         {/* Transaction History */}
         {!isLoadingOwnership && transactions.length > 0 && (
