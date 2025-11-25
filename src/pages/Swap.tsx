@@ -19,7 +19,7 @@ const ANCHOR_ADDRESS = 'keeta_aab4yyxf3mw5mi6coye4zm6ovk2e36b2g6xxhfpa4ol4eh22vu
 
 const Swap = () => {
   const { isConnected, publicKey, balance, tokens, sendTokens, refreshBalance, network } = useWallet();
-  const { getUsdValue, formatUsd } = useMarketData();
+  const { getUsdValue, formatUsd, marketData: hookMarketData } = useMarketData();
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [fromCurrency, setFromCurrency] = useState("KTA");
@@ -36,6 +36,18 @@ const Swap = () => {
   const [priceImpact, setPriceImpact] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoadingTx, setIsLoadingTx] = useState(false);
+
+  // Calculate USD value using Keeta pool rate for XRGE sells
+  const getPoolBasedUsdValue = (amount: number, token: 'KTA' | 'XRGE'): number => {
+    // For XRGE when selling (fromCurrency is XRGE), use pool rate
+    if (token === 'XRGE' && fromCurrency === 'XRGE' && rate && hookMarketData?.kta) {
+      // XRGE amount × rate (KTA per XRGE) × KTA USD price
+      const ktaAmount = amount * rate;
+      return ktaAmount * hookMarketData.kta.price;
+    }
+    // For all other cases, use BASE market prices
+    return getUsdValue(amount, token);
+  };
 
   // Fetch anchor info and rate together
   const fetchAnchorInfo = async () => {
@@ -577,7 +589,7 @@ const Swap = () => {
               )}
               {fromAmount && parseFloat(fromAmount) > 0 && (
                 <p className="text-xs text-primary">
-                  ≈ {formatUsd(getUsdValue(parseFloat(fromAmount), fromCurrency as 'KTA' | 'XRGE'))}
+                  ≈ {formatUsd(getPoolBasedUsdValue(parseFloat(fromAmount), fromCurrency as 'KTA' | 'XRGE'))}
                 </p>
               )}
             </div>
@@ -626,7 +638,7 @@ const Swap = () => {
               )}
               {toAmount && parseFloat(toAmount) > 0 && (
                 <p className="text-xs text-accent">
-                  ≈ {formatUsd(getUsdValue(parseFloat(toAmount), toCurrency as 'KTA' | 'XRGE'))}
+                  ≈ {formatUsd(getPoolBasedUsdValue(parseFloat(toAmount), toCurrency as 'KTA' | 'XRGE'))}
                 </p>
               )}
             </div>
