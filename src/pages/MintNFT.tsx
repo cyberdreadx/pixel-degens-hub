@@ -187,11 +187,14 @@ const MintNFT = () => {
       // Compute blocks to finalize the supply modification before sending
       await builder.computeBlocks();
       
-      // Update builder context to the token account to send from it
-      builder.updateAccounts({ account: tokenAccount });
+      // Update builder context to send from token account (signed by user as admin)
+      builder.updateAccounts({ 
+        account: tokenAccount,
+        signer: account  // User signs on behalf of token account
+      });
       
       // Distribute tokens from token account to user's wallet
-      builder.send(client.account, supplyAmount, tokenAccount);
+      builder.send(account, supplyAmount, tokenAccount);
 
       // Publish the transaction
       await builder.publish();
