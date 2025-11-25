@@ -115,3 +115,24 @@ export async function fetchExchangeRate(
     timestamp: Date.now(),
   };
 }
+
+/**
+ * Fetch token info directly from Keeta chain via edge function
+ */
+export async function fetchTokenInfo(
+  tokenAddress: string,
+  network: "main" | "test" = "main"
+): Promise<any> {
+  try {
+    const { data, error } = await supabase.functions.invoke('fx-token-info', {
+      body: { tokenAddress, network }
+    });
+
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching token info:', error);
+    throw error;
+  }
+}
