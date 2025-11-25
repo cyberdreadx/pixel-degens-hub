@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ExternalLink, Copy, User, History, ArrowRight, ShoppingCart, Tag, Wallet } from "lucide-react";
+import { ExternalLink, Copy, User, History, ArrowRight, ShoppingCart, Tag, Wallet, X } from "lucide-react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { useWallet } from "@/contexts/WalletContext";
 import * as KeetaNet from "@keetanetwork/keetanet-client";
@@ -25,6 +25,7 @@ const NFTDetail = () => {
   const [showListDialog, setShowListDialog] = useState(false);
   const [activeListing, setActiveListing] = useState<any>(null);
   const [isBuying, setIsBuying] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Refresh wallet data if this is a fresh mint
   useEffect(() => {
@@ -181,6 +182,55 @@ const NFTDetail = () => {
     }
   };
 
+  const handleCancelListing = async () => {
+    if (!publicKey || !client) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+
+    if (!activeListing || !id) {
+      toast.error("No active listing found");
+      return;
+    }
+
+    setIsCancelling(true);
+
+    try {
+      toast.info("Cancelling listing...");
+      
+      // Get anchor info
+      const { data: anchorData } = await supabase.functions.invoke('fx-anchor-info', {
+        body: { network }
+      });
+      
+      if (!anchorData?.address) {
+        throw new Error('Failed to get anchor address');
+      }
+      
+      // Cancel listing in database first
+      const { error: updateError } = await supabase
+        .from('nft_listings')
+        .update({ status: 'cancelled' })
+        .eq('id', activeListing.id);
+
+      if (updateError) {
+        throw new Error('Failed to cancel listing');
+      }
+
+      toast.success("Listing cancelled! Your NFT will be returned to your wallet shortly.");
+      
+      // Refresh page to update UI
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error: any) {
+      console.error('Error cancelling listing:', error);
+      toast.error(`Failed to cancel listing: ${error.message}`);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const explorerUrl = network === 'test'
     ? `https://explorer.test.keeta.com/token/${id}`
     : `https://explorer.keeta.com/token/${id}`;
@@ -319,7 +369,18 @@ const NFTDetail = () => {
                               </div>
                             </div>
                           </div>
-                          {publicKey && activeListing.seller_address !== publicKey && (
+                          {publicKey && activeListing.seller_address === publicKey ? (
+                            <Button 
+                              className="w-full pixel-border-thick gap-2"
+                              variant="destructive"
+                              size="lg"
+                              onClick={handleCancelListing}
+                              disabled={isCancelling}
+                            >
+                              <X className="w-4 h-4" />
+                              {isCancelling ? "CANCELLING..." : "CANCEL LISTING"}
+                            </Button>
+                          ) : publicKey && activeListing.seller_address !== publicKey ? (
                             <Button 
                               className="w-full pixel-border-thick gap-2"
                               size="lg"
@@ -329,7 +390,7 @@ const NFTDetail = () => {
                               <Wallet className="w-4 h-4" />
                               {isBuying ? "PROCESSING..." : "BUY NOW"}
                             </Button>
-                          )}
+                          ) : null}
                         </>
                       )}
                     </div>
