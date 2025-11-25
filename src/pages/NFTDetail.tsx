@@ -6,6 +6,7 @@ import { useWallet } from "@/contexts/WalletContext";
 import { ipfsToHttp } from "@/utils/nftUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { fetchTokenInfo } from "@/utils/keetaBlockchain";
 import { useEffect, useState } from "react";
 import { useNFTOwnership } from "@/hooks/useNFTOwnership";
@@ -21,6 +22,7 @@ const NFTDetail = () => {
   const [error, setError] = useState(false);
   const { owner, transactions, isLoading: isLoadingOwnership } = useNFTOwnership(id || '');
   const [showListDialog, setShowListDialog] = useState(false);
+  const [activeListing, setActiveListing] = useState<any>(null);
 
   // Refresh wallet data if this is a fresh mint
   useEffect(() => {
@@ -28,6 +30,25 @@ const NFTDetail = () => {
       fetchTokens();
     }
   }, [location.state, fetchTokens]);
+
+  // Fetch active listing if NFT is in escrow
+  useEffect(() => {
+    if (!id || !owner?.isAnchor) return;
+
+    const fetchListing = async () => {
+      const { data } = await supabase
+        .from('nft_listings')
+        .select('*')
+        .eq('token_address', id)
+        .eq('network', network)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      setActiveListing(data);
+    };
+
+    fetchListing();
+  }, [id, network, owner]);
 
   useEffect(() => {
     if (!id) return;
@@ -173,14 +194,44 @@ const NFTDetail = () => {
                     <h3 className="font-bold text-xs md:text-sm">CURRENT OWNER</h3>
                   </div>
                   {owner.isAnchor ? (
-                    <div className="bg-accent/20 pixel-border p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <ShoppingCart className="w-4 h-4 text-accent" />
-                        <span className="text-xs font-bold text-accent">LISTED FOR SALE</span>
+                    <div className="space-y-3">
+                      <div className="bg-accent/20 pixel-border p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <ShoppingCart className="w-4 h-4 text-accent" />
+                          <span className="text-xs font-bold text-accent">LISTED FOR SALE</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          This NFT is currently in escrow and available for purchase.
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        This NFT is currently in escrow (held by the marketplace anchor) and available for purchase.
-                      </p>
+                      {activeListing && (
+                        <div className="bg-muted pixel-border p-3">
+                          <div className="text-xs text-muted-foreground mb-2">Seller:</div>
+                          <div className="flex items-center gap-2">
+                            <code className="text-xs flex-1 truncate">
+                              {activeListing.seller_address === publicKey ? (
+                                <span className="text-primary font-bold">YOU ({formatAddress(activeListing.seller_address)})</span>
+                              ) : (
+                                formatAddress(activeListing.seller_address)
+                              )}
+                            </code>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 flex-shrink-0"
+                              onClick={() => copyToClipboard(activeListing.seller_address)}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-border">
+                            <div className="text-xs text-muted-foreground mb-1">Price:</div>
+                            <div className="text-lg font-bold text-primary">
+                              {activeListing.currency === 'KTA' ? activeListing.price_kta : activeListing.price_xrge} {activeListing.currency}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-2">
