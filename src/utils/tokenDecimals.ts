@@ -2,7 +2,7 @@
 // Based on keeta-cli observations and network behavior
 
 export const TOKEN_DECIMALS = {
-  KTA: 9,   // Keeta base token uses 9 decimals for sending
+  KTA: 18,  // Keeta base token uses 18 decimals for sending
   XRGE: 18, // XRGE uses standard 18 decimals
 } as const;
 

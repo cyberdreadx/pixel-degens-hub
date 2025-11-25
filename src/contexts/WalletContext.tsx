@@ -130,7 +130,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         );
       }
       
-      // KTA uses 9 decimals for blockchain, display with 3 decimal places
+      // KTA uses 18 decimals on-chain, display with 3 decimal places
       const decimals = TOKEN_DECIMALS.KTA;
       const divisor = Math.pow(10, decimals);
       const balanceNum = Number(ktaBalance) / divisor;
@@ -212,7 +212,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           } else if (tokenAddress === KTA_MAINNET || tokenAddress === KTA_TESTNET) {
             symbol = 'KTA';
             name = 'Keeta Token';
-            decimals = TOKEN_DECIMALS.KTA; // 6
+            decimals = TOKEN_DECIMALS.KTA; // 18
           } else if (info) {
             // For custom tokens, use info from blockchain
             symbol = info.name || 'UNKNOWN';
@@ -390,7 +390,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Create recipient account from public key string
       const recipientAccount = Account.fromPublicKeyString(to);
       
-      // Determine decimals based on token (KTA uses 6, others may use 18)
+      // Determine decimals based on token (KTA uses 18, others may use 18)
       const baseTokenAddr = client.baseToken.publicKeyString.toString();
       const isKTA = !tokenAddress || tokenAddress === baseTokenAddr;
       const decimals = isKTA ? TOKEN_DECIMALS.KTA : 18; // Default to 18 for other tokens

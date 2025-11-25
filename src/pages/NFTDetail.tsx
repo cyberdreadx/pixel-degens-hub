@@ -180,7 +180,7 @@ const NFTDetail = () => {
         ? tokenAddresses.KTA 
         : tokenAddresses.XRGE;
       
-      const TOKEN_DECIMALS = activeListing.currency === 'KTA' ? 9 : 18;
+      const TOKEN_DECIMALS = activeListing.currency === 'KTA' ? 18 : 18;
       const amountInSmallestUnit = BigInt(Math.floor(paymentAmount * Math.pow(10, TOKEN_DECIMALS)));
       
       // Get anchor address
