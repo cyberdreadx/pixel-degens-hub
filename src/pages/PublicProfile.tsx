@@ -263,18 +263,18 @@ export default function PublicProfile() {
 
           {/* NFTs Section */}
           <div className="pt-6 border-t border-border">
-            <h3 className="text-lg font-bold mb-4">NFTs ({tokens.filter(t => t.isNFT && t.metadata).length})</h3>
+            <h3 className="text-lg font-bold mb-4">NFTs ({tokens.filter(t => t.isNFT && t.metadata && t.metadata.image && t.metadata.platform === 'degen8bit').length})</h3>
             {isLoadingTokens ? (
               <div className="text-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
               </div>
-            ) : tokens.filter(t => t.isNFT && t.metadata).length === 0 ? (
+            ) : tokens.filter(t => t.isNFT && t.metadata && t.metadata.image && t.metadata.platform === 'degen8bit').length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <p>No NFTs yet</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {tokens.filter(t => t.isNFT && t.metadata).map((nft) => (
+                {tokens.filter(t => t.isNFT && t.metadata && t.metadata.image && t.metadata.platform === 'degen8bit').map((nft) => (
                   <NFTCard 
                     key={nft.address}
                     id={nft.address}
