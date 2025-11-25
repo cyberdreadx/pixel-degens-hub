@@ -23,7 +23,7 @@ const TradingChart = ({ fromToken, toToken, network }: TradingChartProps) => {
   const [timeframe, setTimeframe] = useState<Timeframe>('24H');
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState({ high: 0, low: 0, change: 0 });
+  const [stats, setStats] = useState({ high: 0, low: 0, change: 0, volume24h: 0 });
 
   // The chart shows the price of toToken in terms of fromToken
   // So for KTA/XRGE, we show "how much KTA per XRGE" (XRGE price in KTA)
@@ -85,10 +85,15 @@ const TradingChart = ({ fromToken, toToken, network }: TradingChartProps) => {
           ? ((rates[rates.length - 1] - rates[0]) / rates[0]) * 100 
           : 0;
 
-        setStats({ high, low, change });
+        // Calculate 24h volume
+        const volume24h = data.reduce((sum: number, item: any) => {
+          return sum + parseFloat(item.volume_24h || '0');
+        }, 0);
+
+        setStats({ high, low, change, volume24h });
       } else {
         setChartData([]);
-        setStats({ high: 0, low: 0, change: 0 });
+        setStats({ high: 0, low: 0, change: 0, volume24h: 0 });
       }
     } catch (error) {
       console.error('Error fetching price history:', error);
@@ -147,12 +152,16 @@ const TradingChart = ({ fromToken, toToken, network }: TradingChartProps) => {
 
         {/* Stats row */}
         {chartData.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 md:gap-4 text-[10px] md:text-sm">
+          <div className="grid grid-cols-4 gap-2 md:gap-4 text-[10px] md:text-sm">
             <div className="bg-muted/50 rounded-lg p-2 md:p-3">
               <span className="text-muted-foreground block mb-0.5 md:mb-1">24h Change</span>
               <span className={`font-bold text-xs md:text-base ${stats.change >= 0 ? "text-green-500" : "text-red-500"}`}>
                 {stats.change >= 0 ? '+' : ''}{stats.change.toFixed(2)}%
               </span>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-2 md:p-3">
+              <span className="text-muted-foreground block mb-0.5 md:mb-1">24h Volume</span>
+              <span className="text-foreground font-bold text-xs md:text-base break-all">{stats.volume24h.toFixed(2)} {toToken}</span>
             </div>
             <div className="bg-muted/50 rounded-lg p-2 md:p-3">
               <span className="text-muted-foreground block mb-0.5 md:mb-1">High</span>
