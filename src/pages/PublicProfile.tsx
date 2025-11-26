@@ -142,11 +142,17 @@ export default function PublicProfile() {
           // Use the listing's network directly
           const tokenNetwork = listing.network;
           
-          // Fetch token info using the listing's network
-          const response = await fetch(`https://rep3.${tokenNetwork === 'test' ? 'test.' : ''}main.network.api.keeta.com/api/account/${tokenAddress}/info`);
+          // Fetch token info using the correct Keeta API endpoint
+          const apiBase = tokenNetwork === 'test' 
+            ? 'https://rep2.test.network.api.keeta.com/api'
+            : 'https://rep2.main.network.api.keeta.com/api';
+          
+          const response = await fetch(`${apiBase}/node/ledger/accounts/${tokenAddress}`);
           if (!response.ok) continue;
           
-          const tokenInfo = await response.json();
+          const rawData = await response.json();
+          const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+          const tokenInfo = accountData?.info || {};
           
           let metadata = null;
           if (tokenInfo.metadata) {
