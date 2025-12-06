@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { WalletProvider } from "./contexts/WalletContext";
 import Home from "./pages/Home";
 import Collection from "./pages/Collection";
+import CollectionDetail from "./pages/CollectionDetail";
+import CreateCollection from "./pages/CreateCollection";
+import BatchMint from "./pages/BatchMint";
 import NFTDetail from "./pages/NFTDetail";
 import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
@@ -31,6 +34,9 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/collection" element={<Collection />} />
+              <Route path="/collection/create" element={<CreateCollection />} />
+              <Route path="/collection/:collectionId" element={<CollectionDetail />} />
+              <Route path="/collection/:collectionId/batch-mint" element={<BatchMint />} />
               <Route path="/nft/:id" element={<NFTDetail />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/profile" element={<Profile />} />
