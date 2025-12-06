@@ -43,9 +43,15 @@ const Collection = () => {
                 </Button>
               </Link>
             )}
+            <Link to="/collection/create">
+              <Button variant="outline" className="pixel-border-thick gap-2">
+                <Sparkles className="w-4 h-4" />
+                CREATE COLLECTION
+              </Button>
+            </Link>
             <Link to="/mint">
               <Button className="pixel-border-thick gap-2">
-                <Sparkles className="w-4 h-4" />
+                <Tag className="w-4 h-4" />
                 MINT NFT
               </Button>
             </Link>
