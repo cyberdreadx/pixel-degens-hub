@@ -13,11 +13,17 @@ import * as KeetaNet from "@keetanetwork/keetanet-client";
 const { Account } = KeetaNet.lib;
 const { AccountKeyAlgorithm } = Account;
 
-interface CSVRow {
+interface NFTMetadata {
   name: string;
   description: string;
-  image_filename: string;
-  attributes?: string; // JSON string of attributes
+  image: string; // filename or path
+  symbol?: string;
+  seller_fee_basis_points?: number;
+  attributes?: Array<{ trait_type: string; value: string }>;
+  properties?: {
+    files?: Array<{ type: string; uri: string }>;
+    category?: string;
+  };
 }
 
 interface MintProgress {
@@ -33,9 +39,10 @@ const BatchMint = () => {
   const navigate = useNavigate();
   const { client, account, isConnected, publicKey: address, network, balance } = useWallet();
   
-  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [metadataFile, setMetadataFile] = useState<File | null>(null);
+  const [metadataType, setMetadataType] = useState<'csv' | 'json'>('csv');
   const [zipFile, setZipFile] = useState<File | null>(null);
-  const [csvData, setCsvData] = useState<CSVRow[]>([]);
+  const [nftData, setNftData] = useState<NFTMetadata[]>([]);
   const [images, setImages] = useState<Map<string, File>>(new Map());
   const [collectionName, setCollectionName] = useState<string>("");
   const [progress, setProgress] = useState<MintProgress>({
@@ -79,46 +86,95 @@ const BatchMint = () => {
     }
   };
 
-  const handleCSVSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleMetadataSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    if (!file.name.endsWith('.csv')) {
-      toast.error("Please select a CSV file");
+    const file = files[0];
+    const isJson = file.name.endsWith('.json');
+    const isCsv = file.name.endsWith('.csv');
+    const isMultipleJson = files.length > 1 && Array.from(files).every(f => f.name.endsWith('.json'));
+
+    if (!isJson && !isCsv && !isMultipleJson) {
+      toast.error("Please select CSV or JSON file(s)");
       return;
     }
 
-    setCsvFile(file);
+    setMetadataFile(file);
 
-    // Parse CSV
-    const text = await file.text();
-    const lines = text.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    
-    const requiredHeaders = ['name', 'description', 'image_filename'];
-    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-    
-    if (missingHeaders.length > 0) {
-      toast.error(`Missing CSV columns: ${missingHeaders.join(', ')}`);
-      setCsvFile(null);
-      return;
-    }
-
-    const rows: CSVRow[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      const row: any = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] || '';
-      });
+    if (isCsv) {
+      setMetadataType('csv');
+      // Parse CSV
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
       
-      if (row.name && row.image_filename) {
-        rows.push(row as CSVRow);
+      const requiredHeaders = ['name', 'image'];
+      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h) && !headers.includes('image_filename'));
+      
+      if (missingHeaders.length > 0) {
+        toast.error(`Missing CSV columns: ${missingHeaders.join(', ')}`);
+        setMetadataFile(null);
+        return;
       }
-    }
 
-    setCsvData(rows);
-    toast.success(`Loaded ${rows.length} NFTs from CSV`);
+      const rows: NFTMetadata[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+        
+        if (row.name && (row.image || row.image_filename)) {
+          rows.push({
+            name: row.name,
+            description: row.description || '',
+            image: row.image || row.image_filename,
+            symbol: row.symbol,
+            seller_fee_basis_points: row.seller_fee_basis_points ? parseInt(row.seller_fee_basis_points) : undefined,
+            attributes: row.attributes ? JSON.parse(row.attributes) : undefined,
+          });
+        }
+      }
+
+      setNftData(rows);
+      toast.success(`Loaded ${rows.length} NFTs from CSV`);
+    } else {
+      // Handle JSON file(s)
+      setMetadataType('json');
+      const jsonFiles = isMultipleJson ? Array.from(files) : [file];
+      const nfts: NFTMetadata[] = [];
+
+      for (const jsonFile of jsonFiles) {
+        try {
+          const text = await jsonFile.text();
+          const json = JSON.parse(text);
+          
+          // Handle single NFT or array of NFTs
+          const items = Array.isArray(json) ? json : [json];
+          
+          for (const item of items) {
+            if (item.name && item.image) {
+              nfts.push({
+                name: item.name,
+                description: item.description || '',
+                image: item.image,
+                symbol: item.symbol,
+                seller_fee_basis_points: item.seller_fee_basis_points,
+                attributes: item.attributes,
+                properties: item.properties,
+              });
+            }
+          }
+        } catch (err) {
+          console.error(`Error parsing ${jsonFile.name}:`, err);
+        }
+      }
+
+      setNftData(nfts);
+      toast.success(`Loaded ${nfts.length} NFTs from JSON`);
+    }
   };
 
   const handleZIPSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,7 +194,7 @@ const BatchMint = () => {
   };
 
   const calculateFee = () => {
-    const nftCount = csvData.length;
+    const nftCount = nftData.length;
     if (nftCount === 0) return { kta: 0, usd: 0 };
     
     // Base fee: 0.1 KTA per NFT for transaction + variable upload fee
@@ -155,8 +211,8 @@ const BatchMint = () => {
       return;
     }
 
-    if (!csvFile || csvData.length === 0) {
-      toast.error("Please upload a valid CSV file");
+    if (!metadataFile || nftData.length === 0) {
+      toast.error("Please upload a valid metadata file (CSV or JSON)");
       return;
     }
 
@@ -172,7 +228,7 @@ const BatchMint = () => {
     }
 
     setProgress({
-      total: csvData.length,
+      total: nftData.length,
       completed: 0,
       current: 'Uploading images to IPFS...',
       status: 'uploading',
@@ -180,9 +236,10 @@ const BatchMint = () => {
     });
 
     try {
-      // Upload ZIP file and CSV to edge function for batch processing
+      // Upload ZIP file and metadata to edge function for batch processing
       const formData = new FormData();
-      formData.append('csv', csvFile);
+      formData.append('metadata', metadataFile);
+      formData.append('metadataType', metadataType);
       formData.append('zip', zipFile);
       formData.append('collectionId', collectionId || '');
       formData.append('network', network);
@@ -206,36 +263,27 @@ const BatchMint = () => {
       // Mint each NFT
       const errors: string[] = [];
       
-      for (let i = 0; i < csvData.length; i++) {
-        const nft = csvData[i];
-        const imageHash = imageHashes.get(nft.image_filename);
+      for (let i = 0; i < nftData.length; i++) {
+        const nft = nftData[i];
+        const imageFilename = nft.image.replace(/^.*[\\/]/, ''); // Extract filename from path
+        const imageHash = imageHashes.get(imageFilename) || imageHashes.get(nft.image);
         
         setProgress(prev => ({
           ...prev,
-          current: `Minting ${nft.name} (${i + 1}/${csvData.length})...`,
+          current: `Minting ${nft.name} (${i + 1}/${nftData.length})...`,
           completed: i,
         }));
 
         try {
           if (!imageHash) {
-            throw new Error(`Image not found: ${nft.image_filename}`);
+            throw new Error(`Image not found: ${nft.image}`);
           }
 
           // Generate unique NFT identifier
           const nftId = Date.now() + i;
           const identifier = `NFT_KTA_ANCHOR_${nftId}`;
 
-          // Parse attributes if provided
-          let attributes: any[] = [];
-          if (nft.attributes) {
-            try {
-              attributes = JSON.parse(nft.attributes);
-            } catch {
-              // Ignore parsing errors
-            }
-          }
-
-          // Create metadata
+          // Create rich metadata matching KeetaChad format
           const metadata = {
             platform: "degenswap",
             version: "1.0",
@@ -243,9 +291,15 @@ const BatchMint = () => {
             nft_id: nftId,
             collection_id: collectionId,
             name: nft.name,
-            description: nft.description,
+            description: nft.description || '',
             image: `ipfs://${imageHash}`,
-            attributes,
+            symbol: nft.symbol || 'NFT',
+            seller_fee_basis_points: nft.seller_fee_basis_points || 0,
+            attributes: nft.attributes || [],
+            properties: nft.properties || {
+              files: [{ type: 'image/png', uri: `ipfs://${imageHash}` }],
+              category: 'image'
+            },
           };
 
           const metadataBase64 = btoa(JSON.stringify(metadata));
@@ -256,10 +310,16 @@ const BatchMint = () => {
           await builder.computeBlocks();
           const tokenAccount = pendingTokenAccount.account;
 
+          // Use symbol from metadata or generate from name
+          const tokenSymbol = (nft.symbol || nft.name.substring(0, 4))
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '')
+            .substring(0, 4) || 'NFT';
+
           // Set token info
           builder.setInfo(
             {
-              name: nft.name.substring(0, 4).toUpperCase().replace(/[^A-Z]/g, '') || 'NFT',
+              name: tokenSymbol,
               description: nft.name,
               metadata: metadataBase64,
               defaultPermission: new KeetaNet.lib.Permissions(['ACCESS'], []),
@@ -292,14 +352,14 @@ const BatchMint = () => {
         body: { 
           collectionId, 
           updates: { 
-            minted_count: csvData.length - errors.length 
+            minted_count: nftData.length - errors.length 
           } 
         },
       });
 
       setProgress({
-        total: csvData.length,
-        completed: csvData.length,
+        total: nftData.length,
+        completed: nftData.length,
         current: errors.length > 0 
           ? `Completed with ${errors.length} errors` 
           : 'All NFTs minted successfully!',
@@ -310,7 +370,7 @@ const BatchMint = () => {
       if (errors.length === 0) {
         toast.success("Batch minting complete!");
       } else {
-        toast.warning(`Minted ${csvData.length - errors.length} of ${csvData.length} NFTs`);
+        toast.warning(`Minted ${nftData.length - errors.length} of ${nftData.length} NFTs`);
       }
 
     } catch (err: any) {
@@ -345,14 +405,15 @@ const BatchMint = () => {
         </div>
 
         <Card className="p-6 pixel-border-thick bg-card/80 backdrop-blur space-y-6">
-          {/* CSV Upload */}
+        {/* Metadata Upload */}
           <div className="space-y-4">
-            <Label className="text-xs font-bold">1. UPLOAD CSV FILE</Label>
+            <Label className="text-xs font-bold">1. UPLOAD METADATA (CSV OR JSON)</Label>
             <input
               ref={csvInputRef}
               type="file"
-              accept=".csv"
-              onChange={handleCSVSelect}
+              accept=".csv,.json"
+              multiple
+              onChange={handleMetadataSelect}
               className="hidden"
             />
             <Button
@@ -362,18 +423,23 @@ const BatchMint = () => {
               disabled={progress.status !== 'idle'}
             >
               <FileText className="h-6 w-6" />
-              {csvFile ? (
-                <span className="text-xs">{csvFile.name} ({csvData.length} NFTs)</span>
+              {metadataFile ? (
+                <span className="text-xs">{metadataFile.name} ({nftData.length} NFTs)</span>
               ) : (
-                <span className="text-xs">SELECT CSV FILE</span>
+                <span className="text-xs">SELECT CSV OR JSON FILE(S)</span>
               )}
             </Button>
-            <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded">
-              <p className="font-bold mb-1">Required CSV columns:</p>
-              <p>• <code>name</code> - NFT name</p>
-              <p>• <code>description</code> - NFT description</p>
-              <p>• <code>image_filename</code> - Matching filename in ZIP</p>
-              <p>• <code>attributes</code> (optional) - JSON array of traits</p>
+            <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded space-y-2">
+              <div>
+                <p className="font-bold mb-1">CSV format:</p>
+                <p>• <code>name</code>, <code>image</code>, <code>description</code>, <code>symbol</code>, <code>attributes</code></p>
+              </div>
+              <div>
+                <p className="font-bold mb-1">JSON format (like KeetaChad):</p>
+                <p>• <code>name</code>, <code>image</code>, <code>description</code>, <code>symbol</code></p>
+                <p>• <code>attributes</code> - Array of {"{"}<code>trait_type</code>, <code>value</code>{"}"}</p>
+                <p>• <code>seller_fee_basis_points</code>, <code>properties</code></p>
+              </div>
             </div>
           </div>
 
@@ -406,12 +472,12 @@ const BatchMint = () => {
           </div>
 
           {/* Fee Estimate */}
-          {csvData.length > 0 && (
+          {nftData.length > 0 && (
             <div className="p-4 bg-muted/50 rounded space-y-2">
               <h3 className="text-xs font-bold">ESTIMATED FEE</h3>
               <div className="flex justify-between text-sm">
                 <span>NFTs to mint:</span>
-                <span className="font-bold">{csvData.length}</span>
+                <span className="font-bold">{nftData.length}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Estimated cost:</span>
@@ -460,9 +526,9 @@ const BatchMint = () => {
             onClick={startBatchMint}
             disabled={
               !isConnected || 
-              !csvFile || 
+              !metadataFile || 
               !zipFile || 
-              csvData.length === 0 ||
+              nftData.length === 0 ||
               progress.status !== 'idle'
             }
             className="w-full pixel-border-thick text-xs"
@@ -471,7 +537,7 @@ const BatchMint = () => {
             {progress.status !== 'idle' 
               ? "MINTING IN PROGRESS..."
               : isConnected 
-                ? `MINT ${csvData.length} NFTS`
+                ? `MINT ${nftData.length} NFTS`
                 : "CONNECT WALLET FIRST"
             }
           </Button>
