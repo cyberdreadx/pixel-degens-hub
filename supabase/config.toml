@@ -35,3 +35,15 @@ verify_jwt = false
 
 [functions.fx-buy-nft]
 verify_jwt = false
+
+[functions.fx-upload-collection]
+verify_jwt = false
+
+[functions.fx-get-collection]
+verify_jwt = false
+
+[functions.fx-batch-upload]
+verify_jwt = false
+
+[functions.fx-update-collection]
+verify_jwt = false
