@@ -4,19 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
-import { Upload, FileText, Image, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { Upload, FileText, Image, AlertCircle, CheckCircle, Loader2, Link2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import * as KeetaNet from "@keetanetwork/keetanet-client";
 
 const { Account } = KeetaNet.lib;
 const { AccountKeyAlgorithm } = Account;
 
+// Pricing constants
+const FEE_PER_IMAGE_KTA = 0.001; // Per image upload fee
+const MAX_COLLECTION_SIZE = 10000; // 10K max
+
 interface NFTMetadata {
   name: string;
   description: string;
-  image: string; // filename or path
+  image: string; // filename, path, or IPFS hash
   symbol?: string;
   seller_fee_basis_points?: number;
   attributes?: Array<{ trait_type: string; value: string }>;
@@ -34,16 +39,18 @@ interface MintProgress {
   errors: string[];
 }
 
+type ImageSourceType = 'upload' | 'ipfs';
+
 const BatchMint = () => {
   const { collectionId } = useParams<{ collectionId: string }>();
   const navigate = useNavigate();
   const { client, account, isConnected, publicKey: address, network, balance } = useWallet();
   
+  const [imageSource, setImageSource] = useState<ImageSourceType>('upload');
   const [metadataFile, setMetadataFile] = useState<File | null>(null);
   const [metadataType, setMetadataType] = useState<'csv' | 'json'>('csv');
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [nftData, setNftData] = useState<NFTMetadata[]>([]);
-  const [images, setImages] = useState<Map<string, File>>(new Map());
   const [collectionName, setCollectionName] = useState<string>("");
   const [progress, setProgress] = useState<MintProgress>({
     total: 0,
@@ -86,6 +93,15 @@ const BatchMint = () => {
     }
   };
 
+  // Check if image field looks like an IPFS hash/URL
+  const isIpfsImage = (image: string): boolean => {
+    return image.startsWith('ipfs://') || 
+           image.startsWith('Qm') || 
+           image.startsWith('bafy') ||
+           image.includes('ipfs.io') ||
+           image.includes('pinata.cloud');
+  };
+
   const handleMetadataSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -102,9 +118,10 @@ const BatchMint = () => {
 
     setMetadataFile(file);
 
+    let parsedNfts: NFTMetadata[] = [];
+
     if (isCsv) {
       setMetadataType('csv');
-      // Parse CSV
       const text = await file.text();
       const lines = text.split('\n').filter(line => line.trim());
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
@@ -118,7 +135,6 @@ const BatchMint = () => {
         return;
       }
 
-      const rows: NFTMetadata[] = [];
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim());
         const row: any = {};
@@ -127,7 +143,7 @@ const BatchMint = () => {
         });
         
         if (row.name && (row.image || row.image_filename)) {
-          rows.push({
+          parsedNfts.push({
             name: row.name,
             description: row.description || '',
             image: row.image || row.image_filename,
@@ -137,26 +153,19 @@ const BatchMint = () => {
           });
         }
       }
-
-      setNftData(rows);
-      toast.success(`Loaded ${rows.length} NFTs from CSV`);
     } else {
-      // Handle JSON file(s)
       setMetadataType('json');
       const jsonFiles = isMultipleJson ? Array.from(files) : [file];
-      const nfts: NFTMetadata[] = [];
 
       for (const jsonFile of jsonFiles) {
         try {
           const text = await jsonFile.text();
           const json = JSON.parse(text);
-          
-          // Handle single NFT or array of NFTs
           const items = Array.isArray(json) ? json : [json];
           
           for (const item of items) {
             if (item.name && item.image) {
-              nfts.push({
+              parsedNfts.push({
                 name: item.name,
                 description: item.description || '',
                 image: item.image,
@@ -171,10 +180,24 @@ const BatchMint = () => {
           console.error(`Error parsing ${jsonFile.name}:`, err);
         }
       }
-
-      setNftData(nfts);
-      toast.success(`Loaded ${nfts.length} NFTs from JSON`);
     }
+
+    // Validate collection size
+    if (parsedNfts.length > MAX_COLLECTION_SIZE) {
+      toast.error(`Maximum collection size is ${MAX_COLLECTION_SIZE.toLocaleString()} NFTs`);
+      setMetadataFile(null);
+      return;
+    }
+
+    // Auto-detect if metadata contains IPFS links
+    const hasIpfsLinks = parsedNfts.some(nft => isIpfsImage(nft.image));
+    if (hasIpfsLinks) {
+      setImageSource('ipfs');
+      toast.info("Detected IPFS links in metadata - no ZIP upload needed");
+    }
+
+    setNftData(parsedNfts);
+    toast.success(`Loaded ${parsedNfts.length} NFTs from ${isCsv ? 'CSV' : 'JSON'}`);
   };
 
   const handleZIPSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,22 +210,28 @@ const BatchMint = () => {
     }
 
     setZipFile(file);
-    
-    // We'll extract in the edge function for now
-    // For client-side extraction, we'd need JSZip library
     toast.success("ZIP file selected. Images will be extracted during minting.");
   };
 
   const calculateFee = () => {
     const nftCount = nftData.length;
-    if (nftCount === 0) return { kta: 0, usd: 0 };
+    if (nftCount === 0) return { kta: 0, usd: 0, breakdown: { upload: 0, tx: 0 } };
     
-    // Base fee: 0.1 KTA per NFT for transaction + variable upload fee
-    const ktaPerNFT = 0.1;
-    const totalKTA = nftCount * ktaPerNFT;
-    const estimatedUSD = totalKTA * 0.25; // Approximate KTA price
+    // Transaction fee (always charged)
+    const txFeePerNFT = 0.01;
+    const totalTxFee = nftCount * txFeePerNFT;
     
-    return { kta: totalKTA, usd: estimatedUSD };
+    // Upload fee (only if uploading images)
+    const uploadFee = imageSource === 'upload' ? nftCount * FEE_PER_IMAGE_KTA : 0;
+    
+    const totalKTA = totalTxFee + uploadFee;
+    const estimatedUSD = totalKTA * 0.25;
+    
+    return { 
+      kta: totalKTA, 
+      usd: estimatedUSD,
+      breakdown: { upload: uploadFee, tx: totalTxFee }
+    };
   };
 
   const startBatchMint = async () => {
@@ -216,43 +245,67 @@ const BatchMint = () => {
       return;
     }
 
-    if (!zipFile) {
+    // Require ZIP only if uploading images
+    if (imageSource === 'upload' && !zipFile) {
       toast.error("Please upload a ZIP file with images");
       return;
     }
 
+    // Validate IPFS links if using pre-existing
+    if (imageSource === 'ipfs') {
+      const invalidLinks = nftData.filter(nft => !isIpfsImage(nft.image));
+      if (invalidLinks.length > 0) {
+        toast.error(`${invalidLinks.length} NFTs have invalid IPFS links`);
+        return;
+      }
+    }
+
     const fee = calculateFee();
     if (parseFloat(balance || "0") < fee.kta) {
-      toast.error(`Insufficient balance. You need at least ${fee.kta.toFixed(2)} KTA`);
+      toast.error(`Insufficient balance. You need at least ${fee.kta.toFixed(4)} KTA`);
       return;
     }
 
     setProgress({
       total: nftData.length,
       completed: 0,
-      current: 'Uploading images to IPFS...',
+      current: imageSource === 'upload' ? 'Uploading images to IPFS...' : 'Preparing metadata...',
       status: 'uploading',
       errors: [],
     });
 
     try {
-      // Upload ZIP file and metadata to edge function for batch processing
-      const formData = new FormData();
-      formData.append('metadata', metadataFile);
-      formData.append('metadataType', metadataType);
-      formData.append('zip', zipFile);
-      formData.append('collectionId', collectionId || '');
-      formData.append('network', network);
+      let imageHashes: Map<string, string> = new Map();
 
-      toast.info("Uploading files to IPFS...");
+      // Only upload if using ZIP
+      if (imageSource === 'upload' && zipFile) {
+        const formData = new FormData();
+        formData.append('metadata', metadataFile!);
+        formData.append('metadataType', metadataType);
+        formData.append('zip', zipFile);
+        formData.append('collectionId', collectionId || '');
+        formData.append('network', network);
 
-      const { data: uploadData, error: uploadError } = await supabase.functions.invoke('fx-batch-upload', {
-        body: formData,
-      });
+        toast.info("Uploading files to IPFS...");
 
-      if (uploadError) throw uploadError;
+        const { data: uploadData, error: uploadError } = await supabase.functions.invoke('fx-batch-upload', {
+          body: formData,
+        });
 
-      const imageHashes: Map<string, string> = new Map(Object.entries(uploadData.images || {}));
+        if (uploadError) throw uploadError;
+        imageHashes = new Map(Object.entries(uploadData.images || {}));
+      } else {
+        // Use existing IPFS links - normalize them
+        for (const nft of nftData) {
+          let hash = nft.image;
+          if (hash.startsWith('ipfs://')) {
+            hash = hash.replace('ipfs://', '');
+          } else if (hash.includes('/ipfs/')) {
+            hash = hash.split('/ipfs/')[1];
+          }
+          imageHashes.set(nft.image, hash);
+        }
+      }
 
       setProgress(prev => ({
         ...prev,
@@ -260,13 +313,12 @@ const BatchMint = () => {
         status: 'minting',
       }));
 
-      // Mint each NFT
       const errors: string[] = [];
       
       for (let i = 0; i < nftData.length; i++) {
         const nft = nftData[i];
-        const imageFilename = nft.image.replace(/^.*[\\/]/, ''); // Extract filename from path
-        const imageHash = imageHashes.get(imageFilename) || imageHashes.get(nft.image);
+        const imageFilename = nft.image.replace(/^.*[\\/]/, '');
+        const imageHash = imageHashes.get(imageFilename) || imageHashes.get(nft.image) || nft.image;
         
         setProgress(prev => ({
           ...prev,
@@ -275,15 +327,15 @@ const BatchMint = () => {
         }));
 
         try {
-          if (!imageHash) {
-            throw new Error(`Image not found: ${nft.image}`);
-          }
-
-          // Generate unique NFT identifier
           const nftId = Date.now() + i;
           const identifier = `NFT_KTA_ANCHOR_${nftId}`;
 
-          // Create rich metadata matching KeetaChad format
+          // Normalize IPFS hash
+          let finalImageHash = imageHash;
+          if (finalImageHash.startsWith('ipfs://')) {
+            finalImageHash = finalImageHash.replace('ipfs://', '');
+          }
+
           const metadata = {
             platform: "degenswap",
             version: "1.0",
@@ -292,31 +344,28 @@ const BatchMint = () => {
             collection_id: collectionId,
             name: nft.name,
             description: nft.description || '',
-            image: `ipfs://${imageHash}`,
+            image: `ipfs://${finalImageHash}`,
             symbol: nft.symbol || 'NFT',
             seller_fee_basis_points: nft.seller_fee_basis_points || 0,
             attributes: nft.attributes || [],
             properties: nft.properties || {
-              files: [{ type: 'image/png', uri: `ipfs://${imageHash}` }],
+              files: [{ type: 'image/png', uri: `ipfs://${finalImageHash}` }],
               category: 'image'
             },
           };
 
           const metadataBase64 = btoa(JSON.stringify(metadata));
 
-          // Create token using Keeta SDK
           const builder = client.initBuilder();
           const pendingTokenAccount = builder.generateIdentifier(AccountKeyAlgorithm.TOKEN);
           await builder.computeBlocks();
           const tokenAccount = pendingTokenAccount.account;
 
-          // Use symbol from metadata or generate from name
           const tokenSymbol = (nft.symbol || nft.name.substring(0, 4))
             .toUpperCase()
             .replace(/[^A-Z0-9]/g, '')
             .substring(0, 4) || 'NFT';
 
-          // Set token info
           builder.setInfo(
             {
               name: tokenSymbol,
@@ -338,7 +387,6 @@ const BatchMint = () => {
           builder.send(account, 1n, tokenAccount);
           await builder.publish();
 
-          // Small delay between mints to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 500));
           
         } catch (err: any) {
@@ -347,7 +395,6 @@ const BatchMint = () => {
         }
       }
 
-      // Update collection minted count
       await supabase.functions.invoke('fx-update-collection', {
         body: { 
           collectionId, 
@@ -386,6 +433,8 @@ const BatchMint = () => {
   };
 
   const fee = calculateFee();
+  const needsZip = imageSource === 'upload';
+  const canMint = isConnected && metadataFile && nftData.length > 0 && (!needsZip || zipFile) && progress.status === 'idle';
 
   return (
     <div className="relative min-h-screen pt-24 pb-16">
@@ -400,14 +449,47 @@ const BatchMint = () => {
           </div>
           <h1 className="text-3xl md:text-5xl font-bold neon-glow">BATCH MINT</h1>
           <p className="text-xs md:text-sm text-muted-foreground">
-            UPLOAD CSV + ZIP TO MINT MULTIPLE NFTS AT ONCE
+            MINT UP TO {MAX_COLLECTION_SIZE.toLocaleString()} NFTS AT ONCE
           </p>
         </div>
 
         <Card className="p-6 pixel-border-thick bg-card/80 backdrop-blur space-y-6">
-        {/* Metadata Upload */}
+          {/* Image Source Selection */}
           <div className="space-y-4">
-            <Label className="text-xs font-bold">1. UPLOAD METADATA (CSV OR JSON)</Label>
+            <Label className="text-xs font-bold">1. HOW ARE IMAGES PROVIDED?</Label>
+            <Tabs value={imageSource} onValueChange={(v) => setImageSource(v as ImageSourceType)}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload" className="text-xs">
+                  <Upload className="h-4 w-4 mr-2" />
+                  UPLOAD ZIP
+                </TabsTrigger>
+                <TabsTrigger value="ipfs" className="text-xs">
+                  <Link2 className="h-4 w-4 mr-2" />
+                  EXISTING IPFS
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="upload" className="mt-4">
+                <div className="p-3 bg-muted/50 rounded text-xs text-muted-foreground">
+                  <p className="font-bold mb-1">Upload new images:</p>
+                  <p>• We'll upload your images to IPFS via Pinata</p>
+                  <p>• Fee: {FEE_PER_IMAGE_KTA} KTA per image</p>
+                  <p>• ZIP should contain images matching metadata filenames</p>
+                </div>
+              </TabsContent>
+              <TabsContent value="ipfs" className="mt-4">
+                <div className="p-3 bg-muted/50 rounded text-xs text-muted-foreground">
+                  <p className="font-bold mb-1">Use existing IPFS links:</p>
+                  <p>• Your metadata must contain IPFS hashes/URLs</p>
+                  <p>• Formats: <code>ipfs://Qm...</code>, <code>Qm...</code>, <code>bafy...</code></p>
+                  <p>• No upload fee - only transaction costs</p>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Metadata Upload */}
+          <div className="space-y-4">
+            <Label className="text-xs font-bold">2. UPLOAD METADATA (CSV OR JSON)</Label>
             <input
               ref={csvInputRef}
               type="file"
@@ -431,57 +513,65 @@ const BatchMint = () => {
             </Button>
             <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded space-y-2">
               <div>
-                <p className="font-bold mb-1">CSV format:</p>
-                <p>• <code>name</code>, <code>image</code>, <code>description</code>, <code>symbol</code>, <code>attributes</code></p>
+                <p className="font-bold mb-1">Required fields:</p>
+                <p>• <code>name</code> - NFT name</p>
+                <p>• <code>image</code> - filename (for ZIP) or IPFS hash (for existing)</p>
               </div>
               <div>
-                <p className="font-bold mb-1">JSON format (like KeetaChad):</p>
-                <p>• <code>name</code>, <code>image</code>, <code>description</code>, <code>symbol</code></p>
-                <p>• <code>attributes</code> - Array of {"{"}<code>trait_type</code>, <code>value</code>{"}"}</p>
-                <p>• <code>seller_fee_basis_points</code>, <code>properties</code></p>
+                <p className="font-bold mb-1">Optional fields:</p>
+                <p>• <code>description</code>, <code>symbol</code>, <code>attributes</code>, <code>seller_fee_basis_points</code></p>
               </div>
             </div>
           </div>
 
-          {/* ZIP Upload */}
-          <div className="space-y-4">
-            <Label className="text-xs font-bold">2. UPLOAD ZIP WITH IMAGES</Label>
-            <input
-              ref={zipInputRef}
-              type="file"
-              accept=".zip"
-              onChange={handleZIPSelect}
-              className="hidden"
-            />
-            <Button
-              onClick={() => zipInputRef.current?.click()}
-              variant="outline"
-              className="w-full pixel-border h-20 flex-col gap-2"
-              disabled={progress.status !== 'idle'}
-            >
-              <Image className="h-6 w-6" />
-              {zipFile ? (
-                <span className="text-xs">{zipFile.name}</span>
-              ) : (
-                <span className="text-xs">SELECT ZIP FILE</span>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              ZIP should contain images with filenames matching <code>image_filename</code> column in CSV
-            </p>
-          </div>
+          {/* ZIP Upload - Only show if uploading images */}
+          {imageSource === 'upload' && (
+            <div className="space-y-4">
+              <Label className="text-xs font-bold">3. UPLOAD ZIP WITH IMAGES</Label>
+              <input
+                ref={zipInputRef}
+                type="file"
+                accept=".zip"
+                onChange={handleZIPSelect}
+                className="hidden"
+              />
+              <Button
+                onClick={() => zipInputRef.current?.click()}
+                variant="outline"
+                className="w-full pixel-border h-20 flex-col gap-2"
+                disabled={progress.status !== 'idle'}
+              >
+                <Image className="h-6 w-6" />
+                {zipFile ? (
+                  <span className="text-xs">{zipFile.name}</span>
+                ) : (
+                  <span className="text-xs">SELECT ZIP FILE</span>
+                )}
+              </Button>
+            </div>
+          )}
 
           {/* Fee Estimate */}
           {nftData.length > 0 && (
             <div className="p-4 bg-muted/50 rounded space-y-2">
-              <h3 className="text-xs font-bold">ESTIMATED FEE</h3>
+              <h3 className="text-xs font-bold">FEE BREAKDOWN</h3>
               <div className="flex justify-between text-sm">
                 <span>NFTs to mint:</span>
-                <span className="font-bold">{nftData.length}</span>
+                <span className="font-bold">{nftData.length.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Estimated cost:</span>
-                <span className="font-bold">{fee.kta.toFixed(2)} KTA (~${fee.usd.toFixed(2)})</span>
+              {imageSource === 'upload' && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Upload fee ({FEE_PER_IMAGE_KTA} KTA × {nftData.length}):</span>
+                  <span>{fee.breakdown.upload.toFixed(4)} KTA</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Transaction fees:</span>
+                <span>{fee.breakdown.tx.toFixed(4)} KTA</span>
+              </div>
+              <div className="flex justify-between text-sm border-t border-border pt-2 mt-2">
+                <span className="font-bold">Total:</span>
+                <span className="font-bold">{fee.kta.toFixed(4)} KTA (~${fee.usd.toFixed(2)})</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Your balance:</span>
@@ -511,11 +601,14 @@ const BatchMint = () => {
               </p>
               
               {progress.errors.length > 0 && (
-                <div className="p-3 bg-destructive/10 rounded text-xs">
+                <div className="p-3 bg-destructive/10 rounded text-xs max-h-32 overflow-y-auto">
                   <p className="font-bold mb-1">Errors:</p>
-                  {progress.errors.map((err, i) => (
+                  {progress.errors.slice(0, 10).map((err, i) => (
                     <p key={i} className="text-destructive">{err}</p>
                   ))}
+                  {progress.errors.length > 10 && (
+                    <p className="text-destructive">...and {progress.errors.length - 10} more</p>
+                  )}
                 </div>
               )}
             </div>
@@ -524,20 +617,14 @@ const BatchMint = () => {
           {/* Mint Button */}
           <Button
             onClick={startBatchMint}
-            disabled={
-              !isConnected || 
-              !metadataFile || 
-              !zipFile || 
-              nftData.length === 0 ||
-              progress.status !== 'idle'
-            }
+            disabled={!canMint}
             className="w-full pixel-border-thick text-xs"
             size="lg"
           >
             {progress.status !== 'idle' 
               ? "MINTING IN PROGRESS..."
               : isConnected 
-                ? `MINT ${nftData.length} NFTS`
+                ? `MINT ${nftData.length.toLocaleString()} NFTS`
                 : "CONNECT WALLET FIRST"
             }
           </Button>
