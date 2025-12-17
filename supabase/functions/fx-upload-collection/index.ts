@@ -59,14 +59,42 @@ serve(async (req) => {
 
     console.log('[fx-upload-collection] Collection uploaded to IPFS:', ipfsHash);
 
-    // Store collection reference in Supabase for indexing
+    // Store collection in Supabase database
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // We'll create a collections index table if needed
-    // For now, just return the IPFS hash - the collection can be discovered via its ID
+    const { error: dbError } = await supabase
+      .from('collections')
+      .insert({
+        id: metadata.collection_id,
+        name: metadata.name,
+        symbol: metadata.symbol,
+        description: metadata.description || null,
+        creator_address: metadata.creator,
+        network: metadata.network,
+        banner_image: metadata.banner_image || null,
+        logo_image: metadata.logo_image || null,
+        ipfs_hash: ipfsHash,
+        collection_metadata: metadata,
+        total_supply: metadata.total_supply || null,
+        minted_count: 0,
+        storage_size_mb: metadata.pricing?.storage_size_mb || 0,
+        hosting_fee_kta: metadata.pricing?.hosting_fee_kta || 0,
+        paid_status: 'unpaid', // TODO: Implement payment verification
+        royalty_percentage: metadata.royalty_percentage || 0,
+        website: metadata.social_links?.website || null,
+        twitter: metadata.social_links?.twitter || null,
+        discord: metadata.social_links?.discord || null,
+      });
+
+    if (dbError) {
+      console.error('[fx-upload-collection] Database error:', dbError);
+      // Don't fail the request if DB insert fails - collection is still on IPFS
+    } else {
+      console.log('[fx-upload-collection] Collection saved to database');
+    }
 
     return new Response(
       JSON.stringify({

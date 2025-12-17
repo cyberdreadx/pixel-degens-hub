@@ -27,32 +27,34 @@ const Collection = () => {
     <div className="relative min-h-screen pt-24 pb-16">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="mb-8 space-y-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mb-8 space-y-4">
           <div>
-            <h1 className="text-3xl md:text-5xl font-bold neon-glow">NFT MARKETPLACE</h1>
-            <p className="text-xs md:text-sm text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold neon-glow">NFT MARKETPLACE</h1>
+            <p className="text-xs md:text-sm text-muted-foreground mt-2">
               {marketplaceNFTs.length} DEGEN 8BIT NFTS FOR SALE
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {isConnected && (
-              <Link to="/profile">
-                <Button variant="outline" className="pixel-border-thick gap-2">
-                  <ShoppingBag className="w-4 h-4" />
-                  MY NFTS
+              <Link to="/profile" className="flex-1 min-w-[120px] sm:flex-none">
+                <Button variant="outline" className="pixel-border-thick gap-1 sm:gap-2 w-full text-xs sm:text-sm h-9 sm:h-10">
+                  <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">MY NFTS</span>
+                  <span className="xs:hidden">MINE</span>
                 </Button>
               </Link>
             )}
-            <Link to="/collection/create">
-              <Button variant="outline" className="pixel-border-thick gap-2">
-                <Sparkles className="w-4 h-4" />
-                CREATE COLLECTION
+            <Link to="/collection/create" className="flex-1 min-w-[120px] sm:flex-none">
+              <Button variant="outline" className="pixel-border-thick gap-1 sm:gap-2 w-full text-xs sm:text-sm h-9 sm:h-10">
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">CREATE</span>
+                <span className="xs:hidden">CREATE</span>
               </Button>
             </Link>
-            <Link to="/mint">
-              <Button className="pixel-border-thick gap-2">
-                <Tag className="w-4 h-4" />
-                MINT NFT
+            <Link to="/mint" className="flex-1 min-w-[120px] sm:flex-none">
+              <Button className="pixel-border-thick gap-1 sm:gap-2 w-full text-xs sm:text-sm h-9 sm:h-10">
+                <Tag className="w-3 h-3 sm:w-4 sm:h-4" />
+                MINT
               </Button>
             </Link>
           </div>

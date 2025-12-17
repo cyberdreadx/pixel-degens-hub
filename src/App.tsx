@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { WalletProvider } from "./contexts/WalletContext";
 import Home from "./pages/Home";
 import Collection from "./pages/Collection";
+import Collections from "./pages/Collections";
 import CollectionDetail from "./pages/CollectionDetail";
 import CreateCollection from "./pages/CreateCollection";
 import BatchMint from "./pages/BatchMint";
@@ -35,6 +36,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/collection" element={<Collection />} />
+              <Route path="/collections" element={<Collections />} />
               <Route path="/collection/create" element={<CreateCollection />} />
               <Route path="/collection/:collectionId" element={<CollectionDetail />} />
               <Route path="/collection/:collectionId/batch-mint" element={<BatchMint />} />

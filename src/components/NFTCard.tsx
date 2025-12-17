@@ -25,35 +25,35 @@ const NFTCard = ({ id, title, creator, price, image, likes, comments }: NFTCardP
               className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
               style={{ imageRendering: "pixelated" }}
             />
-            <div className="absolute top-2 right-2 bg-primary pixel-border px-2 py-1 text-xs">
-              {price} KTA
+            <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-primary pixel-border px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs max-w-[90%] truncate">
+              {price}
             </div>
           </div>
         </CardHeader>
         
-        <CardContent className="p-4 space-y-2">
-          <h3 className="font-bold text-sm neon-glow truncate">{title}</h3>
-          <p className="text-xs text-muted-foreground">by {creator}</p>
+        <CardContent className="p-2 sm:p-3 md:p-4 space-y-1 sm:space-y-2">
+          <h3 className="font-bold text-xs sm:text-sm neon-glow truncate">{title}</h3>
+          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">by {creator}</p>
         </CardContent>
         
-        <CardFooter className="p-4 pt-0 flex gap-2">
+        <CardFooter className="p-2 sm:p-3 md:p-4 pt-0 flex gap-1 sm:gap-2">
           <Button 
             variant="outline" 
             size="sm" 
-            className="flex-1 pixel-border text-xs gap-1"
+            className="flex-1 pixel-border text-[10px] sm:text-xs gap-0.5 sm:gap-1 h-7 sm:h-9 px-1 sm:px-3"
             onClick={(e) => e.preventDefault()}
           >
             <Heart className="w-3 h-3" />
-            {likes}
+            <span className="hidden xs:inline">{likes}</span>
           </Button>
           <Button 
             variant="outline" 
             size="sm" 
-            className="flex-1 pixel-border text-xs gap-1"
+            className="flex-1 pixel-border text-[10px] sm:text-xs gap-0.5 sm:gap-1 h-7 sm:h-9 px-1 sm:px-3"
             onClick={(e) => e.preventDefault()}
           >
             <MessageSquare className="w-3 h-3" />
-            {comments}
+            <span className="hidden xs:inline">{comments}</span>
           </Button>
         </CardFooter>
       </Card>

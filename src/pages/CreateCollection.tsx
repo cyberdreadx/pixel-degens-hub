@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
-import { Upload, Plus, X, Globe, Twitter, MessageCircle, Sparkles } from "lucide-react";
+import { Upload, Plus, X, Globe, Twitter, MessageCircle, Sparkles, Info, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { calculateCollectionPricing, formatPricing, getAllPricingTiers, validateCollectionSize } from "@/utils/collectionPricing";
 
 interface SocialLinks {
   website?: string;
@@ -39,6 +40,7 @@ const CreateCollection = () => {
   // Upload States
   const [isUploading, setIsUploading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [showPricingTiers, setShowPricingTiers] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState<File | null>(null);
   const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState("");
@@ -93,8 +95,15 @@ const CreateCollection = () => {
       return;
     }
 
-    if (!name || !symbol) {
-      toast.error("Name and symbol are required");
+    if (!name || !symbol || !totalSupply) {
+      toast.error("Name, symbol, and total supply are required");
+      return;
+    }
+
+    const supplyInt = parseInt(totalSupply);
+    const validation = validateCollectionSize(supplyInt);
+    if (!validation.valid) {
+      toast.error(validation.error);
       return;
     }
 
@@ -122,6 +131,9 @@ const CreateCollection = () => {
       // Generate unique collection ID
       const collectionId = `COL_${Date.now()}`;
       
+      // Calculate pricing
+      const pricing = calculateCollectionPricing(supplyInt);
+      
       // Create collection metadata
       const collectionMetadata = {
         platform: "degenswap",
@@ -136,10 +148,15 @@ const CreateCollection = () => {
         creator: address,
         royalty_percentage: parseFloat(royaltyPercentage) || 0,
         social_links: socialLinks,
-        total_supply: totalSupply ? parseInt(totalSupply) : null,
+        total_supply: supplyInt,
         minted_count: 0,
         network,
         created_at: new Date().toISOString(),
+        pricing: {
+          hosting_fee_kta: pricing.hostingFeeKTA,
+          storage_size_mb: pricing.storageSizeMB,
+          tier: pricing.tier.name,
+        },
       };
 
       // Upload collection metadata to IPFS
@@ -362,29 +379,112 @@ const CreateCollection = () => {
 
           {/* Supply Section */}
           <div className="space-y-6 border-t border-border pt-6">
-            <h2 className="text-lg font-bold">SUPPLY & RARITY</h2>
+            <h2 className="text-lg font-bold">SUPPLY & PRICING</h2>
 
             <div className="space-y-2">
-              <Label htmlFor="supply" className="text-xs font-bold">TOTAL SUPPLY (OPTIONAL)</Label>
+              <Label htmlFor="supply" className="text-xs font-bold">TOTAL SUPPLY *</Label>
               <Input
                 id="supply"
                 type="number"
                 min="1"
+                max="10000"
                 value={totalSupply}
                 onChange={(e) => setTotalSupply(e.target.value)}
-                placeholder="10000"
+                placeholder="100"
                 className="pixel-border text-xs"
               />
               <p className="text-xs text-muted-foreground">
-                Leave empty for unlimited supply. Rarity data will be calculated from NFT traits after batch minting.
+                How many NFTs will be in this collection? (Max 10,000)
               </p>
             </div>
+
+            {/* Pricing Calculator */}
+            {totalSupply && parseInt(totalSupply) > 0 && (
+              <div className="p-4 bg-primary/10 border border-primary/30 pixel-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    HOSTING FEE ESTIMATE
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-6"
+                    onClick={() => setShowPricingTiers(!showPricingTiers)}
+                  >
+                    <Info className="h-3 w-3 mr-1" />
+                    {showPricingTiers ? "HIDE" : "VIEW"} TIERS
+                  </Button>
+                </div>
+
+                {(() => {
+                  const pricing = calculateCollectionPricing(parseInt(totalSupply));
+                  const validation = validateCollectionSize(parseInt(totalSupply));
+                  
+                  if (!validation.valid) {
+                    return (
+                      <p className="text-xs text-destructive">{validation.error}</p>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Tier:</span>
+                          <span className="font-bold text-primary">{pricing.tier.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Items:</span>
+                          <span className="font-bold">{pricing.totalItems.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Est. Storage:</span>
+                          <span className="font-bold">{pricing.storageSizeMB.toFixed(2)} MB</span>
+                        </div>
+                        <div className="flex justify-between border-t border-border pt-2 mt-2">
+                          <span className="font-bold">One-time Hosting Fee:</span>
+                          <span className="font-bold text-primary">{formatPricing(pricing.hostingFeeKTA)}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                          <span>+ Minting fees:</span>
+                          <span>~{formatPricing(pricing.breakdown.transactionFees)}</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        💡 This one-time fee covers permanent IPFS hosting for your collection's images and metadata. Minting fees are separate and paid per NFT during batch minting.
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Pricing Tiers Breakdown */}
+            {showPricingTiers && (
+              <div className="p-4 bg-muted/50 rounded space-y-3">
+                <h4 className="text-xs font-bold">PRICING TIERS</h4>
+                {getAllPricingTiers().map((tier, idx) => (
+                  <div key={idx} className="text-xs p-2 bg-background rounded border border-border">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-bold">{tier.name}</span>
+                      <span className="text-[10px] text-muted-foreground">{tier.pricePerItem} KTA/item</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">{tier.description}</p>
+                    <p className="text-[10px] text-primary mt-1">
+                      Example: {tier.maxItems} items = {formatPricing(tier.examplePricing.hostingFeeKTA)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Create Button */}
           <Button
             onClick={createCollection}
-            disabled={!isConnected || isCreating || isUploading || !name || !symbol}
+            disabled={!isConnected || isCreating || isUploading || !name || !symbol || !totalSupply}
             className="w-full pixel-border-thick text-xs"
             size="lg"
           >

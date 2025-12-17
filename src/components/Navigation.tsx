@@ -44,6 +44,10 @@ const Navigation = () => {
     icon: Image,
     label: "NFTS"
   }, {
+    to: "/collections",
+    icon: Palette,
+    label: "COLLECTIONS"
+  }, {
     to: "/feed",
     icon: Activity,
     label: "FEED"
