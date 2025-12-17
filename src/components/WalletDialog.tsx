@@ -210,25 +210,47 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                       </span>
                     </span>
                   </div>
-                  {walletType === 'yoda' && typeof window !== 'undefined' && (window as any).yoda && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                      <span className="text-sm sm:text-base font-bold">
-                        Yoda: <span className="text-purple-400">
-                          {((window as any).yoda.chainId || '').includes('main') || (window as any).yoda.chainId === 'keeta-main' ? 'MAINNET' : 'TESTNET'}
+                  {walletType === 'yoda' && typeof window !== 'undefined' && (window as any).yoda && (() => {
+                    const yoda = (window as any).yoda;
+                    const chainId = yoda.chainId || '';
+                    console.log('[WalletDialog] Yoda chainId:', chainId);
+                    console.log('[WalletDialog] Yoda chainId type:', typeof chainId);
+                    
+                    // Detect network - testnet if chainId contains 'test', otherwise check for 'main'
+                    const isMainnet = chainId === 'keeta-main' || 
+                                     chainId === 'mainnet' ||
+                                     (chainId.toLowerCase && chainId.toLowerCase().includes('main') && !chainId.toLowerCase().includes('test'));
+                    
+                    console.log('[WalletDialog] Detected as mainnet?', isMainnet);
+                    
+                    return (
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                        <span className="text-sm sm:text-base font-bold">
+                          Yoda: <span className="text-purple-400">
+                            {isMainnet ? 'MAINNET' : 'TESTNET'}
+                          </span>
                         </span>
-                      </span>
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
               
               {/* Network Mismatch Warning */}
               {walletType === 'yoda' && typeof window !== 'undefined' && (window as any).yoda && (() => {
                 const yodaChainId = (window as any).yoda.chainId || '';
-                const yodaIsMainnet = yodaChainId.includes('main') || yodaChainId === 'keeta-main';
+                console.log('[WalletDialog] Checking mismatch. Yoda chainId:', yodaChainId);
+                
+                // Improved detection - testnet if contains 'test', mainnet if contains 'main' (but not 'test')
+                const yodaIsMainnet = yodaChainId === 'keeta-main' || 
+                                     yodaChainId === 'mainnet' ||
+                                     (yodaChainId.toLowerCase && yodaChainId.toLowerCase().includes('main') && !yodaChainId.toLowerCase().includes('test'));
+                
                 const siteIsMainnet = network === 'main';
                 const mismatch = yodaIsMainnet !== siteIsMainnet;
+                
+                console.log('[WalletDialog] Network detection:', { yodaChainId, yodaIsMainnet, siteIsMainnet, mismatch });
                 
                 return mismatch ? (
                   <div className="pixel-border bg-red-500/20 border-red-500/50 p-2 sm:p-3 space-y-1.5">

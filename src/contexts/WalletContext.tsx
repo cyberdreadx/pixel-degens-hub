@@ -114,16 +114,16 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Fetch balance when connected
   useEffect(() => {
     if (walletType === 'yoda' && publicKey) {
-      // For Yoda wallet, fetch using Yoda's API
+      // For Yoda wallet, fetch using direct Keeta API
+      console.log('[WalletContext] Yoda wallet detected, fetching balance and tokens');
       fetchBalance();
-      // Note: fetchTokensInternal won't work without client, 
-      // we'd need to implement token fetching via Yoda API if needed
+      fetchTokensInternal();  // Now implemented for Yoda!
     } else if (client && account) {
       // For seed phrase wallet, use client
       fetchBalance();
       fetchTokensInternal();
     }
-  }, [client, account, walletType, publicKey]);
+  }, [client, account, walletType, publicKey, network]);
 
   const fetchBalance = useCallback(async () => {
     try {
@@ -231,13 +231,129 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [client, account, network, walletType, publicKey]);
 
   const fetchTokensInternal = useCallback(async () => {
-    // Yoda wallet doesn't support token fetching through client yet
-    if (walletType === 'yoda') {
-      console.log('[WalletContext] Token fetching not yet implemented for Yoda wallet');
-      setTokens([]);
-      return;
+    // For Yoda wallet, fetch tokens using direct Keeta API
+    if (walletType === 'yoda' && publicKey) {
+      console.log('[WalletContext] Fetching tokens for Yoda wallet via Keeta API');
+      
+      try {
+        const apiBase = network === 'test' 
+          ? 'https://rep2.test.network.api.keeta.com/api'
+          : 'https://rep2.main.network.api.keeta.com/api';
+        
+        console.log('[WalletContext] Fetching from:', apiBase);
+        
+        const response = await fetch(`${apiBase}/node/ledger/accounts/${publicKey}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch account data: ${response.statusText}`);
+        }
+        
+        const rawData = await response.json();
+        const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+        const allBalances = accountData?.balances || [];
+        
+        console.log('[WalletContext] Yoda wallet has', allBalances.length, 'token balances');
+        
+        const tokenList: KeetaToken[] = [];
+        
+        // Known token addresses
+        const XRGE_MAINNET = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
+        const XRGE_TESTNET = 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s';
+        const KTA_MAINNET = 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';
+        const KTA_TESTNET = 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52';
+        
+        for (const balanceEntry of allBalances) {
+          const tokenAddress = balanceEntry.token;
+          const balance = BigInt(balanceEntry.balance);
+          
+          // Skip zero balances and KTA (we show that separately)
+          if (balance <= 0n) continue;
+          if (tokenAddress === KTA_MAINNET || tokenAddress === KTA_TESTNET) continue;
+          
+          try {
+            // Fetch token info
+            const tokenResponse = await fetch(`${apiBase}/node/ledger/token/${tokenAddress}`);
+            if (!tokenResponse.ok) continue;
+            
+            const tokenData = await tokenResponse.json();
+            const tokenInfo = Array.isArray(tokenData) ? tokenData[0] : tokenData;
+            
+            const supply = BigInt(tokenInfo?.supply || '0');
+            const decimals = tokenInfo?.decimals || 0;
+            
+            // Check if it's an NFT (supply = 1, decimals = 0)
+            const isNFT = supply === 1n && decimals === 0;
+            
+            // Check if it's XRGE
+            const isXRGE = tokenAddress === XRGE_MAINNET || tokenAddress === XRGE_TESTNET;
+            
+            // Parse metadata
+            let metadata = null;
+            if (tokenInfo?.metadata) {
+              try {
+                const metadataBuffer = Buffer.from(tokenInfo.metadata, 'base64');
+                metadata = JSON.parse(metadataBuffer.toString('utf8'));
+              } catch (e) {
+                console.error('[WalletContext] Failed to parse metadata for', tokenAddress);
+              }
+            }
+            
+            // Calculate readable balance
+            const readableBalance = decimals === 0
+              ? balance.toString()
+              : (Number(balance) / Math.pow(10, decimals)).toFixed(3);
+            
+            let symbol = tokenInfo?.symbol || tokenInfo?.name || 'UNKNOWN';
+            let name = tokenInfo?.name || 'Unknown Token';
+            
+            if (isXRGE) {
+              symbol = 'XRGE';
+              name = 'XRGE Token';
+            }
+            
+            console.log('[WalletContext] Token found:', { 
+              address: tokenAddress.slice(0, 20) + '...',
+              name,
+              symbol,
+              balance: readableBalance,
+              isNFT,
+              isXRGE,
+              hasMetadata: !!metadata
+            });
+            
+            tokenList.push({
+              address: tokenAddress,
+              symbol,
+              name,
+              balance: readableBalance,
+              decimals: decimals || 0,
+              isNFT,
+              metadata,
+            });
+          } catch (err) {
+            console.error(`[WalletContext] Error processing token ${tokenAddress}:`, err);
+          }
+        }
+        
+        const nftList = tokenList.filter(t => t.isNFT);
+        console.log('[WalletContext] Total tokens fetched for Yoda:', tokenList.length);
+        console.log('[WalletContext] NFTs detected for Yoda:', nftList.length);
+        nftList.forEach(nft => {
+          console.log('[WalletContext] NFT:', {
+            name: nft.name,
+            address: nft.address.slice(0, 20) + '...',
+            hasMetadata: !!nft.metadata
+          });
+        });
+        
+        setTokens(tokenList);
+        return;
+      } catch (error) {
+        console.error('[WalletContext] Error fetching Yoda wallet tokens:', error);
+        setTokens([]);
+        return;
+      }
     }
-    
+
     if (!client || !account) return;
 
     try {
@@ -384,7 +500,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error) {
       console.error('Failed to fetch Keeta tokens:', error);
     }
-  }, [client, account, walletType]);
+  }, [client, account, walletType, publicKey, network]);
 
   const generateNewWallet = async (): Promise<string> => {
     try {
@@ -470,13 +586,20 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const yodaPublicKey = accounts[0];
       console.log('[WalletContext] Yoda wallet connected:', yodaPublicKey);
       console.log('[WalletContext] Yoda chainId:', yoda.chainId);
+      console.log('[WalletContext] Yoda chainId type:', typeof yoda.chainId);
 
       // Check Yoda's network and warn if it doesn't match
-      const yodaNetwork = yoda.chainId;
+      const yodaNetwork = yoda.chainId || '';
       if (yodaNetwork) {
-        const isMainnet = yodaNetwork.includes('main') || yodaNetwork === 'keeta-main';
+        // Improved detection - testnet if contains 'test', mainnet if contains 'main' (but not 'test')
+        const isMainnet = yodaNetwork === 'keeta-main' || 
+                         yodaNetwork === 'mainnet' ||
+                         (yodaNetwork.toLowerCase && yodaNetwork.toLowerCase().includes('main') && !yodaNetwork.toLowerCase().includes('test'));
+        
         const expectedNetwork = network === 'main' ? 'mainnet' : 'testnet';
         const actualNetwork = isMainnet ? 'mainnet' : 'testnet';
+        
+        console.log('[WalletContext] Network detection:', { yodaNetwork, isMainnet, expectedNetwork, actualNetwork });
         
         if (expectedNetwork !== actualNetwork) {
           console.warn(`[WalletContext] Network mismatch! App: ${network}, Yoda: ${actualNetwork}`);
