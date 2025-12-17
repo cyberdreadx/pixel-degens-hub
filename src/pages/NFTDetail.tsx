@@ -360,12 +360,12 @@ const NFTDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           {/* Image Section */}
           <div className="space-y-3 sm:space-y-4">
-            <div className="aspect-square bg-muted pixel-border-thick overflow-hidden w-full">
+            <div className="aspect-square bg-muted pixel-border-thick overflow-hidden w-full flex items-center justify-center">
               {imageUrl ? (
-                <img 
-                  src={imageUrl} 
+                <img
+                  src={imageUrl}
                   alt={metadata?.name || tokenData.name || 'Token'}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   style={{ imageRendering: "pixelated" }}
                 />
               ) : (

@@ -18,11 +18,11 @@ const NFTCard = ({ id, title, creator, price, image, likes, comments }: NFTCardP
     <Link to={`/nft/${id}`}>
       <Card className="pixel-border-thick hover:border-secondary transition-all duration-300 hover:shadow-lg hover:shadow-secondary/50 cursor-pointer overflow-hidden bg-card">
         <CardHeader className="p-0">
-          <div className="aspect-square overflow-hidden bg-muted relative">
+          <div className="aspect-square overflow-hidden bg-muted relative flex items-center justify-center">
             <img 
               src={image} 
               alt={title}
-              className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+              className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
               style={{ imageRendering: "pixelated" }}
             />
             <div className="absolute top-2 right-2 bg-primary pixel-border px-2 py-1 text-xs">
