@@ -496,7 +496,7 @@ export default function PublicProfile() {
                     <NFTCard 
                       id={nft.address}
                       title={nft.metadata?.name || nft.name}
-                      creator={nft.metadata?.platform || nft.metadata?.version || "keeta network"}
+                      creator={profile?.username || displayName}
                       price={nft.balance}
                       image={nft.metadata?.image ? ipfsToHttp(nft.metadata.image) : ''}
                       likes={0}
@@ -533,7 +533,7 @@ export default function PublicProfile() {
                           <NFTCard 
                             id={nft.address}
                             title={nft.metadata?.name || nft.name}
-                            creator={nft.metadata?.platform || nft.metadata?.version || "keeta network"}
+                            creator={profile?.username || displayName}
                             price={listing?.price_kta ? listing.price_kta.toString() : listing?.price_xrge ? listing.price_xrge.toString() : '0'}
                             image={nft.metadata?.image ? ipfsToHttp(nft.metadata.image) : ''}
                             likes={0}
