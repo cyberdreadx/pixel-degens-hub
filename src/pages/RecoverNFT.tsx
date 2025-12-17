@@ -114,7 +114,11 @@ const RecoverNFT = () => {
 
       console.log('[RecoverNFT] Recovery response:', data);
 
-      toast.success(`NFT recovered! Tx: ${data.transactionHash.substring(0, 12)}...`);
+      const txMessage = data.transactionHash && data.transactionHash !== 'unknown'
+        ? `NFT recovered! Tx: ${data.transactionHash.substring(0, 12)}...`
+        : `NFT recovered! ${data.message || 'Check your wallet.'}`;
+      
+      toast.success(txMessage);
       
       // Reload cancelled listings
       await loadCancelledListings();
@@ -331,3 +335,4 @@ const RecoverNFT = () => {
 };
 
 export default RecoverNFT;
+

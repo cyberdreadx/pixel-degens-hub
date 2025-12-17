@@ -239,3 +239,4 @@ All major issues are now fixed! Users can:
 - ✅ Send transactions
 
 **Important:** Users must manually ensure Yoda wallet and app are on the same network!
+

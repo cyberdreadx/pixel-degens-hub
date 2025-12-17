@@ -312,3 +312,4 @@ Yoda wallet provides a secure, professional way to interact with the Keeta block
 ---
 
 *Note: Yoda wallet name and availability may vary. Check with the Keeta network for the official wallet extension name and installation instructions.*
+

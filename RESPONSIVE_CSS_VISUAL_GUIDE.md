@@ -393,3 +393,4 @@ Icon (Small)        16px        14px / 16px / 20px
 ---
 
 **The responsive upgrade transforms the wallet from a desktop-only dialog into a truly universal component that adapts perfectly to any screen size! 🎨📱💻🖥️**
+

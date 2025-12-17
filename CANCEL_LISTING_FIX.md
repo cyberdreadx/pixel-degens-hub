@@ -250,3 +250,4 @@ console.log('Orphaned NFTs:', data.orphanedNFTs);
 ✅ **Tested:** Ready for testnet and mainnet deployment
 
 **Next Step:** Deploy the edge function and test on testnet!
+

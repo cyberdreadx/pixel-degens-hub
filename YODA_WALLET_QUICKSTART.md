@@ -242,3 +242,4 @@ Before deploying:
 The integration is complete and ready to use! All existing functionality remains unchanged, with Yoda wallet as an additional connection option.
 
 **Happy building! 🚀**
+

@@ -534,3 +534,4 @@ To apply this responsive system to other dialogs:
 ---
 
 **This upgrade transforms the WalletDialog from a desktop-only component into a fully responsive, mobile-optimized interface that works beautifully on any device! 🎨📱💻**
+

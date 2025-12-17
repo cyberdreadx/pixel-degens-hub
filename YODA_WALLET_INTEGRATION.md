@@ -289,3 +289,4 @@ Potential improvements for consideration:
 ---
 
 **Note:** This integration follows the patterns established in the Keeta Galaxy Bank reference implementation while being adapted for the NFT marketplace use case.
+

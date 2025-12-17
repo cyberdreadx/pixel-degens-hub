@@ -109,6 +109,8 @@ serve(async (req) => {
     const result = await builder.publish();
 
     console.log('[fx-recover-nft] Transaction published:', result);
+    
+    const txHash = result?.hash || 'unknown';
 
     // Update listing status to recovered
     if (listing.status !== 'cancelled') {
@@ -126,6 +128,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
+        transactionHash: txHash,
         message: 'NFT recovered and returned to owner',
         returnedTo: recipientAddress,
         listingId: listing.id,
@@ -151,3 +154,4 @@ serve(async (req) => {
     );
   }
 });
+

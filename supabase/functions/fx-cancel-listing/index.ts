@@ -116,6 +116,8 @@ serve(async (req) => {
     const result = await builder.publish();
 
     console.log('[fx-cancel-listing] Transaction published:', result);
+    
+    const txHash = result?.hash || 'unknown';
 
     // Update listing status in database
     const { error: updateError } = await supabaseClient
@@ -131,6 +133,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           warning: 'NFT returned but database update failed',
+          transactionHash: txHash,
           error: updateError.message
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -142,6 +145,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
+        transactionHash: txHash,
         message: 'Listing cancelled and NFT returned to seller',
         returnedTo: listing.seller_address
       }),
@@ -165,3 +169,4 @@ serve(async (req) => {
     );
   }
 });
+

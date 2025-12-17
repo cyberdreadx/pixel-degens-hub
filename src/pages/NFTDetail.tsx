@@ -285,7 +285,11 @@ const NFTDetail = () => {
 
       console.log('[NFTDetail] Cancel listing response:', data);
 
-      toast.success(`Listing cancelled! NFT returned to your wallet. Tx: ${data.transactionHash.substring(0, 8)}...`);
+      const txMessage = data.transactionHash && data.transactionHash !== 'unknown'
+        ? `Listing cancelled! NFT returned. Tx: ${data.transactionHash.substring(0, 8)}...`
+        : `Listing cancelled! NFT returned to your wallet.`;
+      
+      toast.success(txMessage);
 
       // Refresh page to update UI
       setTimeout(() => {
