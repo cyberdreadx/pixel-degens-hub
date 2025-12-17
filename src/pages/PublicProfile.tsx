@@ -157,8 +157,8 @@ export default function PublicProfile() {
           let metadata = null;
           if (tokenInfo.metadata) {
             try {
-              const metadataBuffer = Buffer.from(tokenInfo.metadata, 'base64');
-              metadata = JSON.parse(metadataBuffer.toString('utf8'));
+              const metadataJson = atob(tokenInfo.metadata);
+              metadata = JSON.parse(metadataJson);
             } catch (e) {
               console.error('[PublicProfile] Failed to parse listed NFT metadata:', e);
             }
@@ -200,22 +200,33 @@ export default function PublicProfile() {
         : 'https://rep2.main.network.api.keeta.com/api';
       
       console.log('[PublicProfile] Fetching from API:', apiBase);
+      console.log('[PublicProfile] Wallet address:', walletAddress);
       
       const response = await fetch(`${apiBase}/node/ledger/accounts/${walletAddress}`);
       
+      console.log('[PublicProfile] API response status:', response.status, response.statusText);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[PublicProfile] API error response:', errorText);
         throw new Error(`Failed to fetch account data: ${response.statusText}`);
       }
       
       const rawData = await response.json();
+      console.log('[PublicProfile] Raw API data:', rawData);
+      
       const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+      console.log('[PublicProfile] Account data:', accountData);
+      
       const allBalances = accountData?.balances || [];
       
       console.log('[PublicProfile] Found balances:', allBalances.length);
+      console.log('[PublicProfile] All balances:', allBalances);
       
       const processedTokens: TokenWithMetadata[] = [];
       
-      for (const balanceEntry of allBalances) {
+      for (let idx = 0; idx < allBalances.length; idx++) {
+        const balanceEntry = allBalances[idx];
         const tokenAddress = balanceEntry.token;
         const balance = BigInt(balanceEntry.balance);
         const isXRGE = tokenAddress === XRGE_ADDRESS;
@@ -224,20 +235,46 @@ export default function PublicProfile() {
         if (balance <= 0n) continue;
         
         try {
-          // Fetch token info
-          const tokenResponse = await fetch(`${apiBase}/node/ledger/token/${tokenAddress}`);
-          if (!tokenResponse.ok) continue;
+          console.log(`[PublicProfile] Processing token ${idx + 1}/${allBalances.length}:`, tokenAddress.slice(0, 20) + '...');
+          
+          // Fetch token info - use /accounts endpoint to get token account info
+          const tokenResponse = await fetch(`${apiBase}/node/ledger/accounts/${tokenAddress}`);
+          console.log('[PublicProfile] Token API response:', tokenResponse.status);
+          
+          if (!tokenResponse.ok) {
+            console.warn('[PublicProfile] Failed to fetch token info for:', tokenAddress);
+            continue;
+          }
           
           const tokenData = await tokenResponse.json();
-          const tokenInfo = Array.isArray(tokenData) ? tokenData[0] : tokenData;
+          console.log('[PublicProfile] Raw token data:', tokenData);
           
-          const supply = BigInt(tokenInfo?.supply || '0');
-          const decimals = tokenInfo?.decimals || 0;
+          const tokenAccountData = Array.isArray(tokenData) ? tokenData[0] : tokenData;
+          const tokenInfo = tokenAccountData?.info || {};
+          console.log('[PublicProfile] Parsed token info:', tokenInfo);
           
-          // Check if it's an NFT (supply = 1, decimals = 0)
-          const isNFT = supply === 1n && decimals === 0;
+          // Convert hex supply to BigInt
+          const supplyHex = tokenInfo?.supply || '0x0';
+          const supply = BigInt(supplyHex);
           
-          console.log('[PublicProfile] Token Found:', {
+          // Parse metadata to get decimals and check platform
+          let metadata = null;
+          if (tokenInfo?.metadata) {
+            try {
+              const metadataJson = atob(tokenInfo.metadata);
+              metadata = JSON.parse(metadataJson);
+            } catch (e) {
+              console.error('[PublicProfile] Failed to parse metadata for', tokenAddress);
+            }
+          }
+          
+          const decimals = metadata?.decimalPlaces || metadata?.decimals || tokenInfo?.decimals || 0;
+          
+          // Check if it's an NFT: platform is degen8bit OR (supply = 1 and decimals = 0)
+          const isNFT = metadata?.platform === 'degen8bit' ||
+                        (supply === 1n && decimals === 0);
+          
+          console.log('[PublicProfile] Token analysis:', {
             address: tokenAddress.slice(0, 20) + '...',
             name: tokenInfo?.name,
             balance: balance.toString(),
@@ -252,17 +289,7 @@ export default function PublicProfile() {
           if (!isNFT && !isXRGE) continue;
           
           console.log('[PublicProfile] ✅ Including token:', tokenInfo?.name);
-          
-          let metadata = null;
-          if (tokenInfo?.metadata) {
-            try {
-              const metadataBuffer = Buffer.from(tokenInfo.metadata, 'base64');
-              metadata = JSON.parse(metadataBuffer.toString('utf8'));
-              console.log('[PublicProfile] Metadata parsed:', metadata);
-            } catch (e) {
-              console.error('[PublicProfile] Failed to parse metadata:', e);
-            }
-          }
+          console.log('[PublicProfile] Metadata:', metadata);
           
           processedTokens.push({
             address: tokenAddress,
@@ -358,7 +385,7 @@ export default function PublicProfile() {
 
                   <div className="flex items-center justify-center md:justify-start gap-3 mt-4">
                     <a
-                      href={`https://explorer.keeta.com/account/${walletAddress}`}
+                      href={`https://explorer.${network === 'test' ? 'test.' : ''}keeta.com/account/${walletAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors pixel-border px-4 py-2 bg-primary/5 rounded hover:bg-primary/10"

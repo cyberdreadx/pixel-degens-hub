@@ -40,9 +40,13 @@ export default function Profile() {
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [listedNFTs, setListedNFTs] = useState<Set<string>>(new Set());
 
-  // Filter for NFTs
-  const nfts = tokens.filter(token => token.isNFT && token.metadata);
+  // Filter for NFTs (don't require metadata - some NFTs might not have it)
+  const nfts = tokens.filter(token => token.isNFT);
   const unlistedNFTs = nfts.filter(nft => !listedNFTs.has(nft.address));
+  
+  console.log('[Profile] Total tokens:', tokens.length);
+  console.log('[Profile] NFTs found:', nfts.length);
+  console.log('[Profile] NFTs:', nfts.map(n => ({ name: n.name, hasMetadata: !!n.metadata })));
 
   useEffect(() => {
     if (isConnected && publicKey) {

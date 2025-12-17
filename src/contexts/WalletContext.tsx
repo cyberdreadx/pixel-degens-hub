@@ -270,32 +270,37 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (tokenAddress === KTA_MAINNET || tokenAddress === KTA_TESTNET) continue;
           
           try {
-            // Fetch token info
-            const tokenResponse = await fetch(`${apiBase}/node/ledger/token/${tokenAddress}`);
+            // Fetch token info - use /accounts endpoint to get token account info
+            const tokenResponse = await fetch(`${apiBase}/node/ledger/accounts/${tokenAddress}`);
             if (!tokenResponse.ok) continue;
             
             const tokenData = await tokenResponse.json();
-            const tokenInfo = Array.isArray(tokenData) ? tokenData[0] : tokenData;
+            const tokenAccountData = Array.isArray(tokenData) ? tokenData[0] : tokenData;
+            const tokenInfo = tokenAccountData?.info || {};
             
-            const supply = BigInt(tokenInfo?.supply || '0');
-            const decimals = tokenInfo?.decimals || 0;
+            // Convert hex supply to BigInt
+            const supplyHex = tokenInfo?.supply || '0x0';
+            const supply = BigInt(supplyHex);
             
-            // Check if it's an NFT (supply = 1, decimals = 0)
-            const isNFT = supply === 1n && decimals === 0;
-            
-            // Check if it's XRGE
-            const isXRGE = tokenAddress === XRGE_MAINNET || tokenAddress === XRGE_TESTNET;
-            
-            // Parse metadata
+            // Parse metadata first to check platform
             let metadata = null;
             if (tokenInfo?.metadata) {
               try {
-                const metadataBuffer = Buffer.from(tokenInfo.metadata, 'base64');
-                metadata = JSON.parse(metadataBuffer.toString('utf8'));
+                const metadataJson = atob(tokenInfo.metadata);
+                metadata = JSON.parse(metadataJson);
               } catch (e) {
-                console.error('[WalletContext] Failed to parse metadata for', tokenAddress);
+                console.error('[WalletContext] Failed to parse metadata for', tokenAddress, e);
               }
             }
+            
+            const decimals = metadata?.decimalPlaces || metadata?.decimals || tokenInfo?.decimals || 0;
+            
+            // Check if it's an NFT: platform is degen8bit OR (supply = 1 and decimals = 0)
+            const isNFT = metadata?.platform === 'degen8bit' ||
+                          (supply === 1n && decimals === 0);
+            
+            // Check if it's XRGE
+            const isXRGE = tokenAddress === XRGE_MAINNET || tokenAddress === XRGE_TESTNET;
             
             // Calculate readable balance
             const readableBalance = decimals === 0
@@ -335,15 +340,28 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
         
         const nftList = tokenList.filter(t => t.isNFT);
-        console.log('[WalletContext] Total tokens fetched for Yoda:', tokenList.length);
-        console.log('[WalletContext] NFTs detected for Yoda:', nftList.length);
+        console.log('========================================');
+        console.log('[WalletContext] YODA WALLET TOKEN FETCH COMPLETE');
+        console.log('[WalletContext] Total tokens fetched:', tokenList.length);
+        console.log('[WalletContext] NFTs detected:', nftList.length);
+        console.log('[WalletContext] All tokens:', tokenList.map(t => ({
+          name: t.name,
+          symbol: t.symbol,
+          isNFT: t.isNFT,
+          balance: t.balance,
+          hasMetadata: !!t.metadata
+        })));
         nftList.forEach(nft => {
-          console.log('[WalletContext] NFT:', {
+          console.log('[WalletContext] NFT Details:', {
             name: nft.name,
-            address: nft.address.slice(0, 20) + '...',
-            hasMetadata: !!nft.metadata
+            symbol: nft.symbol,
+            address: nft.address,
+            balance: nft.balance,
+            hasMetadata: !!nft.metadata,
+            metadata: nft.metadata
           });
         });
+        console.log('========================================');
         
         setTokens(tokenList);
         return;
@@ -588,23 +606,62 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.log('[WalletContext] Yoda chainId:', yoda.chainId);
       console.log('[WalletContext] Yoda chainId type:', typeof yoda.chainId);
 
-      // Check Yoda's network and warn if it doesn't match
-      const yodaNetwork = yoda.chainId || '';
-      if (yodaNetwork) {
-        // Improved detection - testnet if contains 'test', mainnet if contains 'main' (but not 'test')
-        const isMainnet = yodaNetwork === 'keeta-main' || 
-                         yodaNetwork === 'mainnet' ||
-                         (yodaNetwork.toLowerCase && yodaNetwork.toLowerCase().includes('main') && !yodaNetwork.toLowerCase().includes('test'));
+      // Yoda wallet has a bug where chainId doesn't update when switching networks
+      // So we'll detect the actual network by checking which API has balance/account data
+      console.log('[WalletContext] ⚠️ Note: Yoda chainId unreliable (shows:', yoda.chainId, '), detecting actual network via API...');
+      
+      try {
+        // Check which network actually has data for this address
+        const testnetApi = 'https://rep2.test.network.api.keeta.com/api';
+        const mainnetApi = 'https://rep2.main.network.api.keeta.com/api';
         
-        const expectedNetwork = network === 'main' ? 'mainnet' : 'testnet';
-        const actualNetwork = isMainnet ? 'mainnet' : 'testnet';
+        const [testnetResponse, mainnetResponse] = await Promise.allSettled([
+          fetch(`${testnetApi}/node/ledger/accounts/${yodaPublicKey}`).then(r => r.ok ? r.json() : null),
+          fetch(`${mainnetApi}/node/ledger/accounts/${yodaPublicKey}`).then(r => r.ok ? r.json() : null)
+        ]);
         
-        console.log('[WalletContext] Network detection:', { yodaNetwork, isMainnet, expectedNetwork, actualNetwork });
+        const testnetData = testnetResponse.status === 'fulfilled' ? (Array.isArray(testnetResponse.value) ? testnetResponse.value[0] : testnetResponse.value) : null;
+        const mainnetData = mainnetResponse.status === 'fulfilled' ? (Array.isArray(mainnetResponse.value) ? mainnetResponse.value[0] : mainnetResponse.value) : null;
         
-        if (expectedNetwork !== actualNetwork) {
-          console.warn(`[WalletContext] Network mismatch! App: ${network}, Yoda: ${actualNetwork}`);
-          toast.error(`⚠️ Yoda wallet is on ${actualNetwork} but app is set to ${expectedNetwork}. Please switch networks in Yoda wallet.`);
+        const testnetBalanceCount = testnetData?.balances?.length || 0;
+        const mainnetBalanceCount = mainnetData?.balances?.length || 0;
+        
+        console.log('[WalletContext] Network detection via API:');
+        console.log('  - Testnet token balances:', testnetBalanceCount);
+        console.log('  - Mainnet token balances:', mainnetBalanceCount);
+        console.log('  - Site set to:', network);
+        
+        // Determine which network the wallet is actually on
+        let walletActualNetwork: 'main' | 'test' = 'test';
+        
+        if (mainnetBalanceCount > 0 && testnetBalanceCount === 0) {
+          walletActualNetwork = 'main';
+          console.log('[WalletContext] → Wallet is on MAINNET (has mainnet data only)');
+        } else if (testnetBalanceCount > 0 && mainnetBalanceCount === 0) {
+          walletActualNetwork = 'test';
+          console.log('[WalletContext] → Wallet is on TESTNET (has testnet data only)');
+        } else if (testnetBalanceCount > 0 && mainnetBalanceCount > 0) {
+          console.log('[WalletContext] → Address has data on BOTH networks');
+          walletActualNetwork = network; // Keep current network
+        } else {
+          console.log('[WalletContext] → New address (no data on either network)');
+          walletActualNetwork = network; // Keep current network
         }
+        
+        // Check for mismatch
+        if (walletActualNetwork !== network) {
+          console.warn(`[WalletContext] ⚠️ NETWORK MISMATCH! Site: ${network}, Wallet: ${walletActualNetwork}`);
+          const walletNetworkName = walletActualNetwork === 'main' ? 'MAINNET' : 'TESTNET';
+          const siteNetworkName = network === 'main' ? 'MAINNET' : 'TESTNET';
+          toast.error(`⚠️ Your Yoda wallet is on ${walletNetworkName} but site is on ${siteNetworkName}. Switch site network or wallet network to match!`, {
+            duration: 7000,
+          });
+        } else {
+          console.log('[WalletContext] ✓ Networks match!');
+        }
+      } catch (apiError) {
+        console.error('[WalletContext] Network detection via API failed:', apiError);
+        console.log('[WalletContext] Proceeding with site network setting:', network);
       }
 
       // For Yoda wallet, we don't need a full client with signing capabilities

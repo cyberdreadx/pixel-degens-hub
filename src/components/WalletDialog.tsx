@@ -213,15 +213,17 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                   {walletType === 'yoda' && typeof window !== 'undefined' && (window as any).yoda && (() => {
                     const yoda = (window as any).yoda;
                     const chainId = yoda.chainId || '';
-                    console.log('[WalletDialog] Yoda chainId:', chainId);
-                    console.log('[WalletDialog] Yoda chainId type:', typeof chainId);
+                    const chainIdLower = String(chainId).toLowerCase();
                     
-                    // Detect network - testnet if chainId contains 'test', otherwise check for 'main'
-                    const isMainnet = chainId === 'keeta-main' || 
-                                     chainId === 'mainnet' ||
-                                     (chainId.toLowerCase && chainId.toLowerCase().includes('main') && !chainId.toLowerCase().includes('test'));
-                    
-                    console.log('[WalletDialog] Detected as mainnet?', isMainnet);
+                    // Same detection logic as mismatch check
+                    let isMainnet = false;
+                    if (chainIdLower.includes('test')) {
+                      isMainnet = false;
+                    } else if (chainIdLower === 'keeta-main' || chainIdLower === 'mainnet' || chainIdLower.includes('main')) {
+                      isMainnet = true;
+                    } else {
+                      isMainnet = false;
+                    }
                     
                     return (
                       <div className="flex items-center gap-2">
@@ -237,40 +239,18 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                 </div>
               </div>
               
-              {/* Network Mismatch Warning */}
-              {walletType === 'yoda' && typeof window !== 'undefined' && (window as any).yoda && (() => {
-                const yodaChainId = (window as any).yoda.chainId || '';
-                console.log('[WalletDialog] Checking mismatch. Yoda chainId:', yodaChainId);
-                
-                // Improved detection - testnet if contains 'test', mainnet if contains 'main' (but not 'test')
-                const yodaIsMainnet = yodaChainId === 'keeta-main' || 
-                                     yodaChainId === 'mainnet' ||
-                                     (yodaChainId.toLowerCase && yodaChainId.toLowerCase().includes('main') && !yodaChainId.toLowerCase().includes('test'));
-                
-                const siteIsMainnet = network === 'main';
-                const mismatch = yodaIsMainnet !== siteIsMainnet;
-                
-                console.log('[WalletDialog] Network detection:', { yodaChainId, yodaIsMainnet, siteIsMainnet, mismatch });
-                
-                return mismatch ? (
-                  <div className="pixel-border bg-red-500/20 border-red-500/50 p-2 sm:p-3 space-y-1.5">
-                    <div className="flex items-center gap-2 text-red-400">
-                      <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                      <span className="text-xs sm:text-sm font-bold uppercase">Network Mismatch!</span>
-                    </div>
-                    <p className="text-[10px] sm:text-xs text-red-300 leading-tight">
-                      Your Yoda wallet is on <strong>{yodaIsMainnet ? 'MAINNET' : 'TESTNET'}</strong> but the site is set to <strong>{siteIsMainnet ? 'MAINNET' : 'TESTNET'}</strong>.
-                    </p>
-                    <p className="text-[10px] sm:text-xs text-red-200 leading-tight font-semibold">
-                      → Switch networks in your Yoda wallet extension to match the site!
-                    </p>
+              {/* Network Info - Detection via API */}
+              {walletType === 'yoda' && (
+                <div className="pixel-border bg-blue-500/20 border-blue-500/50 p-2 sm:p-3 space-y-1">
+                  <div className="flex items-center gap-2 text-blue-300">
+                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                    <span className="text-xs sm:text-sm font-bold">Network Detection</span>
                   </div>
-                ) : (
-                  <div className="pixel-border bg-green-500/20 border-green-500/50 p-2 text-center">
-                    <span className="text-[10px] sm:text-xs text-green-300 font-bold">✓ Networks Match</span>
-                  </div>
-                );
-              })()}
+                  <p className="text-[10px] sm:text-xs text-blue-200 leading-tight">
+                    Yoda wallet network is auto-detected via blockchain API. Check console for details or watch for mismatch warnings.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Balance Section */}
