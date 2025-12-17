@@ -17,7 +17,10 @@ interface WalletContextType {
   balance: string | null;
   tokens: KeetaToken[];
   network: "main" | "test";
+  walletType: "seed" | "yoda" | null;
+  isYodaInstalled: boolean;
   connectWallet: (seed?: string) => Promise<void>;
+  connectYodaWallet: () => Promise<void>;
   disconnectWallet: () => void;
   generateNewWallet: () => Promise<string>;
   refreshBalance: () => Promise<void>;
@@ -46,9 +49,29 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [client, setClient] = useState<any | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const [tokens, setTokens] = useState<KeetaToken[]>([]);
+  const [walletType, setWalletType] = useState<"seed" | "yoda" | null>(null);
+  const [isYodaInstalled, setIsYodaInstalled] = useState(false);
   const [network, setNetwork] = useState<"main" | "test">(() => {
     return (localStorage.getItem("keetaNetwork") as "main" | "test") || "test";
   });
+
+  // Check if Yoda wallet is installed
+  useEffect(() => {
+    const checkYodaWallet = () => {
+      const yoda = (window as any).yoda || (window as any).keetaWallet;
+      setIsYodaInstalled(!!yoda);
+      console.log('[WalletContext] Yoda wallet detected:', !!yoda);
+    };
+    
+    checkYodaWallet();
+    
+    // Listen for wallet installation
+    window.addEventListener('yoda#initialized', checkYodaWallet);
+    
+    return () => {
+      window.removeEventListener('yoda#initialized', checkYodaWallet);
+    };
+  }, []);
 
   // Expose wallet context to window for atomic swap signing
   useEffect(() => {
@@ -61,25 +84,82 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Load wallet from localStorage on mount
   useEffect(() => {
-    const savedSeed = localStorage.getItem("keetaWalletSeed");
-    if (savedSeed) {
-      connectWallet(savedSeed);
+    const walletTypePreference = localStorage.getItem("keetaWalletType");
+    
+    if (walletTypePreference === "yoda") {
+      // Auto-connect Yoda wallet if previously used
+      const savedAddress = localStorage.getItem("yodaAddress");
+      const yoda = (window as any).yoda;
+      if (yoda && yoda.isYoda && savedAddress) {
+        // Wait a bit for extension to fully initialize
+        setTimeout(() => {
+          connectYodaWallet().catch(err => {
+            console.log('[WalletContext] Auto-connect Yoda failed:', err);
+            localStorage.removeItem("keetaWalletType");
+            localStorage.removeItem("yodaAddress");
+          });
+        }, 500);
+      }
+    } else {
+      // Auto-connect with seed phrase if available
+      const savedSeed = localStorage.getItem("keetaWalletSeed");
+      if (savedSeed) {
+        connectWallet(savedSeed);
+      }
     }
   }, []);
 
   // Fetch balance when connected
   useEffect(() => {
-    if (client && account) {
+    if (walletType === 'yoda' && publicKey) {
+      // For Yoda wallet, fetch using Yoda's API
+      fetchBalance();
+      // Note: fetchTokensInternal won't work without client, 
+      // we'd need to implement token fetching via Yoda API if needed
+    } else if (client && account) {
+      // For seed phrase wallet, use client
       fetchBalance();
       fetchTokensInternal();
     }
-  }, [client, account]);
+  }, [client, account, walletType, publicKey]);
 
   const fetchBalance = useCallback(async () => {
-    if (!client || !account) return;
-    
     try {
       console.log('[WalletContext] Fetching balances for network:', network);
+      
+      // If using Yoda wallet, use its getBalance method
+      if (walletType === 'yoda' && publicKey) {
+        const yoda = (window as any).yoda;
+        if (!yoda || !yoda.getBalance) {
+          console.error('[WalletContext] Yoda wallet not available');
+          setBalance("0.000");
+          return;
+        }
+        
+        try {
+          const yodaBalance = await yoda.getBalance(publicKey);
+          console.log('[WalletContext] Yoda balance:', yodaBalance);
+          
+          // Yoda returns balance as a string with decimals already applied
+          const balanceNum = parseFloat(yodaBalance) || 0;
+          const balanceStr = balanceNum.toFixed(3);
+          setBalance(balanceStr);
+          toast.success("Balance refreshed!");
+          return;
+        } catch (yodaError) {
+          console.error('[WalletContext] Yoda getBalance failed:', yodaError);
+          toast.error("Failed to fetch balance from Yoda wallet");
+          return;
+        }
+      }
+      
+      // For seed phrase wallet, we need client
+      if (!client || !account) {
+        console.log('[WalletContext] No client or account available');
+        return;
+      }
+      
+      // Regular balance fetching via client
       const allBalances = await client.allBalances();
       console.log('[WalletContext] Raw allBalances response:', allBalances);
       console.log('[WalletContext] allBalances type:', typeof allBalances, 'keys:', Object.keys(allBalances || {}));
@@ -146,9 +226,16 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setBalance("0.000000");
       toast.error("Failed to refresh balance");
     }
-  }, [client, account, network]);
+  }, [client, account, network, walletType, publicKey]);
 
   const fetchTokensInternal = useCallback(async () => {
+    // Yoda wallet doesn't support token fetching through client yet
+    if (walletType === 'yoda') {
+      console.log('[WalletContext] Token fetching not yet implemented for Yoda wallet');
+      setTokens([]);
+      return;
+    }
+    
     if (!client || !account) return;
 
     try {
@@ -295,7 +382,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error) {
       console.error('Failed to fetch Keeta tokens:', error);
     }
-  }, [client, account]);
+  }, [client, account, walletType]);
 
   const generateNewWallet = async (): Promise<string> => {
     try {
@@ -337,6 +424,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPublicKey(newPublicKey);
       setClient(newClient);
       setIsConnected(true);
+      setWalletType("seed");
 
       // Save mnemonic/seed to localStorage
       if (!seedOrMnemonic) {
@@ -353,14 +441,115 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const connectYodaWallet = async () => {
+    try {
+      const yoda = (window as any).yoda;
+      
+      if (!yoda || !yoda.isYoda) {
+        toast.error("Yoda wallet not found. Please install the Yoda wallet extension.");
+        window.open("https://chrome.google.com/webstore", "_blank");
+        return;
+      }
+
+      console.log('[WalletContext] Connecting to Yoda wallet...');
+      console.log('[WalletContext] Yoda detected:', yoda.isYoda);
+      console.log('[WalletContext] Chain ID:', yoda.chainId);
+
+      // Request accounts using the proper Yoda wallet API
+      const accounts = await yoda.request({ 
+        method: 'keeta_requestAccounts' 
+      });
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts returned from Yoda wallet");
+      }
+
+      const yodaPublicKey = accounts[0];
+      console.log('[WalletContext] Yoda wallet connected:', yodaPublicKey);
+      console.log('[WalletContext] Yoda chainId:', yoda.chainId);
+
+      // Check Yoda's network and warn if it doesn't match
+      const yodaNetwork = yoda.chainId;
+      if (yodaNetwork) {
+        const isMainnet = yodaNetwork.includes('main') || yodaNetwork === 'keeta-main';
+        const expectedNetwork = network === 'main' ? 'mainnet' : 'testnet';
+        const actualNetwork = isMainnet ? 'mainnet' : 'testnet';
+        
+        if (expectedNetwork !== actualNetwork) {
+          console.warn(`[WalletContext] Network mismatch! App: ${network}, Yoda: ${actualNetwork}`);
+          toast.error(`⚠️ Yoda wallet is on ${actualNetwork} but app is set to ${expectedNetwork}. Please switch networks in Yoda wallet.`);
+        }
+      }
+
+      // For Yoda wallet, we don't need a full client with signing capabilities
+      // We'll use Yoda's API for all operations
+      
+      // Save to state (account and client are null for Yoda wallet)
+      setAccount(null);
+      setPublicKey(yodaPublicKey);
+      setClient(null);
+      setIsConnected(true);
+      setWalletType("yoda");
+
+      // Save connection preference
+      localStorage.setItem("keetaWalletType", "yoda");
+      localStorage.setItem("yodaAddress", yodaPublicKey);
+      localStorage.removeItem("keetaWalletSeed");
+
+      toast.success("Yoda wallet connected!");
+
+      // Listen for account changes
+      if (yoda.on) {
+        yoda.on('accountsChanged', (newAccounts: string[]) => {
+          console.log('[WalletContext] Yoda accounts changed:', newAccounts);
+          if (newAccounts && newAccounts.length > 0) {
+            const newAddress = newAccounts[0];
+            setPublicKey(newAddress);
+            // Reconnect with new account
+            connectYodaWallet();
+          } else {
+            // No accounts - user disconnected
+            disconnectWallet();
+          }
+        });
+
+        yoda.on('disconnect', () => {
+          console.log('[WalletContext] Yoda wallet disconnected event');
+          disconnectWallet();
+        });
+      }
+
+    } catch (error) {
+      console.error("Error connecting Yoda wallet:", error);
+      toast.error(`Failed to connect Yoda wallet: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+    }
+  };
+
   const disconnectWallet = () => {
+    // If using Yoda wallet, disconnect from it
+    if (walletType === "yoda") {
+      const yoda = (window as any).yoda;
+      if (yoda && yoda.disconnect) {
+        try {
+          yoda.disconnect();
+          console.log('[WalletContext] Disconnected from Yoda wallet');
+        } catch (e) {
+          console.log('[WalletContext] Yoda disconnect error:', e);
+        }
+      }
+      localStorage.removeItem("yodaAddress");
+    }
+
     setAccount(null);
     setPublicKey(null);
     setClient(null);
     setIsConnected(false);
     setBalance(null);
     setTokens([]);
+    setWalletType(null);
     localStorage.removeItem("keetaWalletSeed");
+    localStorage.removeItem("keetaWalletType");
     toast.success("Wallet disconnected");
   };
 
@@ -379,12 +568,38 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const sendTokens = useCallback(async (to: string, amount: string, tokenAddress?: string) => {
-    if (!account || !client) {
-      throw new Error('Wallet not connected');
-    }
-
     try {
-      // Start building a transaction
+      // If using Yoda wallet, use its sendTransaction method
+      if (walletType === 'yoda') {
+        const yoda = (window as any).yoda;
+        if (!yoda) {
+          throw new Error('Yoda wallet not available');
+        }
+
+        console.log('[sendTokens] Using Yoda wallet to send');
+        console.log('[sendTokens] To:', to);
+        console.log('[sendTokens] Amount:', amount);
+        
+        // Yoda wallet's sendTransaction expects the amount as a string
+        const txHash = await yoda.sendTransaction({
+          to: to,
+          amount: amount
+        });
+        
+        console.log('[sendTokens] Yoda transaction sent:', txHash);
+        
+        // Refresh balances after sending
+        await fetchBalance();
+        
+        toast.success("Transaction sent via Yoda wallet!");
+        return { txHash };
+      }
+
+      // Regular seed phrase wallet flow
+      if (!account || !client) {
+        throw new Error('Wallet not connected');
+      }
+      
       const builder = client.initBuilder();
       
       // Create recipient account from public key string
@@ -393,7 +608,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Determine decimals based on token and network
       const baseTokenAddr = client.baseToken.publicKeyString.toString();
       const isKTA = !tokenAddress || tokenAddress === baseTokenAddr;
-      const decimals = isKTA ? getTokenDecimals('KTA', network) : 18; // Default to 18 for other tokens
+      const decimals = isKTA ? getTokenDecimals('KTA', network) : 18;
       
       console.log('[sendTokens] Input amount:', amount);
       console.log('[sendTokens] Is KTA:', isKTA);
@@ -427,7 +642,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toast.error("Failed to send transaction");
       throw error;
     }
-  }, [account, client]);
+  }, [account, client, walletType]);
 
   return (
     <WalletContext.Provider
@@ -439,7 +654,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         balance,
         tokens,
         network,
+        walletType,
+        isYodaInstalled,
         connectWallet,
+        connectYodaWallet,
         disconnectWallet,
         generateNewWallet,
         refreshBalance,

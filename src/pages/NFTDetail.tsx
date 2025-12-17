@@ -19,7 +19,7 @@ import { NFTPriceChart } from "@/components/NFTPriceChart";
 const NFTDetail = () => {
   const { id } = useParams(); // This is the token address
   const location = useLocation();
-  const { network, publicKey, fetchTokens, client } = useWallet();
+  const { network, publicKey, fetchTokens, client, balance, isConnected } = useWallet();
   const [tokenData, setTokenData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -72,10 +72,20 @@ const NFTDetail = () => {
 
   // Fetch user balances when wallet is connected
   useEffect(() => {
-    if (!client || !publicKey) return;
+    if (!publicKey) return;
 
     const fetchBalances = async () => {
       try {
+        // For Yoda wallet, use balance from context
+        if (!client) {
+          // Yoda wallet - use the balance from wallet context
+          const balanceNum = parseFloat(balance || '0');
+          setUserKTABalance(balanceNum);
+          setUserXRGEBalance(0); // XRGE not yet supported for Yoda
+          return;
+        }
+
+        // For seed phrase wallet, fetch using client
         const tokenAddresses = network === 'test' ? {
           KTA: 'keeta_anyiff4v34alvumupagmdyosydeq24lc4def5mrpmmyhx3j6vj2uucckeqn52',
           XRGE: 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s',
@@ -101,7 +111,7 @@ const NFTDetail = () => {
     };
 
     fetchBalances();
-  }, [client, publicKey, network]);
+  }, [client, publicKey, network, balance]);
 
   useEffect(() => {
     if (!id) return;
@@ -148,7 +158,7 @@ const NFTDetail = () => {
   };
 
   const handleBuyNFT = async () => {
-    if (!publicKey || !client) {
+    if (!publicKey || !isConnected) {
       toast.error("Please connect your wallet to buy this NFT");
       return;
     }
@@ -236,7 +246,7 @@ const NFTDetail = () => {
   };
 
   const handleCancelListing = async () => {
-    if (!publicKey || !client) {
+    if (!publicKey || !isConnected) {
       toast.error("Please connect your wallet");
       return;
     }
@@ -246,32 +256,37 @@ const NFTDetail = () => {
       return;
     }
 
+    // Verify the user is the seller
+    if (activeListing.seller_address !== publicKey) {
+      toast.error("You can only cancel your own listings");
+      return;
+    }
+
     setIsCancelling(true);
 
     try {
-      toast.info("Cancelling listing...");
-      
-      // Get anchor info
-      const { data: anchorData } = await supabase.functions.invoke('fx-anchor-info', {
-        body: { network }
+      toast.info("Cancelling listing and returning NFT from escrow...");
+
+      // Call the cancel listing edge function
+      const { data, error } = await supabase.functions.invoke('fx-cancel-listing', {
+        body: { 
+          listingId: activeListing.id,
+          network 
+        }
       });
-      
-      if (!anchorData?.address) {
-        throw new Error('Failed to get anchor address');
-      }
-      
-      // Cancel listing in database first
-      const { error: updateError } = await supabase
-        .from('nft_listings')
-        .update({ status: 'cancelled' })
-        .eq('id', activeListing.id);
 
-      if (updateError) {
-        throw new Error('Failed to cancel listing');
+      if (error) {
+        throw new Error(error.message || 'Failed to cancel listing');
       }
 
-      toast.success("Listing cancelled! Your NFT will be returned to your wallet shortly.");
-      
+      if (!data.success) {
+        throw new Error(data.error || data.warning || 'Failed to cancel listing');
+      }
+
+      console.log('[NFTDetail] Cancel listing response:', data);
+
+      toast.success(`Listing cancelled! NFT returned to your wallet. Tx: ${data.transactionHash.substring(0, 8)}...`);
+
       // Refresh page to update UI
       setTimeout(() => {
         window.location.reload();

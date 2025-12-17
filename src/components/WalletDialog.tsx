@@ -19,7 +19,7 @@ interface WalletDialogProps {
 }
 
 const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
-  const { connectWallet, disconnectWallet, publicKey, isConnected, balance, tokens, generateNewWallet, refreshBalance, sendTokens, network } = useWallet();
+  const { connectWallet, connectYodaWallet, disconnectWallet, publicKey, isConnected, balance, tokens, generateNewWallet, refreshBalance, sendTokens, network, walletType, isYodaInstalled } = useWallet();
   const { getUsdValue, formatUsd } = useMarketData();
   const [importSeed, setImportSeed] = useState("");
   const [showSeed, setShowSeed] = useState(false);
@@ -175,130 +175,136 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
   if (isConnected) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="pixel-border-thick bg-gradient-to-b from-card to-card/80 max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden border-4 border-primary shadow-[0_0_30px_rgba(0,255,255,0.3)] p-4 sm:p-6">
-          <DialogHeader className="space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b-2 border-primary/30">
-            <DialogTitle className="text-2xl sm:text-3xl neon-glow flex items-center gap-2 sm:gap-3 font-bold">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary pixel-border-thick flex items-center justify-center shrink-0">
-                <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-background" />
+        <DialogContent className="pixel-border-thick bg-gradient-to-b from-card to-card/80 w-[calc(100vw-2rem)] sm:w-[calc(100vw-4rem)] md:max-w-2xl lg:max-w-3xl h-[calc(100vh-2rem)] sm:h-[calc(100vh-4rem)] md:max-h-[85vh] flex flex-col border-4 border-primary shadow-[0_0_30px_rgba(0,255,255,0.3)] p-0 gap-0">
+          <DialogHeader className="flex-none space-y-1.5 sm:space-y-2 p-3 sm:p-4 md:p-5 pb-2 sm:pb-3 border-b-2 border-primary/30">
+            <DialogTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl neon-glow flex items-center gap-2 font-bold">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 pixel-border-thick flex items-center justify-center shrink-0 ${
+                walletType === 'yoda' ? 'bg-purple-600' : 'bg-primary'
+              }`}>
+                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-background" />
               </div>
-              <span className="truncate">WALLET ACTIVE</span>
+              <span className="truncate text-sm sm:text-base md:text-lg lg:text-xl">
+                {walletType === 'yoda' ? '🟣 YODA' : 'WALLET'}
+              </span>
             </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm text-primary font-mono truncate font-semibold">
-              {network === "main" ? "KEETA MAINNET" : "KEETA TESTNET"} • SECP256K1 • INDEX 0
+            <DialogDescription className="text-[9px] sm:text-[10px] md:text-xs text-primary font-mono truncate font-semibold">
+              {network === "main" ? "MAINNET" : "TESTNET"} • {walletType === 'yoda' ? 'YODA' : 'INDEX 0'}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 sm:space-y-5 pt-3 sm:pt-4 w-full overflow-x-hidden">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-4 md:px-5 pb-3 sm:pb-4 md:pb-5 space-y-3 sm:space-y-4">
             {/* Balance Section */}
-            <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 p-5 sm:p-6 space-y-3 sm:space-y-4 relative overflow-hidden w-full max-w-full">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10" />
-              <div className="flex items-center justify-between gap-2 w-full">
-                <Label className="text-sm sm:text-base tracking-wider text-primary font-bold truncate">YOUR BALANCES</Label>
+            <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 p-3 sm:p-4 md:p-5 space-y-2 sm:space-y-3 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-primary/5 rounded-full blur-3xl -z-10" />
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs sm:text-sm md:text-base tracking-wider text-primary font-bold truncate">BALANCES</Label>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-9 sm:h-8 px-3 sm:px-3 text-xs sm:text-xs hover:bg-primary/20 pixel-border min-w-[90px] shrink-0 font-semibold"
+                  className="h-8 px-2 sm:px-3 text-[10px] sm:text-xs hover:bg-primary/20 pixel-border shrink-0 font-semibold"
                   onClick={refreshBalance}
                 >
-                  ↻ REFRESH
+                  ↻
                 </Button>
               </div>
-              <div className="space-y-3 sm:space-y-3.5 w-full overflow-hidden">
-                <div className="space-y-1.5 w-full overflow-hidden">
-                  <div className="flex items-baseline gap-2 w-full overflow-hidden">
-                    <div className="text-3xl sm:text-4xl font-bold neon-glow leading-none truncate">{balance || "0.000000"}</div>
-                    <div className="text-base sm:text-lg text-primary font-semibold shrink-0">KTA</div>
+              <div className="space-y-2 sm:space-y-3">
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-1.5 sm:gap-2">
+                    <div className="text-2xl sm:text-3xl md:text-4xl font-bold neon-glow leading-none truncate">{balance || "0.000000"}</div>
+                    <div className="text-sm sm:text-base md:text-lg text-primary font-semibold shrink-0">KTA</div>
                   </div>
-                    <div className="text-sm sm:text-base text-foreground/80 font-medium">
-                      {formatUsd(getUsdValue(parseFloat(balance || '0'), 'KTA'))}
+                  <div className="text-xs sm:text-sm md:text-base text-foreground/80 font-medium">
+                    {formatUsd(getUsdValue(parseFloat(balance || '0'), 'KTA'))}
+                  </div>
+                </div>
+                {filteredTokens.map((token) => (
+                  <div key={token.address} className="space-y-1 pl-2 sm:pl-3 border-l-2 border-accent/50">
+                    <div className="flex items-baseline gap-1.5 sm:gap-2">
+                      <div className="text-xl sm:text-2xl md:text-3xl font-bold text-accent leading-none truncate">
+                        {token.balance}
+                      </div>
+                      <div className="text-xs sm:text-sm md:text-base text-accent font-semibold shrink-0">{token.symbol}</div>
+                    </div>
+                    <div className="text-xs sm:text-sm md:text-base text-foreground/80 font-medium">
+                      {formatUsd(getUsdValue(parseFloat(token.balance || '0'), token.symbol as 'KTA' | 'XRGE'))}
                     </div>
                   </div>
-                  {filteredTokens.map((token) => (
-                    <div key={token.address} className="space-y-1.5 pl-3 border-l-2 border-accent/50 w-full overflow-hidden">
-                      <div className="flex items-baseline gap-2 w-full overflow-hidden">
-                        <div className="text-2xl sm:text-3xl font-bold text-accent leading-none truncate">
-                          {token.balance}
-                        </div>
-                        <div className="text-sm sm:text-base text-accent font-semibold shrink-0">{token.symbol}</div>
-                      </div>
-                      <div className="text-sm sm:text-base text-foreground/80 font-medium">
-                        {formatUsd(getUsdValue(parseFloat(token.balance || '0'), token.symbol as 'KTA' | 'XRGE'))}
-                      </div>
-                    </div>
-                  ))}
+                ))}
               </div>
             </div>
 
             {/* Address Section */}
-            <div className="space-y-2 sm:space-y-3 w-full max-w-full overflow-hidden">
-              <Label className="text-sm sm:text-base tracking-wider text-foreground font-bold truncate">YOUR ADDRESS</Label>
-              <div className="flex gap-2 w-full max-w-full">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label className="text-xs sm:text-sm md:text-base tracking-wider text-foreground font-bold truncate">ADDRESS</Label>
+              <div className="flex gap-2">
                 <Input
                   value={publicKey || ""}
                   readOnly
-                  className="pixel-border bg-muted/50 text-xs sm:text-sm font-mono border-2 border-muted hover:border-primary/50 transition-colors truncate flex-1 min-w-0"
+                  className="pixel-border bg-muted/50 text-[10px] sm:text-xs md:text-sm font-mono border-2 border-muted hover:border-primary/50 transition-colors truncate flex-1 min-w-0 h-9 sm:h-10 md:h-11"
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  className="pixel-border-thick hover:bg-primary/20 hover:border-primary transition-all min-w-[48px] w-[48px] h-11 shrink-0"
+                  className="pixel-border-thick hover:bg-primary/20 hover:border-primary transition-all w-9 sm:w-10 md:w-12 h-9 sm:h-10 md:h-11 p-0 shrink-0"
                   onClick={handleCopyAddress}
                 >
-                  <Copy className="w-5 h-5" />
+                  <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                 </Button>
               </div>
             </div>
 
             {/* Send Tokens Section */}
-            <div className="pixel-border-thick bg-gradient-to-br from-accent/5 to-accent/10 p-5 sm:p-6 space-y-3 sm:space-y-4 relative overflow-hidden w-full max-w-full">
-              <div className="absolute top-0 left-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -z-10" />
-              <Label className="text-sm sm:text-base tracking-wider text-accent font-bold flex items-center gap-2 truncate">
-                <Send className="w-5 h-5 shrink-0" />
-                <span className="truncate">SEND TOKENS</span>
+            <div className="pixel-border-thick bg-gradient-to-br from-accent/5 to-accent/10 p-3 sm:p-4 md:p-5 space-y-2 sm:space-y-3 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-24 h-24 sm:w-32 sm:h-32 bg-accent/5 rounded-full blur-3xl -z-10" />
+              <Label className="text-xs sm:text-sm md:text-base tracking-wider text-accent font-bold flex items-center gap-1.5 sm:gap-2">
+                <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 shrink-0" />
+                <span className="truncate">SEND</span>
               </Label>
               
-              <div className="space-y-3 w-full max-w-full overflow-hidden">
-                <div className="space-y-2 w-full max-w-full overflow-hidden">
-                  <Label className="text-xs sm:text-sm text-foreground font-semibold truncate">SELECT TOKEN</Label>
+              <div className="space-y-2 sm:space-y-2.5">
+                <div className="space-y-1 sm:space-y-1.5">
+                  <Label className="text-[10px] sm:text-xs md:text-sm text-foreground font-semibold truncate">TOKEN</Label>
                   <Select value={selectedToken} onValueChange={setSelectedToken}>
-                    <SelectTrigger className="pixel-border bg-background/50 border-2 text-sm sm:text-base h-12 sm:h-11 w-full font-medium">
+                    <SelectTrigger className="pixel-border bg-background/50 border-2 text-xs sm:text-sm md:text-base h-9 sm:h-10 md:h-11 font-medium">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="pixel-border bg-background z-50 max-w-[90vw]">
-                      <SelectItem value="KTA" className="text-sm">KTA (Balance: {balance || "0.000000"})</SelectItem>
+                      <SelectItem value="KTA" className="text-xs sm:text-sm">KTA ({balance || "0.000000"})</SelectItem>
                       {filteredTokens.map((token) => (
-                        <SelectItem key={token.address} value={token.address} className="text-sm">
-                          {token.symbol} (Balance: {token.balance})
+                        <SelectItem key={token.address} value={token.address} className="text-xs sm:text-sm">
+                          {token.symbol} ({token.balance})
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2 w-full max-w-full overflow-hidden">
-                  <Label className="text-xs sm:text-sm text-foreground font-semibold truncate">RECIPIENT ADDRESS</Label>
-                  <Input
-                    placeholder="keeta_..."
-                    value={sendTo}
-                    onChange={(e) => setSendTo(e.target.value)}
-                    className="pixel-border bg-background/50 border-2 text-xs sm:text-sm font-mono h-12 sm:h-11 w-full"
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="space-y-1 sm:space-y-1.5">
+                    <Label className="text-[10px] sm:text-xs md:text-sm text-foreground font-semibold truncate">AMOUNT</Label>
+                    <Input
+                      type="number"
+                      placeholder="0.000000"
+                      value={sendAmount}
+                      onChange={(e) => setSendAmount(e.target.value)}
+                      className="pixel-border bg-background/50 border-2 text-xs sm:text-sm md:text-base h-9 sm:h-10 md:h-11 font-medium"
+                      step="0.000001"
+                    />
+                  </div>
 
-                <div className="space-y-2 w-full max-w-full overflow-hidden">
-                  <Label className="text-xs sm:text-sm text-foreground font-semibold truncate">AMOUNT</Label>
-                  <Input
-                    type="number"
-                    placeholder="0.000000"
-                    value={sendAmount}
-                    onChange={(e) => setSendAmount(e.target.value)}
-                    className="pixel-border bg-background/50 border-2 text-xs sm:text-sm h-12 sm:h-11 w-full font-medium"
-                    step="0.000001"
-                  />
+                  <div className="space-y-1 sm:space-y-1.5 sm:col-span-2">
+                    <Label className="text-[10px] sm:text-xs md:text-sm text-foreground font-semibold truncate">TO</Label>
+                    <Input
+                      placeholder="keeta_..."
+                      value={sendTo}
+                      onChange={(e) => setSendTo(e.target.value)}
+                      className="pixel-border bg-background/50 border-2 text-[10px] sm:text-xs md:text-sm font-mono h-9 sm:h-10 md:h-11"
+                    />
+                  </div>
                 </div>
 
                 <Button
-                  className="w-full pixel-border-thick bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-sm sm:text-base h-13 sm:h-12 neon-glow-secondary transition-all disabled:opacity-50 font-bold"
+                  className="w-full pixel-border-thick bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-xs sm:text-sm md:text-base h-9 sm:h-10 md:h-11 neon-glow-secondary transition-all disabled:opacity-50 font-bold"
                   onClick={async () => {
                     if (!sendTo || !sendAmount) {
                       toast.error("Please fill in all fields");
@@ -323,80 +329,108 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
                   }}
                   disabled={isSending}
                 >
-                  {isSending ? "⏳ SENDING..." : "🚀 SEND TOKENS"}
+                  {isSending ? "⏳" : "🚀"} {isSending ? "SENDING..." : "SEND"}
                 </Button>
               </div>
             </div>
 
             {/* QR Code Section */}
             {qrCode && (
-              <div className="pixel-border-thick bg-background p-4 sm:p-5 space-y-2 sm:space-y-3">
-                <Label className="text-[11px] sm:text-[10px] tracking-wider text-primary font-bold flex items-center gap-2">
-                  <QrCodeIcon className="w-4 h-4" />
-                  RECEIVE FUNDS
-                </Label>
-                <div className="flex justify-center p-3 sm:p-4 bg-white rounded-lg">
-                  <img src={qrCode} alt="Address QR Code" className="w-32 h-32 sm:w-40 sm:h-40" />
+              <details className="pixel-border-thick bg-background group">
+                <summary className="cursor-pointer p-2 sm:p-3 md:p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                  <Label className="text-[10px] sm:text-xs md:text-sm tracking-wider text-primary font-bold flex items-center gap-1.5 sm:gap-2 cursor-pointer">
+                    <QrCodeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    RECEIVE QR
+                  </Label>
+                  <span className="text-primary group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                <div className="p-2 sm:p-3 md:p-4 pt-0 space-y-2">
+                  <div className="flex justify-center p-2 sm:p-3 bg-white rounded-lg">
+                    <img src={qrCode} alt="Address QR Code" className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40" />
+                  </div>
+                  <p className="text-[9px] sm:text-[10px] text-center text-muted-foreground">
+                    Scan to receive
+                  </p>
                 </div>
-                <p className="text-[10px] sm:text-[9px] text-center text-muted-foreground">
-                  Scan this QR code to receive KTA or tokens
-                </p>
-              </div>
+              </details>
             )}
 
-            {/* Export Options */}
-            <div className="space-y-2 pt-3 border-t-2 border-muted/50 w-full max-w-full overflow-hidden">
-              <Label className="text-[11px] sm:text-[10px] tracking-wider text-muted-foreground font-bold truncate">EXPORT OPTIONS</Label>
-              
-              <Button
-                variant="outline"
-                className="w-full pixel-border-thick text-xs sm:text-xs bg-primary/5 hover:bg-primary/10 border-primary/30 hover:border-primary transition-all h-11 sm:h-10"
-                onClick={handleExportConnectedWallet}
-              >
-                <Copy className="w-3 h-3 mr-2" />
-                COPY MNEMONIC PHRASE
-              </Button>
+            {/* Export Options - Only show for seed wallets */}
+            {walletType === 'seed' && (
+              <details className="pixel-border-thick bg-muted/10 group">
+                <summary className="cursor-pointer p-2 sm:p-3 md:p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                  <Label className="text-[10px] sm:text-xs md:text-sm tracking-wider text-muted-foreground font-bold cursor-pointer">EXPORT</Label>
+                  <span className="text-muted-foreground group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                <div className="p-2 sm:p-3 md:p-4 pt-0 space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full pixel-border-thick text-[10px] sm:text-xs md:text-sm bg-primary/5 hover:bg-primary/10 border-primary/30 hover:border-primary transition-all h-8 sm:h-9 md:h-10"
+                    onClick={handleExportConnectedWallet}
+                  >
+                    <Copy className="w-3 h-3 mr-1.5" />
+                    PHRASE
+                  </Button>
 
-              <Button
-                variant="outline"
-                className="w-full pixel-border-thick text-xs sm:text-xs bg-accent/5 hover:bg-accent/10 border-accent/30 hover:border-accent transition-all h-11 sm:h-10"
-                onClick={handleExportSeedHex}
-              >
-                <Copy className="w-3 h-3 mr-2" />
-                COPY SEED HEX
-              </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full pixel-border-thick text-[10px] sm:text-xs md:text-sm bg-accent/5 hover:bg-accent/10 border-accent/30 hover:border-accent transition-all h-8 sm:h-9 md:h-10"
+                    onClick={handleExportSeedHex}
+                  >
+                    <Copy className="w-3 h-3 mr-1.5" />
+                    HEX
+                  </Button>
 
-              <Button
-                variant="outline"
-                className="w-full pixel-border text-xs sm:text-xs hover:bg-muted/50 h-11 sm:h-10"
-                onClick={() => {
-                  const walletData = {
-                    seed: localStorage.getItem("keetaWalletSeed"),
-                    publicKey: publicKey,
-                    network: "mainnet"
-                  };
-                  const dataStr = JSON.stringify(walletData, null, 2);
-                  const blob = new Blob([dataStr], { type: "application/json" });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement("a");
-                  link.href = url;
-                  link.download = `keeta-wallet-${publicKey?.substring(0, 8)}.json`;
-                  link.click();
-                  URL.revokeObjectURL(url);
-                  toast.success("Wallet exported!");
-                }}
-              >
-                💾 EXPORT AS JSON
-              </Button>
-            </div>
+                  <Button
+                    variant="outline"
+                    className="w-full pixel-border text-[10px] sm:text-xs md:text-sm hover:bg-muted/50 h-8 sm:h-9 md:h-10"
+                    onClick={() => {
+                      const walletData = {
+                        seed: localStorage.getItem("keetaWalletSeed"),
+                        publicKey: publicKey,
+                        network: "mainnet"
+                      };
+                      const dataStr = JSON.stringify(walletData, null, 2);
+                      const blob = new Blob([dataStr], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = `keeta-wallet-${publicKey?.substring(0, 8)}.json`;
+                      link.click();
+                      URL.revokeObjectURL(url);
+                      toast.success("Wallet exported!");
+                    }}
+                  >
+                    💾 JSON
+                  </Button>
+                </div>
+              </details>
+            )}
 
-            {/* Disconnect Button */}
+            {/* Yoda Wallet Info */}
+            {walletType === 'yoda' && (
+              <div className="pixel-border-thick bg-purple-500/10 border-2 border-purple-500/30 p-2 sm:p-3 md:p-4">
+                <div className="flex items-start gap-1.5 sm:gap-2">
+                  <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-0.5 sm:space-y-1">
+                    <p className="text-[10px] sm:text-xs md:text-sm font-bold text-purple-400 tracking-wider">🟣 YODA</p>
+                    <p className="text-[9px] sm:text-[10px] md:text-xs text-muted-foreground leading-relaxed">
+                      Keys managed by extension
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer with Disconnect Button */}
+          <div className="flex-none border-t-2 border-muted/30 p-3 sm:p-4 md:p-5 bg-card/50">
             <Button
               variant="destructive"
-              className="w-full pixel-border-thick text-xs sm:text-xs bg-destructive/80 hover:bg-destructive transition-all h-12 sm:h-11"
+              className="w-full pixel-border-thick text-xs sm:text-sm md:text-base bg-destructive/80 hover:bg-destructive transition-all h-9 sm:h-10 md:h-11 font-bold"
               onClick={handleDisconnect}
             >
-              🔌 DISCONNECT WALLET
+              🔌 DISCONNECT
             </Button>
           </div>
         </DialogContent>
@@ -406,169 +440,217 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="pixel-border-thick bg-gradient-to-b from-card to-card/80 max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto border-4 border-primary shadow-[0_0_30px_rgba(0,255,255,0.3)] p-4 sm:p-6">
-        <DialogHeader className="space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b-2 border-primary/30">
-          <DialogTitle className="text-xl sm:text-2xl neon-glow flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary pixel-border-thick flex items-center justify-center">
-              <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-background" />
+      <DialogContent className="pixel-border-thick bg-gradient-to-b from-card to-card/80 w-[calc(100vw-2rem)] sm:w-[calc(100vw-4rem)] md:max-w-2xl lg:max-w-3xl h-[calc(100vh-2rem)] sm:h-[calc(100vh-4rem)] md:max-h-[85vh] flex flex-col border-4 border-primary shadow-[0_0_30px_rgba(0,255,255,0.3)] p-0 gap-0">
+        <DialogHeader className="flex-none space-y-1.5 sm:space-y-2 p-3 sm:p-4 md:p-5 pb-2 sm:pb-3 border-b-2 border-primary/30">
+          <DialogTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl neon-glow flex items-center gap-2 font-bold">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-primary pixel-border-thick flex items-center justify-center shrink-0">
+              <Wallet className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-background" />
             </div>
-            CONNECT WALLET
+            <span className="text-sm sm:text-base md:text-lg lg:text-xl">CONNECT</span>
           </DialogTitle>
-          <DialogDescription className="text-[10px] sm:text-xs text-primary/80 font-mono">
-            {network === "main" ? "KEETA MAINNET" : "KEETA TESTNET"} • SECP256K1 • INDEX 0
+          <DialogDescription className="text-[9px] sm:text-[10px] md:text-xs text-primary/80 font-mono truncate">
+            {network === "main" ? "MAINNET" : "TESTNET"} • SECP256K1
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="create" className="w-full pt-3 sm:pt-4">
-          <TabsList className="grid w-full grid-cols-2 pixel-border-thick bg-muted/50 text-xs p-1 gap-1 h-12 sm:h-11">
-            <TabsTrigger 
-              value="create" 
-              className="text-xs sm:text-xs pixel-border data-[state=active]:bg-primary data-[state=active]:text-background data-[state=active]:neon-glow transition-all"
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-4 md:px-5 pb-3 sm:pb-4 md:pb-5">
+          {/* Yoda Wallet Connection */}
+          <div className="pt-2 sm:pt-3 md:pt-4 space-y-2 sm:space-y-3">
+            <Button
+              className={`w-full pixel-border-thick bg-gradient-to-r text-xs sm:text-sm md:text-base h-12 sm:h-14 md:h-16 neon-glow transition-all font-bold ${
+                isYodaInstalled 
+                  ? 'from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400' 
+                  : 'from-muted to-muted/80 hover:from-muted/90 hover:to-muted/70'
+              }`}
+              onClick={async () => {
+                try {
+                  await connectYodaWallet();
+                  onOpenChange(false);
+                } catch (error) {
+                  console.error("Error connecting Yoda wallet:", error);
+                }
+              }}
             >
-              🆕 CREATE
-            </TabsTrigger>
-            <TabsTrigger 
-              value="import" 
-              className="text-xs sm:text-xs pixel-border data-[state=active]:bg-secondary data-[state=active]:text-background data-[state=active]:neon-glow-secondary transition-all"
-            >
-              📥 IMPORT
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="create" className="space-y-4 sm:space-y-5 mt-4 sm:mt-6">
-            {/* Security Warning */}
-            <div className="pixel-border-thick bg-destructive/10 border-2 border-destructive/30 p-3 sm:p-4 space-y-2 sm:space-y-2.5">
-              <div className="flex items-start gap-2 sm:gap-3">
-                <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                <div className="space-y-1 sm:space-y-1.5">
-                  <p className="text-xs sm:text-xs font-bold text-destructive tracking-wider">⚠️ SECURITY ALERT</p>
-                  <p className="text-[11px] sm:text-[10px] text-muted-foreground leading-relaxed">
-                    Your seed phrase will be stored in browser localStorage. Never share it with anyone. Write it down offline and keep it safe.
-                  </p>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center ${
+                  isYodaInstalled ? 'bg-white/20' : 'bg-white/10'
+                }`}>
+                  <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-xs sm:text-sm md:text-base font-bold">
+                    {isYodaInstalled ? '🟢 Yoda' : '⚪ Install Yoda'}
+                  </span>
+                  <span className="text-[9px] sm:text-[10px] opacity-80 hidden sm:block">
+                    {isYodaInstalled ? 'Extension detected' : 'Get extension'}
+                  </span>
                 </div>
               </div>
-            </div>
+            </Button>
 
-            {!generatedSeed ? (
-              <Button
-                className="w-full pixel-border-thick bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-xs sm:text-xs h-12 sm:h-12 neon-glow transition-all"
-                onClick={handleGenerateWallet}
+            <div className="relative my-3 sm:my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t-2 border-muted/30" />
+              </div>
+              <div className="relative flex justify-center text-[10px] sm:text-xs uppercase">
+                <span className="bg-card px-3 sm:px-4 text-muted-foreground font-bold pixel-border bg-background py-0.5 sm:py-1">
+                  Or seed phrase
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <Tabs defaultValue="create" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 pixel-border-thick bg-muted/50 text-xs p-0.5 sm:p-1 gap-0.5 sm:gap-1 h-9 sm:h-10 md:h-11">
+              <TabsTrigger 
+                value="create" 
+                className="text-[10px] sm:text-xs md:text-sm pixel-border data-[state=active]:bg-primary data-[state=active]:text-background data-[state=active]:neon-glow transition-all"
               >
-                ✨ GENERATE 24-WORD PHRASE
-              </Button>
-            ) : (
-              <div className="space-y-4 sm:space-y-5">
-                <div className="space-y-2 sm:space-y-3">
-                  <Label className="text-xs sm:text-xs text-destructive font-bold tracking-wider flex items-center gap-2">
-                    <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
-                    SAVE YOUR RECOVERY PHRASE
-                  </Label>
-                  <div className="pixel-border-thick bg-gradient-to-br from-background to-muted/30 p-3 sm:p-4 space-y-2 sm:space-y-3">
-                    <div className={`text-[11px] sm:text-[10px] font-mono leading-relaxed ${showSeed ? '' : 'blur-md select-none pointer-events-none'} transition-all break-all`}>
-                      {generatedSeed}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="pixel-border flex-1 text-[10px] sm:text-[10px] hover:bg-primary/10 hover:border-primary transition-all h-10"
-                        onClick={() => setShowSeed(!showSeed)}
-                      >
-                        {showSeed ? (
-                          <><EyeOff className="w-3 h-3 mr-1.5" /> HIDE</>
-                        ) : (
-                          <><Eye className="w-3 h-3 mr-1.5" /> SHOW</>
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="pixel-border flex-1 text-[10px] sm:text-[10px] hover:bg-primary/10 hover:border-primary transition-all h-10"
-                        onClick={handleCopySeed}
-                      >
-                        <Copy className="w-3 h-3 mr-1.5" /> COPY
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="pixel-border bg-destructive/5 border-destructive/20 p-3">
-                    <p className="text-[11px] sm:text-[10px] text-destructive leading-relaxed">
-                      ⚠️ Write down these 24 words in exact order. Store them safely offline. You'll need them to recover your wallet. No one can help if you lose them!
+                🆕 CREATE
+              </TabsTrigger>
+              <TabsTrigger 
+                value="import" 
+                className="text-[10px] sm:text-xs md:text-sm pixel-border data-[state=active]:bg-secondary data-[state=active]:text-background data-[state=active]:neon-glow-secondary transition-all"
+              >
+                📥 IMPORT
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="create" className="space-y-2 sm:space-y-3 md:space-y-4 mt-2 sm:mt-3 md:mt-4">
+              {/* Security Warning */}
+              <div className="pixel-border-thick bg-destructive/10 border-2 border-destructive/30 p-2 sm:p-3 md:p-4 space-y-1 sm:space-y-1.5">
+                <div className="flex items-start gap-1.5 sm:gap-2 md:gap-3">
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <div className="space-y-0.5 sm:space-y-1">
+                    <p className="text-[10px] sm:text-xs font-bold text-destructive tracking-wider">⚠️ SECURITY</p>
+                    <p className="text-[9px] sm:text-[10px] md:text-xs text-muted-foreground leading-relaxed">
+                      Seed stored in browser. Never share. Write down offline.
                     </p>
                   </div>
                 </div>
-
-                <div className="flex gap-2 sm:gap-3 pt-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 pixel-border-thick text-xs sm:text-xs hover:bg-muted/50 transition-all h-11 sm:h-10"
-                    onClick={() => {
-                      setGeneratedSeed("");
-                      setShowSeed(false);
-                    }}
-                  >
-                    ❌ CANCEL
-                  </Button>
-                  <Button
-                    className="flex-1 pixel-border-thick bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-xs sm:text-xs transition-all h-11 sm:h-10"
-                    onClick={handleConnectWithSeed}
-                  >
-                    ✅ I SAVED IT
-                  </Button>
-                </div>
               </div>
-            )}
-          </TabsContent>
 
-          <TabsContent value="import" className="space-y-4 sm:space-y-5 mt-4 sm:mt-6 overflow-x-hidden">
-            <div className="space-y-2 sm:space-y-3 w-full">
-              <Label className="text-xs sm:text-xs font-bold tracking-wider break-words">ENTER YOUR 24-WORD PHRASE</Label>
-              <textarea
-                placeholder="word1 word2 word3 ... word24"
-                value={importSeed}
-                onChange={(e) => {
-                  setImportSeed(e.target.value);
-                  setPreviewAddress(null);
-                }}
-                className="pixel-border-thick bg-muted/30 text-[11px] sm:text-xs font-mono w-full max-w-full min-h-[120px] p-3 sm:p-4 rounded-md resize-none border-2 border-muted hover:border-primary/50 focus:border-primary transition-colors box-border"
-              />
-              <p className="text-[11px] sm:text-[10px] text-muted-foreground leading-relaxed break-words">
-                💡 Separate words with spaces. Old 64-character hex seeds are also supported.
-              </p>
-            </div>
+              {!generatedSeed ? (
+                <Button
+                  className="w-full pixel-border-thick bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-xs sm:text-sm md:text-base h-10 sm:h-11 md:h-12 neon-glow transition-all font-bold"
+                  onClick={handleGenerateWallet}
+                >
+                  ✨ GENERATE PHRASE
+                </Button>
+              ) : (
+                <div className="space-y-2 sm:space-y-3 md:space-y-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-[10px] sm:text-xs text-destructive font-bold tracking-wider flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-destructive rounded-full animate-pulse" />
+                      SAVE RECOVERY PHRASE
+                    </Label>
+                    <div className="pixel-border-thick bg-gradient-to-br from-background to-muted/30 p-2 sm:p-3 md:p-4 space-y-1.5 sm:space-y-2">
+                      <div className={`text-[9px] sm:text-[10px] md:text-xs font-mono leading-relaxed ${showSeed ? '' : 'blur-md select-none pointer-events-none'} transition-all break-all`}>
+                        {generatedSeed}
+                      </div>
+                      <div className="flex gap-1.5 sm:gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="pixel-border flex-1 text-[9px] sm:text-[10px] md:text-xs hover:bg-primary/10 hover:border-primary transition-all h-8 sm:h-9 md:h-10"
+                          onClick={() => setShowSeed(!showSeed)}
+                        >
+                          {showSeed ? (
+                            <><EyeOff className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" /> HIDE</>
+                          ) : (
+                            <><Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" /> SHOW</>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="pixel-border flex-1 text-[9px] sm:text-[10px] md:text-xs hover:bg-primary/10 hover:border-primary transition-all h-8 sm:h-9 md:h-10"
+                          onClick={handleCopySeed}
+                        >
+                          <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" /> COPY
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="pixel-border bg-destructive/5 border-destructive/20 p-2 sm:p-3">
+                      <p className="text-[9px] sm:text-[10px] md:text-xs text-destructive leading-relaxed">
+                        ⚠️ Write down in order. Store offline. Required for recovery!
+                      </p>
+                    </div>
+                  </div>
 
-            <Button
-              variant="outline"
-              className="w-full max-w-full pixel-border-thick text-[10px] sm:text-xs hover:bg-primary/10 hover:border-primary transition-all h-12 sm:h-11 whitespace-normal leading-tight py-2"
-              onClick={handlePreviewAddress}
-              disabled={!importSeed.trim()}
-            >
-              👁️ PREVIEW ADDRESS
-            </Button>
-
-            {previewAddress && (
-              <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/30 p-3 sm:p-4 space-y-2 sm:space-y-3 w-full overflow-hidden">
-                <Label className="text-[11px] sm:text-[10px] tracking-wider text-primary font-bold flex items-center gap-2 break-words">
-                  <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
-                  DERIVED ADDRESS
-                </Label>
-                <div className="font-mono text-[11px] sm:text-[10px] break-all bg-background/50 p-2 sm:p-3 rounded pixel-border leading-relaxed overflow-wrap-anywhere w-full">
-                  {previewAddress}
+                  <div className="flex gap-1.5 sm:gap-2 md:gap-3 pt-1 sm:pt-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 pixel-border-thick text-[10px] sm:text-xs md:text-sm hover:bg-muted/50 transition-all h-9 sm:h-10 md:h-11 font-bold"
+                      onClick={() => {
+                        setGeneratedSeed("");
+                        setShowSeed(false);
+                      }}
+                    >
+                      ❌ CANCEL
+                    </Button>
+                    <Button
+                      className="flex-1 pixel-border-thick bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-[10px] sm:text-xs md:text-sm transition-all h-9 sm:h-10 md:h-11 font-bold"
+                      onClick={handleConnectWithSeed}
+                    >
+                      ✅ SAVED IT
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-[10px] sm:text-[9px] text-muted-foreground leading-relaxed break-words">
-                  Compare this with FX Anchor Status on swap page.
+              )}
+            </TabsContent>
+
+            <TabsContent value="import" className="space-y-2 sm:space-y-3 md:space-y-4 mt-2 sm:mt-3 md:mt-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-[10px] sm:text-xs md:text-sm font-bold tracking-wider break-words">ENTER 24-WORD PHRASE</Label>
+                <textarea
+                  placeholder="word1 word2 word3 ... word24"
+                  value={importSeed}
+                  onChange={(e) => {
+                    setImportSeed(e.target.value);
+                    setPreviewAddress(null);
+                  }}
+                  className="pixel-border-thick bg-muted/30 text-[9px] sm:text-[10px] md:text-xs font-mono w-full min-h-[100px] sm:min-h-[120px] p-2 sm:p-3 md:p-4 rounded-md resize-none border-2 border-muted hover:border-primary/50 focus:border-primary transition-colors"
+                />
+                <p className="text-[9px] sm:text-[10px] md:text-xs text-muted-foreground leading-relaxed">
+                  💡 Space-separated. Hex seeds supported.
                 </p>
               </div>
-            )}
 
-            <Button
-              className="w-full max-w-full pixel-border-thick bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary text-xs sm:text-xs h-12 sm:h-12 neon-glow-secondary transition-all"
-              onClick={handleImportWallet}
-              disabled={!importSeed.trim()}
-            >
-              📥 IMPORT WALLET
-            </Button>
-          </TabsContent>
-        </Tabs>
+              <Button
+                variant="outline"
+                className="w-full pixel-border-thick text-[10px] sm:text-xs md:text-sm hover:bg-primary/10 hover:border-primary transition-all h-9 sm:h-10 md:h-11 font-bold"
+                onClick={handlePreviewAddress}
+                disabled={!importSeed.trim()}
+              >
+                👁️ PREVIEW
+              </Button>
+
+              {previewAddress && (
+                <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/30 p-2 sm:p-3 md:p-4 space-y-1.5 sm:space-y-2">
+                  <Label className="text-[10px] sm:text-xs tracking-wider text-primary font-bold flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full flex-shrink-0" />
+                    ADDRESS
+                  </Label>
+                  <div className="font-mono text-[9px] sm:text-[10px] md:text-xs break-all bg-background/50 p-2 sm:p-3 rounded pixel-border leading-relaxed">
+                    {previewAddress}
+                  </div>
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-relaxed">
+                    Compare with FX Anchor Status
+                  </p>
+                </div>
+              )}
+
+              <Button
+                className="w-full pixel-border-thick bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary text-xs sm:text-sm md:text-base h-10 sm:h-11 md:h-12 neon-glow-secondary transition-all font-bold"
+                onClick={handleImportWallet}
+                disabled={!importSeed.trim()}
+              >
+                📥 IMPORT
+              </Button>
+            </TabsContent>
+          </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -18,7 +18,7 @@ interface ListNFTDialogProps {
 }
 
 const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage }: ListNFTDialogProps) => {
-  const { client, account, publicKey, network } = useWallet();
+  const { client, account, publicKey, network, isConnected } = useWallet();
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState<'KTA' | 'XRGE'>('KTA');
   const [isListing, setIsListing] = useState(false);
@@ -58,7 +58,7 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
   }, [open, network]);
 
   const handleList = async () => {
-    if (!client || !account || !publicKey) {
+    if (!publicKey || !isConnected) {
       toast.error("Please connect your wallet");
       return;
     }

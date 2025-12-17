@@ -17,6 +17,7 @@ import Swap from "./pages/Swap";
 import Bridge from "./pages/Bridge";
 import MintNFT from "./pages/MintNFT";
 import AnchorStatus from "./pages/AnchorStatus";
+import RecoverNFT from "./pages/RecoverNFT";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/bridge" element={<Bridge />} />
               <Route path="/mint" element={<MintNFT />} />
               <Route path="/anchor-status" element={<AnchorStatus />} />
+              <Route path="/recover" element={<RecoverNFT />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

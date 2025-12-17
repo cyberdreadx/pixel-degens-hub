@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yoda Wallet Connection Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .status {
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        
+        .info-box strong {
+            color: #667eea;
+        }
+        
+        .address {
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        
+        .timestamp {
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🟣 Yoda Wallet Test</h1>
+        <p class="subtitle">Test your Yoda wallet browser extension connection</p>
+        
+        <div id="status" class="status info">
+            Checking for Yoda wallet...
+        </div>
+        
+        <button id="connectBtn" disabled>Connect Yoda Wallet</button>
+        <button id="disconnectBtn" style="display: none;">Disconnect</button>
+        <button id="getAccountsBtn" style="display: none;">Get Accounts</button>
+        <button id="installBtn" style="display: none;" onclick="window.open('https://chrome.google.com/webstore/search/yoda%20wallet', '_blank')">
+            Install Yoda Wallet Extension
+        </button>
+        
+        <div id="accountInfo" style="display: none;" class="info-box">
+            <strong>Connected Account:</strong>
+            <div class="address" id="publicKey"></div>
+        </div>
+        
+        <div class="info-box">
+            <strong>🔍 Detection Status:</strong>
+            <div style="margin-top: 10px;">
+                <div>window.yoda: <span id="yodaStatus">❌</span></div>
+                <div>window.keetaWallet: <span id="keetaStatus">❌</span></div>
+                <div>Event listener: <span id="eventStatus">⏳</span></div>
+            </div>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const getAccountsBtn = document.getElementById('getAccountsBtn');
+        const installBtn = document.getElementById('installBtn');
+        const accountInfoEl = document.getElementById('accountInfo');
+        const publicKeyEl = document.getElementById('publicKey');
+        const logEl = document.getElementById('log');
+        
+        let yodaWallet = null;
+        let isConnected = false;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`[YodaTest] ${message}`);
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        function checkYodaWallet() {
+            log('Checking for Yoda wallet...');
+            
+            yodaWallet = window.yoda || window.keetaWallet;
+            
+            document.getElementById('yodaStatus').textContent = window.yoda ? '✅' : '❌';
+            document.getElementById('keetaStatus').textContent = window.keetaWallet ? '✅' : '❌';
+            
+            if (yodaWallet) {
+                log('✅ Yoda wallet detected!', 'success');
+                updateStatus('✅ Yoda wallet detected! Click Connect to continue.', 'success');
+                connectBtn.disabled = false;
+                installBtn.style.display = 'none';
+                
+                // Check if already connected
+                if (yodaWallet.isConnected) {
+                    log('Wallet is already connected');
+                    updateStatus('🟢 Wallet already connected', 'success');
+                    isConnected = true;
+                    connectBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'block';
+                    getAccountsBtn.style.display = 'block';
+                }
+            } else {
+                log('❌ Yoda wallet not found', 'error');
+                updateStatus('❌ Yoda wallet not detected. Please install the extension.', 'error');
+                connectBtn.disabled = true;
+                installBtn.style.display = 'block';
+            }
+            
+            document.getElementById('eventStatus').textContent = '✅';
+        }
+        
+        async function connectWallet() {
+            if (!yodaWallet) {
+                log('❌ Yoda wallet not available', 'error');
+                return;
+            }
+            
+            try {
+                log('Requesting connection...');
+                updateStatus('⏳ Requesting connection... Check the Yoda popup!', 'info');
+                
+                const response = await yodaWallet.connect();
+                
+                log(`✅ Connected! Public key: ${response.publicKey}`, 'success');
+                updateStatus('🟢 Successfully connected!', 'success');
+                
+                publicKeyEl.textContent = response.publicKey;
+                accountInfoEl.style.display = 'block';
+                
+                isConnected = true;
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'block';
+                getAccountsBtn.style.display = 'block';
+                
+                // Set up event listeners
+                if (yodaWallet.on) {
+                    yodaWallet.on('accountChanged', (newPublicKey) => {
+                        log(`🔄 Account changed to: ${newPublicKey}`);
+                        publicKeyEl.textContent = newPublicKey;
+                    });
+                    
+                    yodaWallet.on('disconnect', () => {
+                        log('🔌 Wallet disconnected');
+                        handleDisconnect();
+                    });
+                }
+                
+            } catch (error) {
+                log(`❌ Connection failed: ${error.message}`, 'error');
+                updateStatus(`❌ Connection failed: ${error.message}`, 'error');
+                console.error('Connection error:', error);
+            }
+        }
+        
+        async function disconnectWallet() {
+            if (!yodaWallet) return;
+            
+            try {
+                log('Disconnecting...');
+                if (yodaWallet.disconnect) {
+                    yodaWallet.disconnect();
+                }
+                handleDisconnect();
+                log('✅ Disconnected successfully');
+            } catch (error) {
+                log(`❌ Disconnect error: ${error.message}`, 'error');
+                console.error('Disconnect error:', error);
+            }
+        }
+        
+        function handleDisconnect() {
+            isConnected = false;
+            accountInfoEl.style.display = 'none';
+            connectBtn.style.display = 'block';
+            disconnectBtn.style.display = 'none';
+            getAccountsBtn.style.display = 'none';
+            updateStatus('⚪ Disconnected. Click Connect to reconnect.', 'info');
+        }
+        
+        async function getAccounts() {
+            if (!yodaWallet || !yodaWallet.getAccounts) {
+                log('❌ getAccounts not available');
+                return;
+            }
+            
+            try {
+                log('Fetching accounts...');
+                const accounts = await yodaWallet.getAccounts();
+                log(`📋 Found ${accounts.length} account(s)`);
+                accounts.forEach((acc, i) => {
+                    log(`  Account ${i + 1}: ${acc.publicKey}`);
+                });
+            } catch (error) {
+                log(`❌ Error fetching accounts: ${error.message}`, 'error');
+                console.error('Get accounts error:', error);
+            }
+        }
+        
+        // Event listeners
+        connectBtn.addEventListener('click', connectWallet);
+        disconnectBtn.addEventListener('click', disconnectWallet);
+        getAccountsBtn.addEventListener('click', getAccounts);
+        
+        // Listen for Yoda wallet initialization
+        window.addEventListener('yoda#initialized', () => {
+            log('📡 Received yoda#initialized event');
+            document.getElementById('eventStatus').textContent = '✅';
+            checkYodaWallet();
+        });
+        
+        // Check immediately and after delay
+        checkYodaWallet();
+        setTimeout(checkYodaWallet, 1000);
+        setTimeout(checkYodaWallet, 3000);
+        
+        log('Test page loaded. Waiting for Yoda wallet...');
+    </script>
+</body>
+</html>

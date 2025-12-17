@@ -139,6 +139,14 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
+  .pixel-border-thin {
+    box-shadow: 
+      1px 0 0 0 hsl(var(--border)),
+      -1px 0 0 0 hsl(var(--border)),
+      0 1px 0 0 hsl(var(--border)),
+      0 -1px 0 0 hsl(var(--border));
+  }
+
   .pixel-border {
     box-shadow: 
       2px 0 0 0 hsl(var(--border)),
