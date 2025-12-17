@@ -194,76 +194,87 @@ export default function PublicProfile() {
       console.log('[PublicProfile] Loading tokens for:', walletAddress);
       console.log('[PublicProfile] Network:', network);
       
-      // Create a temporary account for read-only access
-      // Use seedFromPassphrase to convert a passphrase to a proper seed (needs to be long enough)
-      const passphrase = 'temporary-read-only-seed-for-public-profile-viewing-on-keeta-network-degen8bit-application';
-      const tempSeed = await KeetaNet.lib.Account.seedFromPassphrase(passphrase);
-      const tempAccount = KeetaNet.lib.Account.fromSeed(tempSeed, 0, KeetaNet.lib.Account.AccountKeyAlgorithm.ECDSA_SECP256K1);
-      const client = KeetaNet.UserClient.fromNetwork(network, tempAccount);
+      // Use direct Keeta API to fetch balances
+      const apiBase = network === 'test' 
+        ? 'https://rep2.test.network.api.keeta.com/api'
+        : 'https://rep2.main.network.api.keeta.com/api';
       
-      console.log('[PublicProfile] Client created');
+      console.log('[PublicProfile] Fetching from API:', apiBase);
       
-      // Get the actual account we want to view
-      const accountObj = KeetaNet.lib.Account.fromPublicKeyString(walletAddress);
+      const response = await fetch(`${apiBase}/node/ledger/accounts/${walletAddress}`);
       
-      console.log('[PublicProfile] Fetching tokens...');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch account data: ${response.statusText}`);
+      }
       
-      // Fetch tokens with info for the target account
-      const tokensWithInfo = await client.listACLsByPrincipalWithInfo({ account: accountObj });
+      const rawData = await response.json();
+      const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+      const allBalances = accountData?.balances || [];
       
-      console.log('[PublicProfile] Found tokens:', tokensWithInfo.length);
+      console.log('[PublicProfile] Found balances:', allBalances.length);
       
       const processedTokens: TokenWithMetadata[] = [];
       
-      for (const tokenInfo of tokensWithInfo) {
-        if (!tokenInfo.entity.isToken()) continue;
-        
-        const balance = tokenInfo.balances?.[0]?.balance || 0n;
-        const supply = BigInt(tokenInfo.info.supply || '0');
-        const isNFT = supply === 1n;
-        const tokenAddress = tokenInfo.entity.publicKeyString.toString();
+      for (const balanceEntry of allBalances) {
+        const tokenAddress = balanceEntry.token;
+        const balance = BigInt(balanceEntry.balance);
         const isXRGE = tokenAddress === XRGE_ADDRESS;
         
-        // Log ALL tokens found (even with 0 balance) for debugging
-        console.log('[PublicProfile] Token Found:', {
-          address: tokenAddress.slice(0, 20) + '...',
-          name: tokenInfo.info.name,
-          balance: balance.toString(),
-          supply: supply.toString(),
-          isNFT,
-          willBeIncluded: balance > 0n && (isNFT || isXRGE)
-        });
+        // Skip zero balances
+        if (balance <= 0n) continue;
         
-        // Skip tokens with 0 balance (they were transferred/listed)
-        if (balance <= 0n) {
-          console.log('[PublicProfile] ⚠️ Skipping token (balance is 0 - may be listed for sale)');
-          continue;
-        }
-        
-        // Only show NFTs and XRGE token
-        if (!isNFT && !isXRGE) continue;
-        
-        console.log('[PublicProfile] ✅ Including token:', tokenInfo.info.name);
-        
-        let metadata = null;
-        if (tokenInfo.info.metadata) {
-          try {
-            const metadataBuffer = Buffer.from(tokenInfo.info.metadata, 'base64');
-            metadata = JSON.parse(metadataBuffer.toString('utf8'));
-            console.log('[PublicProfile] Metadata parsed:', metadata);
-          } catch (e) {
-            console.error('[PublicProfile] Failed to parse metadata:', e);
+        try {
+          // Fetch token info
+          const tokenResponse = await fetch(`${apiBase}/node/ledger/token/${tokenAddress}`);
+          if (!tokenResponse.ok) continue;
+          
+          const tokenData = await tokenResponse.json();
+          const tokenInfo = Array.isArray(tokenData) ? tokenData[0] : tokenData;
+          
+          const supply = BigInt(tokenInfo?.supply || '0');
+          const decimals = tokenInfo?.decimals || 0;
+          
+          // Check if it's an NFT (supply = 1, decimals = 0)
+          const isNFT = supply === 1n && decimals === 0;
+          
+          console.log('[PublicProfile] Token Found:', {
+            address: tokenAddress.slice(0, 20) + '...',
+            name: tokenInfo?.name,
+            balance: balance.toString(),
+            supply: supply.toString(),
+            decimals,
+            isNFT,
+            isXRGE,
+            willInclude: isNFT || isXRGE
+          });
+          
+          // Only include NFTs and XRGE
+          if (!isNFT && !isXRGE) continue;
+          
+          console.log('[PublicProfile] ✅ Including token:', tokenInfo?.name);
+          
+          let metadata = null;
+          if (tokenInfo?.metadata) {
+            try {
+              const metadataBuffer = Buffer.from(tokenInfo.metadata, 'base64');
+              metadata = JSON.parse(metadataBuffer.toString('utf8'));
+              console.log('[PublicProfile] Metadata parsed:', metadata);
+            } catch (e) {
+              console.error('[PublicProfile] Failed to parse metadata:', e);
+            }
           }
+          
+          processedTokens.push({
+            address: tokenAddress,
+            name: tokenInfo?.name || 'Unknown',
+            symbol: tokenInfo?.symbol || '',
+            balance: balance.toString(),
+            isNFT,
+            metadata
+          });
+        } catch (err) {
+          console.error(`[PublicProfile] Error processing token ${tokenAddress}:`, err);
         }
-        
-        processedTokens.push({
-          address: tokenInfo.entity.publicKeyString.toString(),
-          name: tokenInfo.info.name || 'Unknown',
-          symbol: '',
-          balance: balance.toString(),
-          isNFT,
-          metadata
-        });
       }
       
       console.log('[PublicProfile] Processed tokens:', processedTokens.length);
