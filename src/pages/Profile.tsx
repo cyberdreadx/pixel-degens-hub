@@ -47,6 +47,8 @@ export default function Profile() {
   console.log('[Profile] Total tokens:', tokens.length);
   console.log('[Profile] NFTs found:', nfts.length);
   console.log('[Profile] NFTs:', nfts.map(n => ({ name: n.name, hasMetadata: !!n.metadata })));
+  
+  const displayName = publicKey ? `${publicKey.slice(0, 12)}...${publicKey.slice(-8)}` : '';
 
   useEffect(() => {
     if (isConnected && publicKey) {
@@ -477,10 +479,10 @@ export default function Profile() {
                       <NFTCard 
                         key={nft.address}
                         id={nft.address}
-                        title={nft.metadata.name || nft.name}
-                        creator={nft.metadata.version || "degen8bit v1.0"}
+                        title={nft.metadata?.name || nft.name}
+                        creator={username || profile?.username || displayName}
                         price={nft.balance}
-                        image={ipfsToHttp(nft.metadata.image)}
+                        image={nft.metadata?.image ? ipfsToHttp(nft.metadata.image) : ''}
                         likes={0}
                         comments={0}
                       />
@@ -505,10 +507,10 @@ export default function Profile() {
                           <NFTCard 
                             key={nft.address}
                             id={nft.address}
-                            title={nft.metadata.name || nft.name}
-                            creator={nft.metadata.version || "degen8bit v1.0"}
+                            title={nft.metadata?.name || nft.name}
+                            creator={username || profile?.username || displayName}
                             price={nft.balance}
-                            image={ipfsToHttp(nft.metadata.image)}
+                            image={nft.metadata?.image ? ipfsToHttp(nft.metadata.image) : ''}
                             likes={0}
                             comments={0}
                           />
