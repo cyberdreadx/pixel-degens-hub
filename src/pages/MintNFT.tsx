@@ -20,7 +20,7 @@ interface NFTAttribute {
 }
 
 const MintNFT = () => {
-  const { client, account, isConnected, network, balance } = useWallet();
+  const { client, account, isConnected, network, balance, walletType } = useWallet();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
@@ -101,8 +101,13 @@ const MintNFT = () => {
   };
 
   const mintNFT = async () => {
-    if (!isConnected || !client || !account) {
+    if (!isConnected) {
       toast.error("Please connect your wallet first");
+      return;
+    }
+    
+    if (walletType === 'yoda' || !client || !account) {
+      toast.error("Minting requires a seed phrase wallet. Yoda wallet cannot mint NFTs directly.");
       return;
     }
 
@@ -417,11 +422,11 @@ const MintNFT = () => {
           {/* Mint Button */}
           <Button
             onClick={mintNFT}
-            disabled={!isConnected || isMinting || isUploading || !name || !ticker || (!imageUrl && !selectedFile)}
+            disabled={!isConnected || walletType === 'yoda' || isMinting || isUploading || !name || !ticker || (!imageUrl && !selectedFile)}
             className="w-full pixel-border-thick text-xs"
             size="lg"
           >
-            {isMinting ? "MINTING..." : isUploading ? "UPLOADING IMAGE..." : isConnected ? "MINT TOKEN" : "CONNECT WALLET FIRST"}
+            {isMinting ? "MINTING..." : isUploading ? "UPLOADING IMAGE..." : !isConnected ? "CONNECT WALLET FIRST" : walletType === 'yoda' ? "MINTING NOT AVAILABLE (YODA WALLET)" : "MINT TOKEN"}
           </Button>
 
           {/* Info */}
