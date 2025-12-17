@@ -20,7 +20,7 @@ interface NFTAttribute {
 }
 
 const MintNFT = () => {
-  const { client, account, isConnected, network, balance, walletType } = useWallet();
+  const { client, account, isConnected, network, balance, walletType, publicKey } = useWallet();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
@@ -105,11 +105,6 @@ const MintNFT = () => {
       toast.error("Please connect your wallet first");
       return;
     }
-    
-    if (walletType === 'yoda' || !client || !account) {
-      toast.error("Minting requires a seed phrase wallet. Yoda wallet cannot mint NFTs directly.");
-      return;
-    }
 
     if (!name || !ticker) {
       toast.error("Name and ticker are required");
@@ -142,6 +137,42 @@ const MintNFT = () => {
     setIsMinting(true);
 
     try {
+      // For Yoda wallet, use backend minting
+      if (walletType === 'yoda' && publicKey) {
+        console.log('[MintNFT] Using backend minting for Yoda wallet');
+        
+        const { data, error } = await supabase.functions.invoke('fx-mint-nft', {
+          body: {
+            name,
+            ticker,
+            description,
+            imageUrl: finalImageUrl,
+            attributes,
+            externalUrl,
+            recipientAddress: publicKey,
+            network
+          }
+        });
+
+        if (error) throw error;
+        if (!data.success) throw new Error(data.error || 'Minting failed');
+
+        toast.success(`Token minted successfully!`);
+        
+        // Wait for blockchain to process
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Redirect to the newly minted NFT detail page
+        navigate(`/nft/${data.tokenAddress}`, { state: { freshMint: true } });
+        return;
+      }
+
+      // For seed phrase wallet, use direct SDK minting
+      if (!client || !account) {
+        toast.error("Wallet client not available");
+        return;
+      }
+
       // Generate unique NFT identifier number
       const nftId = Date.now();
       const identifier = `NFT_KTA_ANCHOR_${nftId}`;
@@ -422,11 +453,11 @@ const MintNFT = () => {
           {/* Mint Button */}
           <Button
             onClick={mintNFT}
-            disabled={!isConnected || walletType === 'yoda' || isMinting || isUploading || !name || !ticker || (!imageUrl && !selectedFile)}
+            disabled={!isConnected || isMinting || isUploading || !name || !ticker || (!imageUrl && !selectedFile)}
             className="w-full pixel-border-thick text-xs"
             size="lg"
           >
-            {isMinting ? "MINTING..." : isUploading ? "UPLOADING IMAGE..." : !isConnected ? "CONNECT WALLET FIRST" : walletType === 'yoda' ? "MINTING NOT AVAILABLE (YODA WALLET)" : "MINT TOKEN"}
+            {isMinting ? "MINTING..." : isUploading ? "UPLOADING IMAGE..." : !isConnected ? "CONNECT WALLET FIRST" : "MINT TOKEN"}
           </Button>
 
           {/* Info */}
