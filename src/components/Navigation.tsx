@@ -86,10 +86,26 @@ const Navigation = () => {
           {/* Right side controls */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* Network Switch - Desktop only */}
-            <div className="hidden lg:flex items-center gap-1.5 px-2 py-1.5 pixel-border bg-muted rounded">
+            <div className={`hidden lg:flex items-center gap-1.5 px-2 py-1.5 pixel-border rounded transition-colors ${
+              network === "main" 
+                ? "bg-green-500/20 border-green-500/50" 
+                : "bg-yellow-500/20 border-yellow-500/50"
+            }`}>
+              <div className={`w-2 h-2 rounded-full animate-pulse ${
+                network === "main" ? "bg-green-500" : "bg-yellow-500"
+              }`} />
               <Network className="w-3 h-3 shrink-0" />
-              <span className="text-[9px] xl:text-[10px] font-bold whitespace-nowrap">{network === "main" ? "MAIN" : "TEST"}</span>
-              <Switch checked={network === "main"} onCheckedChange={checked => switchNetwork(checked ? "main" : "test")} disabled={isConnected} className="scale-75" />
+              <span className={`text-[9px] xl:text-[10px] font-bold whitespace-nowrap ${
+                network === "main" ? "text-green-400" : "text-yellow-400"
+              }`}>
+                {network === "main" ? "MAINNET" : "TESTNET"}
+              </span>
+              <Switch 
+                checked={network === "main"} 
+                onCheckedChange={checked => switchNetwork(checked ? "main" : "test")} 
+                disabled={isConnected} 
+                className="scale-75" 
+              />
             </div>
 
             {/* Theme Toggle */}
@@ -132,12 +148,27 @@ const Navigation = () => {
                     {/* Mobile Menu Footer */}
                     <div className="p-4 border-t-2 border-primary space-y-3">
                       {/* Network Switch */}
-                      <div className="flex items-center justify-between px-3 py-2 pixel-border bg-muted rounded">
+                      <div className={`flex items-center justify-between px-3 py-2 pixel-border rounded transition-colors ${
+                        network === "main" 
+                          ? "bg-green-500/20 border-green-500/50" 
+                          : "bg-yellow-500/20 border-yellow-500/50"
+                      }`}>
                         <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full animate-pulse ${
+                            network === "main" ? "bg-green-500" : "bg-yellow-500"
+                          }`} />
                           <Network className="w-4 h-4" />
-                          <span className="text-xs font-bold">{network === "main" ? "MAINNET" : "TESTNET"}</span>
+                          <span className={`text-xs font-bold ${
+                            network === "main" ? "text-green-400" : "text-yellow-400"
+                          }`}>
+                            {network === "main" ? "MAINNET" : "TESTNET"}
+                          </span>
                         </div>
-                        <Switch checked={network === "main"} onCheckedChange={checked => switchNetwork(checked ? "main" : "test")} disabled={isConnected} />
+                        <Switch 
+                          checked={network === "main"} 
+                          onCheckedChange={checked => switchNetwork(checked ? "main" : "test")} 
+                          disabled={isConnected} 
+                        />
                       </div>
 
                       {/* Wallet Info */}

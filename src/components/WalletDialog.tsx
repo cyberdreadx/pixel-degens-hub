@@ -193,6 +193,64 @@ const WalletDialog = ({ open, onOpenChange }: WalletDialogProps) => {
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-4 md:px-5 pb-3 sm:pb-4 md:pb-5 space-y-3 sm:space-y-4">
+            {/* Network Indicator - Always Visible */}
+            <div className={`pixel-border-thick p-3 sm:p-4 space-y-2 ${
+              walletType === 'yoda' ? 'bg-gradient-to-br from-purple-500/10 to-purple-600/5' : 'bg-gradient-to-br from-blue-500/10 to-blue-600/5'
+            }`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="space-y-1">
+                  <div className="text-xs sm:text-sm font-bold text-foreground/80 uppercase tracking-wider">
+                    Network Status
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${network === 'main' ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`} />
+                    <span className="text-sm sm:text-base font-bold">
+                      Site: <span className={network === 'main' ? 'text-green-400' : 'text-yellow-400'}>
+                        {network === 'main' ? 'MAINNET' : 'TESTNET'}
+                      </span>
+                    </span>
+                  </div>
+                  {walletType === 'yoda' && typeof window !== 'undefined' && (window as any).yoda && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                      <span className="text-sm sm:text-base font-bold">
+                        Yoda: <span className="text-purple-400">
+                          {((window as any).yoda.chainId || '').includes('main') || (window as any).yoda.chainId === 'keeta-main' ? 'MAINNET' : 'TESTNET'}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Network Mismatch Warning */}
+              {walletType === 'yoda' && typeof window !== 'undefined' && (window as any).yoda && (() => {
+                const yodaChainId = (window as any).yoda.chainId || '';
+                const yodaIsMainnet = yodaChainId.includes('main') || yodaChainId === 'keeta-main';
+                const siteIsMainnet = network === 'main';
+                const mismatch = yodaIsMainnet !== siteIsMainnet;
+                
+                return mismatch ? (
+                  <div className="pixel-border bg-red-500/20 border-red-500/50 p-2 sm:p-3 space-y-1.5">
+                    <div className="flex items-center gap-2 text-red-400">
+                      <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                      <span className="text-xs sm:text-sm font-bold uppercase">Network Mismatch!</span>
+                    </div>
+                    <p className="text-[10px] sm:text-xs text-red-300 leading-tight">
+                      Your Yoda wallet is on <strong>{yodaIsMainnet ? 'MAINNET' : 'TESTNET'}</strong> but the site is set to <strong>{siteIsMainnet ? 'MAINNET' : 'TESTNET'}</strong>.
+                    </p>
+                    <p className="text-[10px] sm:text-xs text-red-200 leading-tight font-semibold">
+                      → Switch networks in your Yoda wallet extension to match the site!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="pixel-border bg-green-500/20 border-green-500/50 p-2 text-center">
+                    <span className="text-[10px] sm:text-xs text-green-300 font-bold">✓ Networks Match</span>
+                  </div>
+                );
+              })()}
+            </div>
+
             {/* Balance Section */}
             <div className="pixel-border-thick bg-gradient-to-br from-primary/5 to-primary/10 p-3 sm:p-4 md:p-5 space-y-2 sm:space-y-3 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-primary/5 rounded-full blur-3xl -z-10" />

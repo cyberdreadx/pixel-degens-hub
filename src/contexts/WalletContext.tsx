@@ -52,7 +52,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [walletType, setWalletType] = useState<"seed" | "yoda" | null>(null);
   const [isYodaInstalled, setIsYodaInstalled] = useState(false);
   const [network, setNetwork] = useState<"main" | "test">(() => {
-    return (localStorage.getItem("keetaNetwork") as "main" | "test") || "test";
+    const savedNetwork = localStorage.getItem("keetaNetwork") as "main" | "test";
+    console.log('[WalletContext] Initializing network from localStorage:', savedNetwork || 'test');
+    return savedNetwork || "test";
   });
 
   // Check if Yoda wallet is installed
@@ -413,11 +415,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const newAccount = KeetaNet.lib.Account.fromSeed(seedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
       const newPublicKey = newAccount.publicKeyString.toString();
 
-      console.log('Connected wallet (secp256k1, index 0, seedFromPassphrase method):', newPublicKey);
-      console.log('Network:', network);
+      console.log('[WalletContext] Connected wallet (secp256k1, index 0, seedFromPassphrase method):', newPublicKey);
+      console.log('[WalletContext] Connecting to network:', network);
 
       // Connect to selected network
       const newClient = KeetaNet.UserClient.fromNetwork(network, newAccount);
+      console.log('[WalletContext] Client created for network:', network);
 
       // Save to state
       setAccount(newAccount);
@@ -558,13 +561,21 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [fetchBalance, fetchTokensInternal]);
 
   const switchNetwork = (newNetwork: "main" | "test") => {
+    console.log('[WalletContext] switchNetwork called:', { newNetwork, isConnected, currentNetwork: network });
+    
     if (isConnected) {
       toast.error("Please disconnect wallet before switching networks");
       return;
     }
+    
+    console.log('[WalletContext] Switching network from', network, 'to', newNetwork);
     setNetwork(newNetwork);
     localStorage.setItem("keetaNetwork", newNetwork);
-    toast.success(`Switched to ${newNetwork === "main" ? "Mainnet" : "Testnet"}`);
+    console.log('[WalletContext] Network switched and saved to localStorage');
+    
+    toast.success(`✓ Switched to ${newNetwork === "main" ? "MAINNET" : "TESTNET"}`, {
+      duration: 3000,
+    });
   };
 
   const sendTokens = useCallback(async (to: string, amount: string, tokenAddress?: string) => {

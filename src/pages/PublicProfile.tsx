@@ -44,7 +44,7 @@ interface NFTListing {
 
 export default function PublicProfile() {
   const { walletAddress } = useParams<{ walletAddress: string }>();
-  const { publicKey } = useWallet();
+  const { publicKey, network } = useWallet();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tokens, setTokens] = useState<TokenWithMetadata[]>([]);
   const [listings, setListings] = useState<NFTListing[]>([]);
@@ -53,11 +53,10 @@ export default function PublicProfile() {
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const isOwnProfile = publicKey === walletAddress;
   
-  // Public profiles display mainnet data only
-  const network = 'main';
-  
-  // XRGE token address for mainnet
-  const XRGE_ADDRESS = 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6';
+  // XRGE token address for current network
+  const XRGE_ADDRESS = network === 'main'
+    ? 'keeta_aolgxwrcepccr5ycg5ctp3ezhhp6vnpitzm7grymm63hzbaqk6lcsbtccgur6'
+    : 'keeta_annmywuiz2pourjmkyuaznxyg6cmv356dda3hpuiqfpwry5m2tlybothdb33s';
 
   console.log('🔍 [PublicProfile] COMPONENT RENDER');
   console.log('🔍 [PublicProfile] walletAddress from URL:', walletAddress);
@@ -67,6 +66,7 @@ export default function PublicProfile() {
   useEffect(() => {
     console.log('🔍 [PublicProfile] useEffect triggered');
     console.log('🔍 [PublicProfile] walletAddress in useEffect:', walletAddress);
+    console.log('🔍 [PublicProfile] network:', network);
     
     if (walletAddress) {
       console.log('🔍 [PublicProfile] Component mounted with address:', walletAddress);
@@ -76,7 +76,7 @@ export default function PublicProfile() {
     } else {
       console.log('❌ [PublicProfile] NO walletAddress!');
     }
-  }, [walletAddress]);
+  }, [walletAddress, network]);
 
   const loadProfile = async () => {
     if (!walletAddress) return;
@@ -111,7 +111,7 @@ export default function PublicProfile() {
         .select('*')
         .eq('seller_address', walletAddress)
         .eq('status', 'active')
-        .eq('network', 'main');
+        .eq('network', network);
 
       if (error) throw error;
       
