@@ -117,7 +117,7 @@ serve(async (req) => {
 
     console.log('[fx-cancel-listing] Transaction published:', result);
     
-    const txHash = result?.hash || 'unknown';
+    const txHash = JSON.stringify(result) || 'transaction_complete';
 
     // Update listing status in database
     const { error: updateError } = await supabaseClient

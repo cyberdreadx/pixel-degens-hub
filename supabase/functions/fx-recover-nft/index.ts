@@ -110,7 +110,7 @@ serve(async (req) => {
 
     console.log('[fx-recover-nft] Transaction published:', result);
     
-    const txHash = result?.hash || 'unknown';
+    const txHash = JSON.stringify(result) || 'transaction_complete';
 
     // Update listing status to recovered
     if (listing.status !== 'cancelled') {
