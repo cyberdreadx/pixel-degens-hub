@@ -98,16 +98,17 @@ serve(async (req) => {
 
     // Build transaction to return NFT
     const recipientAccount = KeetaNet.lib.Account.fromPublicKeyString(recipientAddress);
-    const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
+    const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress) as any;
 
     console.log('[fx-recover-nft] Building return transaction...');
 
     const builder = anchorClient.initBuilder();
     builder.send(recipientAccount, 1n, tokenAccount); // Send 1 unit (NFT)
 
-    const { hash } = await builder.publish();
+    await builder.computeBlocks();
+    const result = await builder.publish();
 
-    console.log('[fx-recover-nft] Transaction published! Hash:', hash);
+    console.log('[fx-recover-nft] Transaction published:', result);
 
     // Update listing status to recovered
     if (listing.status !== 'cancelled') {
@@ -125,7 +126,6 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        transactionHash: hash,
         message: 'NFT recovered and returned to owner',
         returnedTo: recipientAddress,
         listingId: listing.id,

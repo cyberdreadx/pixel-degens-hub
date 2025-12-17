@@ -47,3 +47,12 @@ verify_jwt = false
 
 [functions.fx-update-collection]
 verify_jwt = false
+
+[functions.fx-cancel-listing]
+verify_jwt = false
+
+[functions.fx-recover-nft]
+verify_jwt = false
+
+[functions.fx-recover-listings]
+verify_jwt = false
