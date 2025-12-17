@@ -44,9 +44,24 @@ export default function Profile() {
   const nfts = tokens.filter(token => token.isNFT);
   const unlistedNFTs = nfts.filter(nft => !listedNFTs.has(nft.address));
   
-  console.log('[Profile] Total tokens:', tokens.length);
+  console.log('========================================');
+  console.log('[Profile] EDIT PROFILE TOKEN DEBUG');
+  console.log('[Profile] Total tokens from WalletContext:', tokens.length);
+  console.log('[Profile] All tokens:', tokens.map(t => ({
+    name: t.name,
+    address: t.address?.slice(0, 20) + '...',
+    isNFT: t.isNFT,
+    balance: t.balance,
+    hasMetadata: !!t.metadata
+  })));
   console.log('[Profile] NFTs found:', nfts.length);
-  console.log('[Profile] NFTs:', nfts.map(n => ({ name: n.name, hasMetadata: !!n.metadata })));
+  console.log('[Profile] NFT details:', nfts.map(n => ({ 
+    name: n.name, 
+    address: n.address?.slice(0, 20) + '...',
+    hasMetadata: !!n.metadata,
+    metadataKeys: n.metadata ? Object.keys(n.metadata) : []
+  })));
+  console.log('========================================');
   
   const displayName = publicKey ? `${publicKey.slice(0, 12)}...${publicKey.slice(-8)}` : '';
 
