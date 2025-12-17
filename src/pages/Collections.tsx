@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWallet } from "@/contexts/WalletContext";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Search, 
   Sparkles, 
@@ -60,20 +61,14 @@ const Collections = () => {
   const loadCollections = async () => {
     setIsLoading(true);
     try {
-      // Collections table doesn't exist in the current schema
-      // Using edge function to fetch collections from IPFS
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fx-get-collection?network=${network}`,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        setCollections(data.collections || []);
-      } else {
-        console.log('No collections found or service unavailable');
-        setCollections([]);
-      }
+      const { data, error } = await supabase
+        .from('collections' as any)
+        .select('*')
+        .eq('network', network);
+
+      if (error) throw error;
+
+      setCollections((data as unknown as Collection[]) || []);
     } catch (error: any) {
       console.error('Error loading collections:', error);
       setCollections([]);
