@@ -105,16 +105,17 @@ serve(async (req) => {
 
     // Build transaction to return NFT to seller
     const recipientAccount = KeetaNet.lib.Account.fromPublicKeyString(listing.seller_address);
-    const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(listing.token_address);
+    const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(listing.token_address) as any;
 
     console.log('[fx-cancel-listing] Building return transaction...');
 
     const builder = anchorClient.initBuilder();
     builder.send(recipientAccount, 1n, tokenAccount); // Send 1 unit (NFT)
 
-    const { hash } = await builder.publish();
+    await builder.computeBlocks();
+    const result = await builder.publish();
 
-    console.log('[fx-cancel-listing] Transaction published! Hash:', hash);
+    console.log('[fx-cancel-listing] Transaction published:', result);
 
     // Update listing status in database
     const { error: updateError } = await supabaseClient
@@ -130,7 +131,6 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           warning: 'NFT returned but database update failed',
-          transactionHash: hash,
           error: updateError.message
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -142,7 +142,6 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        transactionHash: hash,
         message: 'Listing cancelled and NFT returned to seller',
         returnedTo: listing.seller_address
       }),
