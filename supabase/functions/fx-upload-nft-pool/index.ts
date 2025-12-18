@@ -43,14 +43,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    if (!zipFile) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'ZIP file with images is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    // ZIP file is optional - only needed if metadata doesn't contain IPFS links
+    // Will be validated later after parsing metadata
     // Parse metadata
     const metadataText = await metadataFile.text();
     let nftItems: NFTMetadataItem[] = [];
