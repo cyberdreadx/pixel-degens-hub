@@ -101,18 +101,20 @@ serve(async (req) => {
       );
     }
 
-    // Extract ZIP file
-    const zipBuffer = await zipFile.arrayBuffer();
-    const zip = await JSZip.loadAsync(zipBuffer);
+    // Helper to check if image field is an IPFS hash/URL
+    const isIpfsImage = (image: string): boolean => {
+      return image.startsWith('ipfs://') || 
+             image.startsWith('Qm') || 
+             image.startsWith('bafy') ||
+             image.startsWith('bafk') ||
+             image.includes('ipfs.io') ||
+             image.includes('pinata.cloud');
+    };
+
+    // Check if metadata contains IPFS links
+    const hasIpfsLinks = nftItems.some(nft => isIpfsImage(nft.image));
     
-    // Get Pinata JWT
-    const pinataJwt = Deno.env.get('PINATA_JWT');
-    if (!pinataJwt) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'PINATA_JWT not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log(`[fx-upload-nft-pool] Has IPFS links in metadata: ${hasIpfsLinks}`);
 
     // Upload each image to IPFS and build pool records
     const poolRecords: Array<{
@@ -124,91 +126,137 @@ serve(async (req) => {
       attributes: any;
     }> = [];
 
-    const imageHashes: Map<string, string> = new Map();
-
-    for (let i = 0; i < nftItems.length; i++) {
-      const nft = nftItems[i];
-      const imageFilename = nft.image.replace(/^.*[\\/]/, ''); // Get just filename
+    if (hasIpfsLinks) {
+      // Images are already on IPFS - just use them directly
+      console.log(`[fx-upload-nft-pool] Using existing IPFS links from metadata`);
       
-      console.log(`[fx-upload-nft-pool] Processing ${i + 1}/${nftItems.length}: ${nft.name} - ${imageFilename}`);
+      for (let i = 0; i < nftItems.length; i++) {
+        const nft = nftItems[i];
+        let imageIpfs = nft.image;
+        
+        // Normalize IPFS URL
+        if (imageIpfs.startsWith('Qm') || imageIpfs.startsWith('bafy') || imageIpfs.startsWith('bafk')) {
+          imageIpfs = `ipfs://${imageIpfs}`;
+        } else if (imageIpfs.includes('/ipfs/')) {
+          const hash = imageIpfs.split('/ipfs/')[1];
+          imageIpfs = `ipfs://${hash}`;
+        }
+        
+        poolRecords.push({
+          collection_id: collectionId,
+          nft_index: i,
+          name: nft.name,
+          description: nft.description || null,
+          image_ipfs: imageIpfs,
+          attributes: nft.attributes || [],
+        });
+      }
+    } else {
+      // Need to upload images from ZIP
+      if (!zipFile) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'ZIP file with images is required when metadata uses local filenames' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
-      // Find image in ZIP (case-insensitive search)
-      let imageFile: JSZip.JSZipObject | null = null;
-      let foundFilename = '';
+      const zipBuffer = await zipFile.arrayBuffer();
+      const zip = await JSZip.loadAsync(zipBuffer);
       
-      for (const [relativePath, file] of Object.entries(zip.files)) {
-        if (!file.dir) {
-          const filename = relativePath.split('/').pop() || relativePath;
-          if (filename.toLowerCase() === imageFilename.toLowerCase()) {
-            imageFile = file;
-            foundFilename = filename;
-            break;
+      const pinataJwt = Deno.env.get('PINATA_JWT');
+      if (!pinataJwt) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'PINATA_JWT not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const imageHashes: Map<string, string> = new Map();
+
+      for (let i = 0; i < nftItems.length; i++) {
+        const nft = nftItems[i];
+        const imageFilename = nft.image.replace(/^.*[\\/]/, ''); // Get just filename
+        
+        console.log(`[fx-upload-nft-pool] Processing ${i + 1}/${nftItems.length}: ${nft.name} - ${imageFilename}`);
+
+        // Find image in ZIP (case-insensitive search)
+        let imageFile: JSZip.JSZipObject | null = null;
+        let foundFilename = '';
+        
+        for (const [relativePath, file] of Object.entries(zip.files)) {
+          if (!file.dir) {
+            const filename = relativePath.split('/').pop() || relativePath;
+            if (filename.toLowerCase() === imageFilename.toLowerCase()) {
+              imageFile = file;
+              foundFilename = filename;
+              break;
+            }
           }
         }
-      }
 
-      if (!imageFile) {
-        console.warn(`[fx-upload-nft-pool] Image not found in ZIP: ${imageFilename}`);
-        continue;
-      }
-
-      // Check if we've already uploaded this image
-      let ipfsHash = imageHashes.get(foundFilename.toLowerCase());
-      
-      if (!ipfsHash) {
-        // Get image data
-        const imageData = await imageFile.async('blob');
-        
-        // Determine content type
-        const ext = foundFilename.split('.').pop()?.toLowerCase() || 'png';
-        const contentTypes: Record<string, string> = {
-          'png': 'image/png',
-          'jpg': 'image/jpeg',
-          'jpeg': 'image/jpeg',
-          'gif': 'image/gif',
-          'webp': 'image/webp',
-          'svg': 'image/svg+xml',
-        };
-        const contentType = contentTypes[ext] || 'image/png';
-
-        // Upload to Pinata
-        const pinataFormData = new FormData();
-        pinataFormData.append('file', new Blob([imageData], { type: contentType }), foundFilename);
-        pinataFormData.append('pinataMetadata', JSON.stringify({
-          name: `${collectionId}_${foundFilename}`,
-          keyvalues: { collection: collectionId, type: 'nft-image' }
-        }));
-
-        const pinataResponse = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${pinataJwt}`,
-          },
-          body: pinataFormData,
-        });
-
-        if (!pinataResponse.ok) {
-          const errorText = await pinataResponse.text();
-          console.error(`[fx-upload-nft-pool] Pinata upload failed for ${foundFilename}:`, errorText);
+        if (!imageFile) {
+          console.warn(`[fx-upload-nft-pool] Image not found in ZIP: ${imageFilename}`);
           continue;
         }
 
-        const pinataResult = await pinataResponse.json();
-        ipfsHash = pinataResult.IpfsHash as string;
-        imageHashes.set(foundFilename.toLowerCase(), ipfsHash!);
+        // Check if we've already uploaded this image
+        let ipfsHash = imageHashes.get(foundFilename.toLowerCase());
         
-        console.log(`[fx-upload-nft-pool] Uploaded ${foundFilename} -> ipfs://${ipfsHash}`);
-      }
+        if (!ipfsHash) {
+          // Get image data
+          const imageData = await imageFile.async('blob');
+          
+          // Determine content type
+          const ext = foundFilename.split('.').pop()?.toLowerCase() || 'png';
+          const contentTypes: Record<string, string> = {
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'svg': 'image/svg+xml',
+          };
+          const contentType = contentTypes[ext] || 'image/png';
 
-      // Add to pool records
-      poolRecords.push({
-        collection_id: collectionId,
-        nft_index: i,
-        name: nft.name,
-        description: nft.description || null,
-        image_ipfs: `ipfs://${ipfsHash}`,
-        attributes: nft.attributes || [],
-      });
+          // Upload to Pinata
+          const pinataFormData = new FormData();
+          pinataFormData.append('file', new Blob([imageData], { type: contentType }), foundFilename);
+          pinataFormData.append('pinataMetadata', JSON.stringify({
+            name: `${collectionId}_${foundFilename}`,
+            keyvalues: { collection: collectionId, type: 'nft-image' }
+          }));
+
+          const pinataResponse = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${pinataJwt}`,
+            },
+            body: pinataFormData,
+          });
+
+          if (!pinataResponse.ok) {
+            const errorText = await pinataResponse.text();
+            console.error(`[fx-upload-nft-pool] Pinata upload failed for ${foundFilename}:`, errorText);
+            continue;
+          }
+
+          const pinataResult = await pinataResponse.json();
+          ipfsHash = pinataResult.IpfsHash as string;
+          imageHashes.set(foundFilename.toLowerCase(), ipfsHash!);
+          
+          console.log(`[fx-upload-nft-pool] Uploaded ${foundFilename} -> ipfs://${ipfsHash}`);
+        }
+
+        // Add to pool records
+        poolRecords.push({
+          collection_id: collectionId,
+          nft_index: i,
+          name: nft.name,
+          description: nft.description || null,
+          image_ipfs: `ipfs://${ipfsHash}`,
+          attributes: nft.attributes || [],
+        });
+      }
     }
 
     console.log(`[fx-upload-nft-pool] Successfully processed ${poolRecords.length} NFTs`);
