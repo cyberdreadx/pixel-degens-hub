@@ -37,6 +37,11 @@ const CreateCollection = () => {
   // Supply Info
   const [totalSupply, setTotalSupply] = useState("");
   
+  // Mint Pricing
+  const [mintPrice, setMintPrice] = useState("");
+  const [maxPerWallet, setMaxPerWallet] = useState("10");
+  const [mintEnabled, setMintEnabled] = useState(true);
+  
   // Upload States
   const [isUploading, setIsUploading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -152,6 +157,10 @@ const CreateCollection = () => {
         minted_count: 0,
         network,
         created_at: new Date().toISOString(),
+        // Public mint settings
+        mint_price_kta: parseFloat(mintPrice) || 0,
+        max_per_wallet: parseInt(maxPerWallet) || 10,
+        mint_enabled: mintEnabled,
         pricing: {
           hosting_fee_kta: pricing.hostingFeeKTA,
           storage_size_mb: pricing.storageSizeMB,
@@ -379,23 +388,74 @@ const CreateCollection = () => {
 
           {/* Supply Section */}
           <div className="space-y-6 border-t border-border pt-6">
-            <h2 className="text-lg font-bold">SUPPLY & PRICING</h2>
+            <h2 className="text-lg font-bold">SUPPLY & MINT SETTINGS</h2>
 
-            <div className="space-y-2">
-              <Label htmlFor="supply" className="text-xs font-bold">TOTAL SUPPLY *</Label>
-              <Input
-                id="supply"
-                type="number"
-                min="1"
-                max="10000"
-                value={totalSupply}
-                onChange={(e) => setTotalSupply(e.target.value)}
-                placeholder="100"
-                className="pixel-border text-xs"
-              />
-              <p className="text-xs text-muted-foreground">
-                How many NFTs will be in this collection? (Max 10,000)
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="supply" className="text-xs font-bold">TOTAL SUPPLY *</Label>
+                <Input
+                  id="supply"
+                  type="number"
+                  min="1"
+                  max="10000"
+                  value={totalSupply}
+                  onChange={(e) => setTotalSupply(e.target.value)}
+                  placeholder="100"
+                  className="pixel-border text-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Max 10,000 NFTs
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mintPrice" className="text-xs font-bold">MINT PRICE (KTA)</Label>
+                <Input
+                  id="mintPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={mintPrice}
+                  onChange={(e) => setMintPrice(e.target.value)}
+                  placeholder="0.5"
+                  className="pixel-border text-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Price per NFT for public mint
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="maxPerWallet" className="text-xs font-bold">MAX PER WALLET</Label>
+                <Input
+                  id="maxPerWallet"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={maxPerWallet}
+                  onChange={(e) => setMaxPerWallet(e.target.value)}
+                  placeholder="10"
+                  className="pixel-border text-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Limit per wallet address
+                </p>
+              </div>
+
+              <div className="space-y-2 flex items-center gap-3 pt-6">
+                <input
+                  type="checkbox"
+                  id="mintEnabled"
+                  checked={mintEnabled}
+                  onChange={(e) => setMintEnabled(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="mintEnabled" className="text-xs font-bold cursor-pointer">
+                  ENABLE PUBLIC MINTING
+                </Label>
+              </div>
             </div>
 
             {/* Pricing Calculator */}
