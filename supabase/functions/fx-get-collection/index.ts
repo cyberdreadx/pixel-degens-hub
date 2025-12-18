@@ -11,8 +11,61 @@ serve(async (req) => {
   }
 
   try {
-    const { collectionId, network = 'main' } = await req.json();
+    const { collectionId, network = 'main', creatorAddress } = await req.json();
 
+    const pinataJWT = Deno.env.get('PINATA_JWT');
+
+    // If creatorAddress is provided, fetch all collections by this creator
+    if (creatorAddress) {
+      console.log('[fx-get-collection] Fetching collections for creator:', creatorAddress);
+      
+      const searchUrl = new URL('https://api.pinata.cloud/data/pinList');
+      searchUrl.searchParams.set('status', 'pinned');
+      searchUrl.searchParams.set('metadata[keyvalues]', JSON.stringify({
+        type: { value: 'collection', op: 'eq' },
+        creator: { value: creatorAddress, op: 'eq' },
+        network: { value: network, op: 'eq' }
+      }));
+
+      const searchResponse = await fetch(searchUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${pinataJWT}`,
+        },
+      });
+
+      if (!searchResponse.ok) {
+        throw new Error('Failed to search Pinata');
+      }
+
+      const searchData = await searchResponse.json();
+      console.log('[fx-get-collection] Found pins:', searchData.rows?.length || 0);
+      
+      // Fetch metadata for each collection
+      const collections = [];
+      for (const pin of searchData.rows || []) {
+        try {
+          const metadataResponse = await fetch(`https://gateway.pinata.cloud/ipfs/${pin.ipfs_pin_hash}`);
+          if (metadataResponse.ok) {
+            const metadata = await metadataResponse.json();
+            metadata.ipfs_hash = pin.ipfs_pin_hash;
+            collections.push(metadata);
+          }
+        } catch (e) {
+          console.error('[fx-get-collection] Error fetching collection metadata:', e);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          collections,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Single collection lookup by ID
     if (!collectionId) {
       return new Response(
         JSON.stringify({ error: 'Collection ID is required' }),
@@ -23,9 +76,6 @@ serve(async (req) => {
     console.log('[fx-get-collection] Fetching collection:', collectionId);
 
     // Search for collection metadata on Pinata
-    const pinataJWT = Deno.env.get('PINATA_JWT');
-    
-    // Query Pinata for the collection metadata file
     const searchUrl = new URL('https://api.pinata.cloud/data/pinList');
     searchUrl.searchParams.set('status', 'pinned');
     searchUrl.searchParams.set('metadata[name]', `collection-${collectionId}`);

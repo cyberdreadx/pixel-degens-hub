@@ -8,12 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, User, Wallet, Upload, Eye } from "lucide-react";
+import { Loader2, User, Wallet, Upload, Eye, FolderOpen, Plus } from "lucide-react";
 import { toast } from "sonner";
 import AvatarCropDialog from "@/components/AvatarCropDialog";
 import { Link } from "react-router-dom";
 import NFTCard from "@/components/NFTCard";
 import { ipfsToHttp } from "@/utils/nftUtils";
+
+interface Collection {
+  collection_id: string;
+  name: string;
+  symbol: string;
+  logo_image: string;
+  minted_count: number;
+  total_supply: number | null;
+}
 
 interface Profile {
   id: string;
@@ -39,6 +48,8 @@ export default function Profile() {
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [listedNFTs, setListedNFTs] = useState<Set<string>>(new Set());
+  const [myCollections, setMyCollections] = useState<Collection[]>([]);
+  const [isLoadingCollections, setIsLoadingCollections] = useState(false);
 
   // Filter for NFTs (don't require metadata - some NFTs might not have it)
   const nfts = tokens.filter(token => token.isNFT);
@@ -69,10 +80,33 @@ export default function Profile() {
     if (isConnected && publicKey) {
       loadProfile();
       loadListedNFTs();
+      loadMyCollections();
     } else {
       setIsLoading(false);
     }
   }, [isConnected, publicKey, network]);
+
+  const loadMyCollections = async () => {
+    if (!publicKey) return;
+    
+    setIsLoadingCollections(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fx-get-collection', {
+        body: { 
+          network,
+          creatorAddress: publicKey 
+        },
+      });
+
+      if (error) throw error;
+      
+      setMyCollections(data?.collections || []);
+    } catch (error) {
+      console.error('Error loading collections:', error);
+    } finally {
+      setIsLoadingCollections(false);
+    }
+  };
 
   const loadListedNFTs = async () => {
     try {
@@ -458,6 +492,73 @@ export default function Profile() {
               )}
             </div>
           )}
+
+          {/* My Collections Section */}
+          <div className="pt-6 border-t border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <FolderOpen className="h-5 w-5" />
+                My Collections
+              </h3>
+              <Link to="/collection/create">
+                <Button variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create
+                </Button>
+              </Link>
+            </div>
+            
+            {isLoadingCollections ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                <p className="text-sm text-muted-foreground mt-2">Loading collections...</p>
+              </div>
+            ) : myCollections.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FolderOpen className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No collections yet</p>
+                <Link to="/collection/create">
+                  <Button className="mt-4" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Collection
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {myCollections.map((collection) => (
+                  <Link 
+                    key={collection.collection_id} 
+                    to={`/collection/${collection.collection_id}`}
+                    className="block"
+                  >
+                    <Card className="overflow-hidden hover:border-primary/50 transition-all group cursor-pointer">
+                      <div className="aspect-square bg-muted relative">
+                        {collection.logo_image ? (
+                          <img
+                            src={ipfsToHttp(collection.logo_image)}
+                            alt={collection.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <FolderOpen className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <h4 className="font-bold truncate">{collection.name}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {collection.minted_count || 0}
+                          {collection.total_supply ? ` / ${collection.total_supply}` : ''} items
+                        </p>
+                      </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* NFTs Section */}
           <div className="pt-6 border-t border-border">
