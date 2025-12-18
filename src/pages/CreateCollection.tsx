@@ -260,11 +260,36 @@ const CreateCollection = () => {
       toast.info("Uploading collection metadata to IPFS...");
       setUploadProgress("Creating collection...");
       
-      const { data, error } = await supabase.functions.invoke('fx-upload-collection', {
+      const { data: ipfsData, error: ipfsError } = await supabase.functions.invoke('fx-upload-collection', {
         body: { metadata: collectionMetadata },
       });
 
-      if (error) throw error;
+      if (ipfsError) throw ipfsError;
+
+      // Save collection to database
+      const { error: dbError } = await supabase
+        .from('collections')
+        .insert({
+          id: collectionId,
+          name,
+          symbol: symbol.toUpperCase(),
+          description: description || null,
+          creator_address: address,
+          logo_image: finalLogoUrl || null,
+          banner_image: finalBannerUrl || null,
+          total_supply: supplyInt,
+          minted_count: 0,
+          network,
+          mint_enabled: mintEnabled,
+          mint_price_kta: parseFloat(mintPrice) || null,
+          max_per_wallet: parseInt(maxPerWallet) || 10,
+          ipfs_hash: ipfsData?.ipfsHash || null,
+        });
+
+      if (dbError) {
+        console.error("Database error:", dbError);
+        // Continue anyway since IPFS upload succeeded
+      }
 
       // If NFT assets are provided, upload them to the pool
       // ZIP is optional if metadata already has IPFS links
