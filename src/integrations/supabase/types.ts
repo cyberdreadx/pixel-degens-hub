@@ -59,6 +59,81 @@ export type Database = {
         }
         Relationships: []
       }
+      collections: {
+        Row: {
+          banner_image: string | null
+          created_at: string
+          creator_address: string
+          description: string | null
+          floor_price: number | null
+          id: string
+          ipfs_hash: string | null
+          is_featured: boolean
+          is_verified: boolean
+          listed_count: number
+          logo_image: string | null
+          max_per_wallet: number | null
+          mint_enabled: boolean
+          mint_price_kta: number | null
+          mint_price_xrge: number | null
+          minted_count: number
+          name: string
+          network: string
+          symbol: string
+          total_supply: number | null
+          updated_at: string
+          volume_traded: number
+        }
+        Insert: {
+          banner_image?: string | null
+          created_at?: string
+          creator_address: string
+          description?: string | null
+          floor_price?: number | null
+          id: string
+          ipfs_hash?: string | null
+          is_featured?: boolean
+          is_verified?: boolean
+          listed_count?: number
+          logo_image?: string | null
+          max_per_wallet?: number | null
+          mint_enabled?: boolean
+          mint_price_kta?: number | null
+          mint_price_xrge?: number | null
+          minted_count?: number
+          name: string
+          network?: string
+          symbol: string
+          total_supply?: number | null
+          updated_at?: string
+          volume_traded?: number
+        }
+        Update: {
+          banner_image?: string | null
+          created_at?: string
+          creator_address?: string
+          description?: string | null
+          floor_price?: number | null
+          id?: string
+          ipfs_hash?: string | null
+          is_featured?: boolean
+          is_verified?: boolean
+          listed_count?: number
+          logo_image?: string | null
+          max_per_wallet?: number | null
+          mint_enabled?: boolean
+          mint_price_kta?: number | null
+          mint_price_xrge?: number | null
+          minted_count?: number
+          name?: string
+          network?: string
+          symbol?: string
+          total_supply?: number | null
+          updated_at?: string
+          volume_traded?: number
+        }
+        Relationships: []
+      }
       nft_listings: {
         Row: {
           buyer_address: string | null
