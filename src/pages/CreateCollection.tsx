@@ -121,15 +121,30 @@ const CreateCollection = () => {
       let count = 0;
       let foundIpfsLinks = false;
 
+      // Helper to strip quotes from CSV values
+      const stripQuotes = (val: string): string => {
+        const trimmed = val.trim();
+        if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || 
+            (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+          return trimmed.slice(1, -1);
+        }
+        return trimmed;
+      };
+
       if (isCsv) {
         const lines = text.split('\n').filter(line => line.trim());
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const headers = lines[0].split(',').map(h => stripQuotes(h).toLowerCase());
         const imageIdx = headers.indexOf('image') !== -1 ? headers.indexOf('image') : headers.indexOf('image_filename');
         
+        console.log('[CreateCollection] CSV headers:', headers);
+        console.log('[CreateCollection] Image column index:', imageIdx);
+        
         for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',');
+          const values = lines[i].split(',').map(v => stripQuotes(v));
           if (imageIdx >= 0 && values[imageIdx]) {
-            if (isIpfsImage(values[imageIdx].trim())) {
+            const imageValue = values[imageIdx];
+            console.log(`[CreateCollection] Row ${i} image:`, imageValue);
+            if (isIpfsImage(imageValue)) {
               foundIpfsLinks = true;
             }
           }
@@ -141,6 +156,8 @@ const CreateCollection = () => {
         count = items.length;
         foundIpfsLinks = items.some((item: any) => item.image && isIpfsImage(item.image));
       }
+      
+      console.log('[CreateCollection] Found IPFS links:', foundIpfsLinks, 'Count:', count);
 
       setNftCount(count);
       setTotalSupply(count.toString());

@@ -50,15 +50,29 @@ serve(async (req) => {
     let nftItems: NFTMetadataItem[] = [];
 
     if (metadataType === 'csv') {
+      // Helper to strip quotes from CSV values
+      const stripQuotes = (val: string): string => {
+        const trimmed = val.trim();
+        if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || 
+            (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+          return trimmed.slice(1, -1);
+        }
+        return trimmed;
+      };
+
       const lines = metadataText.split('\n').filter(line => line.trim());
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const headers = lines[0].split(',').map(h => stripQuotes(h).toLowerCase());
+      
+      console.log(`[fx-upload-nft-pool] CSV headers:`, headers);
       
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
+        const values = lines[i].split(',').map(v => stripQuotes(v));
         const row: any = {};
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
         });
+        
+        console.log(`[fx-upload-nft-pool] Row ${i}: name="${row.name}", image="${row.image}"`);
         
         if (row.name && (row.image || row.image_filename)) {
           nftItems.push({
