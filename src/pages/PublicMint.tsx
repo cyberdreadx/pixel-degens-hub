@@ -43,6 +43,7 @@ const PublicMint = () => {
   const { client, account, isConnected, publicKey: address, network, balance } = useWallet();
   
   const [collection, setCollection] = useState<CollectionMetadata | null>(null);
+  const [poolCount, setPoolCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -72,6 +73,15 @@ const PublicMint = () => {
       }
 
       setCollection(data.collection);
+
+      // Check pool for available NFTs
+      const { count } = await supabase
+        .from('collection_nfts')
+        .select('*', { count: 'exact', head: true })
+        .eq('collection_id', collectionId)
+        .eq('minted', false);
+      
+      setPoolCount(count || 0);
     } catch (err: any) {
       console.error("Error loading collection:", err);
       setError(err.message || "Failed to load collection");
@@ -106,21 +116,36 @@ const PublicMint = () => {
       for (let i = 0; i < quantity; i++) {
         toast.info(`Minting ${i + 1} of ${quantity}...`);
 
-        // Generate unique NFT ID
+        // Get a random unminted NFT from the pool
+        const { data: poolNfts, error: poolError } = await supabase
+          .from('collection_nfts')
+          .select('*')
+          .eq('collection_id', collectionId)
+          .eq('minted', false)
+          .limit(10);
+
+        if (poolError || !poolNfts || poolNfts.length === 0) {
+          toast.error("No NFTs available to mint");
+          break;
+        }
+
+        // Pick random NFT from pool
+        const nftData = poolNfts[Math.floor(Math.random() * poolNfts.length)];
         const nftId = Date.now() + i;
         const identifier = `NFT_${collection.symbol}_${nftId}`;
 
-        // Create metadata for this NFT
+        // Create metadata using pool data
         const metadata = {
           platform: "degenswap",
           version: "1.0",
           identifier,
           nft_id: nftId,
           collection_id: collectionId,
-          name: `${collection.name} #${collection.minted_count + i + 1}`,
-          description: collection.description || '',
-          image: collection.logo_image, // Use collection logo as placeholder
+          name: nftData.name,
+          description: nftData.description || collection.description || '',
+          image: nftData.image_ipfs,
           symbol: collection.symbol,
+          attributes: nftData.attributes || [],
         };
 
         const metadataBase64 = btoa(JSON.stringify(metadata));
@@ -131,22 +156,19 @@ const PublicMint = () => {
         await builder.computeBlocks();
         const tokenAccount = pendingTokenAccount.account;
 
-        // Set token info
         builder.setInfo(
           {
             name: collection.symbol,
-            description: `${collection.name} #${collection.minted_count + i + 1}`,
+            description: nftData.name,
             metadata: metadataBase64,
             defaultPermission: new KeetaNet.lib.Permissions(['ACCESS'], []),
           },
           { account: tokenAccount }
         );
 
-        // Mint supply of 1
         builder.modifyTokenSupply(1n, { account: tokenAccount });
         await builder.computeBlocks();
 
-        // Keep the token in user's wallet
         builder.updateAccounts({
           account: tokenAccount,
           signer: account,
@@ -154,7 +176,7 @@ const PublicMint = () => {
 
         builder.send(account, 1n, tokenAccount);
 
-        // If there's a mint price, send payment to creator
+        // Send payment to creator if there's a price
         if (collection.mint_price_kta > 0) {
           const creatorAccount = KeetaNet.lib.Account.fromPublicKeyString(collection.creator);
           const priceInUnits = BigInt(Math.floor(collection.mint_price_kta * 1e8));
@@ -166,7 +188,17 @@ const PublicMint = () => {
         const tokenAddress = tokenAccount.publicKeyString.toString();
         minted.push(tokenAddress);
 
-        // Small delay between mints
+        // Mark NFT as minted in database
+        await supabase
+          .from('collection_nfts')
+          .update({ 
+            minted: true, 
+            minted_to: address, 
+            minted_at: new Date().toISOString(),
+            token_address: tokenAddress 
+          })
+          .eq('id', nftData.id);
+
         if (i < quantity - 1) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }

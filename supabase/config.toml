@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.fx-recover-listings]
 verify_jwt = false
+
+[functions.fx-upload-nft-pool]
+verify_jwt = false
