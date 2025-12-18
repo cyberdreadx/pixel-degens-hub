@@ -66,64 +66,66 @@ serve(async (req) => {
     }
 
     // Single collection lookup by ID
-    if (!collectionId) {
+    if (collectionId) {
+      console.log('[fx-get-collection] Fetching collection:', collectionId);
+
+      // Search for collection metadata on Pinata
+      const searchUrl = new URL('https://api.pinata.cloud/data/pinList');
+      searchUrl.searchParams.set('status', 'pinned');
+      searchUrl.searchParams.set('metadata[name]', `collection-${collectionId}`);
+
+      const searchResponse = await fetch(searchUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${pinataJWT}`,
+        },
+      });
+
+      if (!searchResponse.ok) {
+        throw new Error('Failed to search Pinata');
+      }
+
+      const searchData = await searchResponse.json();
+      
+      if (!searchData.rows || searchData.rows.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Collection not found' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+
+      // Get the IPFS hash of the collection metadata
+      const ipfsHash = searchData.rows[0].ipfs_pin_hash;
+
+      // Fetch the actual metadata from IPFS gateway
+      const metadataResponse = await fetch(`https://gateway.pinata.cloud/ipfs/${ipfsHash}`);
+      
+      if (!metadataResponse.ok) {
+        throw new Error('Failed to fetch collection metadata from IPFS');
+      }
+
+      const collectionMetadata = await metadataResponse.json();
+
+      // Add the IPFS hash to the response
+      collectionMetadata.ipfs_hash = ipfsHash;
+
+      console.log('[fx-get-collection] Found collection:', collectionMetadata.name);
+
       return new Response(
-        JSON.stringify({ error: 'Collection ID is required' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        JSON.stringify({
+          success: true,
+          collection: collectionMetadata,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('[fx-get-collection] Fetching collection:', collectionId);
-
-    // Search for collection metadata on Pinata
-    const searchUrl = new URL('https://api.pinata.cloud/data/pinList');
-    searchUrl.searchParams.set('status', 'pinned');
-    searchUrl.searchParams.set('metadata[name]', `collection-${collectionId}`);
-
-    const searchResponse = await fetch(searchUrl.toString(), {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${pinataJWT}`,
-      },
-    });
-
-    if (!searchResponse.ok) {
-      throw new Error('Failed to search Pinata');
-    }
-
-    const searchData = await searchResponse.json();
-    
-    if (!searchData.rows || searchData.rows.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Collection not found' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
-    }
-
-    // Get the IPFS hash of the collection metadata
-    const ipfsHash = searchData.rows[0].ipfs_pin_hash;
-
-    // Fetch the actual metadata from IPFS gateway
-    const metadataResponse = await fetch(`https://gateway.pinata.cloud/ipfs/${ipfsHash}`);
-    
-    if (!metadataResponse.ok) {
-      throw new Error('Failed to fetch collection metadata from IPFS');
-    }
-
-    const collectionMetadata = await metadataResponse.json();
-
-    // Add the IPFS hash to the response
-    collectionMetadata.ipfs_hash = ipfsHash;
-
-    console.log('[fx-get-collection] Found collection:', collectionMetadata.name);
-
+    // Neither creatorAddress nor collectionId provided
     return new Response(
-      JSON.stringify({
-        success: true,
-        collection: collectionMetadata,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'Either collectionId or creatorAddress is required' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
+
   } catch (error: any) {
     console.error('[fx-get-collection] Error:', error);
     return new Response(
