@@ -288,11 +288,28 @@ const BatchMint = () => {
 
         toast.info("Uploading files to IPFS...");
 
-        const { data: uploadData, error: uploadError } = await supabase.functions.invoke('fx-batch-upload', {
+        // Use direct fetch for FormData - supabase.functions.invoke doesn't handle files properly
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        
+        const uploadResponse = await fetch(`${supabaseUrl}/functions/v1/fx-batch-upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+          },
           body: formData,
         });
 
-        if (uploadError) throw uploadError;
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const uploadData = await uploadResponse.json();
+        if (!uploadData.success) {
+          throw new Error(uploadData.error || 'Upload failed');
+        }
+        
         imageHashes = new Map(Object.entries(uploadData.images || {}));
       } else {
         // Use existing IPFS links - normalize them
