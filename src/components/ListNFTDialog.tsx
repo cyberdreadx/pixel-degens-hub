@@ -18,7 +18,7 @@ interface ListNFTDialogProps {
 }
 
 const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage }: ListNFTDialogProps) => {
-  const { client, account, publicKey, network, isConnected } = useWallet();
+  const { client, account, publicKey, network, isConnected, walletType, sendTokens } = useWallet();
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState<'KTA' | 'XRGE'>('KTA');
   const [isListing, setIsListing] = useState(false);
@@ -88,7 +88,32 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
       
       // Check if anchor already has the NFT
       console.log('Checking if anchor already has NFT...');
-      const anchorBalance = await client.balance(tokenAccountObj, { account: anchorAccountObj });
+      
+      let anchorBalance = 0n;
+      
+      // Check balance differently based on wallet type
+      if (walletType === 'yoda') {
+        // For Yoda wallet, use API to check balance
+        const apiBase = network === 'test' 
+          ? 'https://rep2.test.network.api.keeta.com/api'
+          : 'https://rep2.main.network.api.keeta.com/api';
+        
+        try {
+          const response = await fetch(`${apiBase}/node/ledger/accounts/${anchorAddress}`);
+          if (response.ok) {
+            const data = await response.json();
+            const accountData = Array.isArray(data) ? data[0] : data;
+            const balances = accountData?.balances || [];
+            const tokenBalance = balances.find((b: any) => b.token === tokenAddress);
+            anchorBalance = tokenBalance ? BigInt(tokenBalance.balance) : 0n;
+          }
+        } catch (error) {
+          console.error('Error checking anchor balance:', error);
+        }
+      } else if (client) {
+        // For seed wallet, use client
+        anchorBalance = await client.balance(tokenAccountObj, { account: anchorAccountObj });
+      }
       
       if (anchorBalance > 0n) {
         console.log('✅ Anchor already has NFT, skipping transfer');
@@ -98,13 +123,27 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
         console.log('NFT not in anchor yet, transferring...');
         toast.info("Transferring NFT to escrow...");
         
-        const builder = client.initBuilder();
-        builder.send(anchorAccountObj, 1n, tokenAccountObj);
-        
-        await builder.computeBlocks();
-        const result = await builder.publish();
-        
-        console.log('NFT transferred to anchor:', result);
+        if (walletType === 'yoda') {
+          // Use Yoda wallet's sendTransaction for transfer
+          try {
+            const txHash = await sendTokens(anchorAddress, '1', tokenAddress);
+            console.log('NFT transferred via Yoda:', txHash);
+          } catch (error) {
+            console.error('Yoda transfer error:', error);
+            throw error;
+          }
+        } else if (client) {
+          // Use seed wallet client
+          const builder = client.initBuilder();
+          builder.send(anchorAccountObj, 1n, tokenAccountObj);
+          
+          await builder.computeBlocks();
+          const result = await builder.publish();
+          
+          console.log('NFT transferred to anchor:', result);
+        } else {
+          throw new Error('No wallet client available');
+        }
         
         toast.info("Creating listing...");
         

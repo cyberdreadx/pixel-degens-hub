@@ -11,7 +11,6 @@ const Home = () => {
         className="relative min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)] flex items-center justify-center overflow-hidden px-4 py-12 sm:py-16 md:py-20"
         style={{
           backgroundImage: `url(${heroBg})`,
-          backgroundSize: "cover",
           backgroundPosition: "center",
           imageRendering: "pixelated",
         }}
