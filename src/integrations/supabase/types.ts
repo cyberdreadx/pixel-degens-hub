@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      collection_nfts: {
+        Row: {
+          attributes: Json | null
+          collection_id: string
+          created_at: string
+          description: string | null
+          id: string
+          image_ipfs: string
+          minted: boolean
+          minted_at: string | null
+          minted_to: string | null
+          name: string
+          nft_index: number
+          token_address: string | null
+        }
+        Insert: {
+          attributes?: Json | null
+          collection_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_ipfs: string
+          minted?: boolean
+          minted_at?: string | null
+          minted_to?: string | null
+          name: string
+          nft_index: number
+          token_address?: string | null
+        }
+        Update: {
+          attributes?: Json | null
+          collection_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_ipfs?: string
+          minted?: boolean
+          minted_at?: string | null
+          minted_to?: string | null
+          name?: string
+          nft_index?: number
+          token_address?: string | null
+        }
+        Relationships: []
+      }
       nft_listings: {
         Row: {
           buyer_address: string | null

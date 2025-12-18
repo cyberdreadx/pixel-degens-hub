@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
-import { Upload, Plus, X, Globe, Twitter, MessageCircle, Sparkles, Info, DollarSign } from "lucide-react";
+import { Upload, Plus, X, Globe, Twitter, MessageCircle, Sparkles, Info, DollarSign, FileText, ImageIcon, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { calculateCollectionPricing, formatPricing, getAllPricingTiers, validateCollectionSize } from "@/utils/collectionPricing";
@@ -51,8 +51,16 @@ const CreateCollection = () => {
   const [bannerPreview, setBannerPreview] = useState("");
   const [logoPreview, setLogoPreview] = useState("");
   
+  // NFT Assets Upload (for lazy mint)
+  const [nftMetadataFile, setNftMetadataFile] = useState<File | null>(null);
+  const [nftZipFile, setNftZipFile] = useState<File | null>(null);
+  const [nftCount, setNftCount] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState("");
+  
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const nftMetadataInputRef = useRef<HTMLInputElement>(null);
+  const nftZipInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (
     e: React.ChangeEvent<HTMLInputElement>, 
@@ -80,6 +88,55 @@ const CreateCollection = () => {
       setSelectedLogo(file);
       setLogoPreview(preview);
     }
+  };
+
+  const handleNftMetadataSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isJson = file.name.endsWith('.json');
+    const isCsv = file.name.endsWith('.csv');
+
+    if (!isJson && !isCsv) {
+      toast.error("Please select a CSV or JSON file");
+      return;
+    }
+
+    setNftMetadataFile(file);
+
+    // Parse to count NFTs
+    try {
+      const text = await file.text();
+      let count = 0;
+
+      if (isCsv) {
+        const lines = text.split('\n').filter(line => line.trim());
+        count = Math.max(0, lines.length - 1); // Subtract header row
+      } else {
+        const json = JSON.parse(text);
+        count = Array.isArray(json) ? json.length : 1;
+      }
+
+      setNftCount(count);
+      setTotalSupply(count.toString());
+      toast.success(`Loaded metadata for ${count} NFTs`);
+    } catch (err) {
+      toast.error("Failed to parse metadata file");
+      setNftMetadataFile(null);
+    }
+  };
+
+  const handleNftZipSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.zip')) {
+      toast.error("Please select a ZIP file");
+      return;
+    }
+
+    setNftZipFile(file);
+    toast.success("ZIP file selected");
   };
 
   const uploadToIPFS = async (file: File): Promise<string> => {
@@ -170,6 +227,7 @@ const CreateCollection = () => {
 
       // Upload collection metadata to IPFS
       toast.info("Uploading collection metadata to IPFS...");
+      setUploadProgress("Creating collection...");
       
       const { data, error } = await supabase.functions.invoke('fx-upload-collection', {
         body: { metadata: collectionMetadata },
@@ -177,6 +235,42 @@ const CreateCollection = () => {
 
       if (error) throw error;
 
+      // If NFT assets are provided, upload them to the pool
+      if (nftMetadataFile && nftZipFile && mintEnabled) {
+        setUploadProgress("Uploading NFT assets to IPFS...");
+        toast.info("Uploading NFT images to IPFS... This may take a while.");
+
+        const formData = new FormData();
+        formData.append('collectionId', collectionId);
+        formData.append('network', network);
+        formData.append('metadata', nftMetadataFile);
+        formData.append('metadataType', nftMetadataFile.name.endsWith('.csv') ? 'csv' : 'json');
+        formData.append('zip', nftZipFile);
+
+        // Use direct fetch for FormData
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        
+        const uploadResponse = await fetch(`${supabaseUrl}/functions/v1/fx-upload-nft-pool`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+          },
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          console.error("Pool upload error:", errorData);
+          toast.error(`NFT upload failed: ${errorData.error || 'Unknown error'}`);
+          // Still continue to collection page since collection was created
+        } else {
+          const uploadData = await uploadResponse.json();
+          toast.success(`Uploaded ${uploadData.uploaded} NFTs to the mint pool!`);
+        }
+      }
+
+      setUploadProgress("");
       toast.success("Collection created successfully!");
       
       // Navigate to collection page
@@ -188,6 +282,7 @@ const CreateCollection = () => {
     } finally {
       setIsCreating(false);
       setIsUploading(false);
+      setUploadProgress("");
     }
   };
 
@@ -458,6 +553,83 @@ const CreateCollection = () => {
               </div>
             </div>
 
+            {/* NFT Assets Upload Section - Only show if mint enabled */}
+            {mintEnabled && (
+              <div className="p-4 bg-accent/10 border border-accent/30 pixel-border space-y-4">
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  NFT ASSETS (FOR PUBLIC MINT)
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Upload your NFT metadata and images. These will be available for public minting.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Metadata File */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold">METADATA FILE (CSV/JSON)</Label>
+                    <input
+                      ref={nftMetadataInputRef}
+                      type="file"
+                      accept=".csv,.json"
+                      onChange={handleNftMetadataSelect}
+                      className="hidden"
+                    />
+                    <div 
+                      onClick={() => nftMetadataInputRef.current?.click()}
+                      className="p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-accent transition-colors text-center"
+                    >
+                      {nftMetadataFile ? (
+                        <div className="space-y-1">
+                          <FileText className="h-6 w-6 mx-auto text-accent" />
+                          <p className="text-xs font-bold">{nftMetadataFile.name}</p>
+                          <p className="text-xs text-muted-foreground">{nftCount} NFTs</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <FileText className="h-6 w-6 mx-auto text-muted-foreground" />
+                          <p className="text-xs">Click to upload CSV or JSON</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ZIP File */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold">IMAGES ZIP FILE</Label>
+                    <input
+                      ref={nftZipInputRef}
+                      type="file"
+                      accept=".zip"
+                      onChange={handleNftZipSelect}
+                      className="hidden"
+                    />
+                    <div 
+                      onClick={() => nftZipInputRef.current?.click()}
+                      className="p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-accent transition-colors text-center"
+                    >
+                      {nftZipFile ? (
+                        <div className="space-y-1">
+                          <ImageIcon className="h-6 w-6 mx-auto text-accent" />
+                          <p className="text-xs font-bold">{nftZipFile.name}</p>
+                          <p className="text-xs text-muted-foreground">{(nftZipFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <ImageIcon className="h-6 w-6 mx-auto text-muted-foreground" />
+                          <p className="text-xs">Click to upload ZIP</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-muted-foreground">
+                  💡 Metadata must have "name" and "image" columns. Image filenames must match files in ZIP.
+                </p>
+              </div>
+            )}
+
             {/* Pricing Calculator */}
             {totalSupply && parseInt(totalSupply) > 0 && (
               <div className="p-4 bg-primary/10 border border-primary/30 pixel-border space-y-3">
@@ -548,13 +720,27 @@ const CreateCollection = () => {
             className="w-full pixel-border-thick text-xs"
             size="lg"
           >
-            {isCreating ? "CREATING COLLECTION..." : isUploading ? "UPLOADING ASSETS..." : isConnected ? "CREATE COLLECTION" : "CONNECT WALLET FIRST"}
+            {isCreating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {uploadProgress || "CREATING..."}
+              </>
+            ) : isUploading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                UPLOADING ASSETS...
+              </>
+            ) : isConnected ? (
+              "CREATE COLLECTION"
+            ) : (
+              "CONNECT WALLET FIRST"
+            )}
           </Button>
 
           {/* Info */}
           <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
             <p>• Collection metadata is stored on IPFS (fully decentralized)</p>
-            <p>• After creating, you can batch mint NFTs for this collection</p>
+            <p>• Upload NFT assets to enable public minting (lazy mint)</p>
             <p>• Royalties apply to secondary sales on the marketplace</p>
           </div>
         </Card>
