@@ -67,7 +67,7 @@ serve(async (req) => {
 
     const { error: dbError } = await supabase
       .from('collections')
-      .insert({
+      .upsert({
         id: metadata.collection_id,
         name: metadata.name,
         symbol: metadata.symbol,
@@ -77,17 +77,12 @@ serve(async (req) => {
         banner_image: metadata.banner_image || null,
         logo_image: metadata.logo_image || null,
         ipfs_hash: ipfsHash,
-        collection_metadata: metadata,
         total_supply: metadata.total_supply || null,
-        minted_count: 0,
-        storage_size_mb: metadata.pricing?.storage_size_mb || 0,
-        hosting_fee_kta: metadata.pricing?.hosting_fee_kta || 0,
-        paid_status: 'unpaid', // TODO: Implement payment verification
-        royalty_percentage: metadata.royalty_percentage || 0,
-        website: metadata.social_links?.website || null,
-        twitter: metadata.social_links?.twitter || null,
-        discord: metadata.social_links?.discord || null,
-      });
+        minted_count: metadata.minted_count || 0,
+        mint_enabled: metadata.mint_enabled ?? false,
+        mint_price_kta: metadata.mint_price_kta || null,
+        max_per_wallet: metadata.max_per_wallet || 10,
+      }, { onConflict: 'id' });
 
     if (dbError) {
       console.error('[fx-upload-collection] Database error:', dbError);
