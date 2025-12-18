@@ -17,10 +17,6 @@ import {
   AlertCircle,
   ArrowLeft
 } from "lucide-react";
-import * as KeetaNet from "@keetanetwork/keetanet-client";
-
-const { Account } = KeetaNet.lib;
-const { AccountKeyAlgorithm } = Account;
 
 interface CollectionMetadata {
   collection_id: string;
@@ -91,7 +87,7 @@ const PublicMint = () => {
   };
 
   const handleMint = async () => {
-    if (!isConnected || !client || !account || !collection) {
+    if (!isConnected || !address || !collection) {
       toast.error("Please connect your wallet first");
       return;
     }
@@ -131,61 +127,27 @@ const PublicMint = () => {
 
         // Pick random NFT from pool
         const nftData = poolNfts[Math.floor(Math.random() * poolNfts.length)];
-        const nftId = Date.now() + i;
-        const identifier = `NFT_${collection.symbol}_${nftId}`;
 
-        // Create metadata using pool data
-        const metadata = {
-          platform: "degenswap",
-          version: "1.0",
-          identifier,
-          nft_id: nftId,
-          collection_id: collectionId,
-          name: nftData.name,
-          description: nftData.description || collection.description || '',
-          image: nftData.image_ipfs,
-          symbol: collection.symbol,
-          attributes: nftData.attributes || [],
-        };
-
-        const metadataBase64 = btoa(JSON.stringify(metadata));
-
-        // Build minting transaction
-        const builder = client.initBuilder();
-        const pendingTokenAccount = builder.generateIdentifier(AccountKeyAlgorithm.TOKEN);
-        await builder.computeBlocks();
-        const tokenAccount = pendingTokenAccount.account;
-
-        builder.setInfo(
-          {
-            name: collection.symbol,
-            description: nftData.name,
-            metadata: metadataBase64,
-            defaultPermission: new KeetaNet.lib.Permissions(['ACCESS'], []),
-          },
-          { account: tokenAccount }
-        );
-
-        builder.modifyTokenSupply(1n, { account: tokenAccount });
-        await builder.computeBlocks();
-
-        builder.updateAccounts({
-          account: tokenAccount,
-          signer: account,
+        // Call the fx-mint-nft edge function (uses anchor wallet with TOKEN permissions)
+        const { data: mintResult, error: mintError } = await supabase.functions.invoke('fx-mint-nft', {
+          body: {
+            name: nftData.name,
+            ticker: collection.symbol,
+            description: nftData.description || collection.description || '',
+            imageUrl: nftData.image_ipfs,
+            attributes: nftData.attributes || [],
+            recipientAddress: address,
+            network: network,
+          }
         });
 
-        builder.send(account, 1n, tokenAccount);
-
-        // Send payment to creator if there's a price
-        if (collection.mint_price_kta > 0) {
-          const creatorAccount = KeetaNet.lib.Account.fromPublicKeyString(collection.creator);
-          const priceInUnits = BigInt(Math.floor(collection.mint_price_kta * 1e8));
-          builder.send(creatorAccount, priceInUnits, account);
+        if (mintError || !mintResult?.success) {
+          console.error("Mint error:", mintError || mintResult?.error);
+          toast.error(`Mint failed: ${mintResult?.error || mintError?.message || 'Unknown error'}`);
+          break;
         }
 
-        await builder.publish();
-
-        const tokenAddress = tokenAccount.publicKeyString.toString();
+        const tokenAddress = mintResult.tokenAddress;
         minted.push(tokenAddress);
 
         // Mark NFT as minted in database
@@ -211,12 +173,16 @@ const PublicMint = () => {
         body: { 
           collectionId, 
           updates: { 
-            minted_count: (collection.minted_count || 0) + quantity 
+            minted_count: (collection.minted_count || 0) + minted.length 
           } 
         },
       });
 
-      toast.success(`Successfully minted ${quantity} NFT(s)!`);
+      if (minted.length === quantity) {
+        toast.success(`Successfully minted ${quantity} NFT(s)!`);
+      } else if (minted.length > 0) {
+        toast.success(`Minted ${minted.length} of ${quantity} NFTs`);
+      }
       
       // Refresh collection data
       loadCollection();
