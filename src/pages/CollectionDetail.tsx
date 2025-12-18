@@ -14,7 +14,8 @@ import {
   Upload, 
   Users,
   Sparkles,
-  LayoutGrid
+  LayoutGrid,
+  Rocket
 } from "lucide-react";
 
 interface CollectionMetadata {
@@ -33,6 +34,8 @@ interface CollectionMetadata {
   };
   total_supply: number | null;
   minted_count: number;
+  mint_price_kta?: number;
+  mint_enabled?: boolean;
   network: string;
   created_at: string;
   ipfs_hash: string;
@@ -222,14 +225,27 @@ const CollectionDetail = () => {
                 <p className="text-muted-foreground text-sm">by {collection.creator.slice(0, 12)}...{collection.creator.slice(-8)}</p>
               </div>
               
-              {isOwner && (
-                <Link to={`/collection/${collectionId}/batch-mint`}>
-                  <Button className="pixel-border gap-2">
-                    <Upload className="h-4 w-4" />
-                    BATCH MINT
-                  </Button>
-                </Link>
-              )}
+              <div className="flex gap-2 flex-wrap">
+                {/* Public Mint Button - show if minting is enabled */}
+                {collection.mint_enabled && (
+                  <Link to={`/collection/${collectionId}/mint`}>
+                    <Button className="pixel-border gap-2 bg-primary">
+                      <Rocket className="h-4 w-4" />
+                      MINT {collection.mint_price_kta ? `${collection.mint_price_kta} KTA` : 'FREE'}
+                    </Button>
+                  </Link>
+                )}
+                
+                {/* Owner batch mint button */}
+                {isOwner && (
+                  <Link to={`/collection/${collectionId}/batch-mint`}>
+                    <Button variant="outline" className="pixel-border gap-2">
+                      <Upload className="h-4 w-4" />
+                      BATCH MINT
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </div>
 
             {/* Stats */}

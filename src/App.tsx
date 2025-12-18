@@ -10,6 +10,7 @@ import Collections from "./pages/Collections";
 import CollectionDetail from "./pages/CollectionDetail";
 import CreateCollection from "./pages/CreateCollection";
 import BatchMint from "./pages/BatchMint";
+import PublicMint from "./pages/PublicMint";
 import NFTDetail from "./pages/NFTDetail";
 import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/collection/create" element={<CreateCollection />} />
               <Route path="/collection/:collectionId" element={<CollectionDetail />} />
               <Route path="/collection/:collectionId/batch-mint" element={<BatchMint />} />
+              <Route path="/collection/:collectionId/mint" element={<PublicMint />} />
               <Route path="/nft/:id" element={<NFTDetail />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/profile" element={<Profile />} />
