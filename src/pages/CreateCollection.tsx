@@ -56,6 +56,7 @@ const CreateCollection = () => {
   const [nftZipFile, setNftZipFile] = useState<File | null>(null);
   const [nftCount, setNftCount] = useState(0);
   const [uploadProgress, setUploadProgress] = useState("");
+  const [hasIpfsLinks, setHasIpfsLinks] = useState(false);
   
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -104,22 +105,52 @@ const CreateCollection = () => {
 
     setNftMetadataFile(file);
 
-    // Parse to count NFTs
+    // Helper to check if image field is IPFS
+    const isIpfsImage = (image: string): boolean => {
+      return image.startsWith('ipfs://') || 
+             image.startsWith('Qm') || 
+             image.startsWith('bafy') ||
+             image.startsWith('bafk') ||
+             image.includes('ipfs.io') ||
+             image.includes('pinata.cloud');
+    };
+
+    // Parse to count NFTs and check for IPFS links
     try {
       const text = await file.text();
       let count = 0;
+      let foundIpfsLinks = false;
 
       if (isCsv) {
         const lines = text.split('\n').filter(line => line.trim());
-        count = Math.max(0, lines.length - 1); // Subtract header row
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const imageIdx = headers.indexOf('image') !== -1 ? headers.indexOf('image') : headers.indexOf('image_filename');
+        
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',');
+          if (imageIdx >= 0 && values[imageIdx]) {
+            if (isIpfsImage(values[imageIdx].trim())) {
+              foundIpfsLinks = true;
+            }
+          }
+        }
+        count = Math.max(0, lines.length - 1);
       } else {
         const json = JSON.parse(text);
-        count = Array.isArray(json) ? json.length : 1;
+        const items = Array.isArray(json) ? json : [json];
+        count = items.length;
+        foundIpfsLinks = items.some((item: any) => item.image && isIpfsImage(item.image));
       }
 
       setNftCount(count);
       setTotalSupply(count.toString());
-      toast.success(`Loaded metadata for ${count} NFTs`);
+      setHasIpfsLinks(foundIpfsLinks);
+      
+      if (foundIpfsLinks) {
+        toast.success(`Loaded ${count} NFTs with IPFS links - no ZIP needed!`);
+      } else {
+        toast.success(`Loaded metadata for ${count} NFTs - please also upload a ZIP`);
+      }
     } catch (err) {
       toast.error("Failed to parse metadata file");
       setNftMetadataFile(null);
@@ -236,16 +267,23 @@ const CreateCollection = () => {
       if (error) throw error;
 
       // If NFT assets are provided, upload them to the pool
-      if (nftMetadataFile && nftZipFile && mintEnabled) {
-        setUploadProgress("Uploading NFT assets to IPFS...");
-        toast.info("Uploading NFT images to IPFS... This may take a while.");
+      // ZIP is optional if metadata already has IPFS links
+      const shouldUploadPool = nftMetadataFile && mintEnabled && (hasIpfsLinks || nftZipFile);
+      
+      if (shouldUploadPool) {
+        setUploadProgress("Uploading NFT assets...");
+        toast.info(hasIpfsLinks 
+          ? "Adding NFTs with IPFS links to mint pool..." 
+          : "Uploading NFT images to IPFS... This may take a while.");
 
         const formData = new FormData();
         formData.append('collectionId', collectionId);
         formData.append('network', network);
         formData.append('metadata', nftMetadataFile);
         formData.append('metadataType', nftMetadataFile.name.endsWith('.csv') ? 'csv' : 'json');
-        formData.append('zip', nftZipFile);
+        if (nftZipFile) {
+          formData.append('zip', nftZipFile);
+        }
 
         // Use direct fetch for FormData
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -594,9 +632,11 @@ const CreateCollection = () => {
                     </div>
                   </div>
 
-                  {/* ZIP File */}
+                  {/* ZIP File - Only required if no IPFS links */}
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold">IMAGES ZIP FILE</Label>
+                    <Label className="text-xs font-bold">
+                      IMAGES ZIP FILE {hasIpfsLinks && <span className="text-muted-foreground">(OPTIONAL)</span>}
+                    </Label>
                     <input
                       ref={nftZipInputRef}
                       type="file"
@@ -606,13 +646,22 @@ const CreateCollection = () => {
                     />
                     <div 
                       onClick={() => nftZipInputRef.current?.click()}
-                      className="p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-accent transition-colors text-center"
+                      className={`p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors text-center ${
+                        hasIpfsLinks 
+                          ? 'border-muted-foreground/20 hover:border-muted-foreground/40' 
+                          : 'border-muted-foreground/30 hover:border-accent'
+                      }`}
                     >
                       {nftZipFile ? (
                         <div className="space-y-1">
                           <ImageIcon className="h-6 w-6 mx-auto text-accent" />
                           <p className="text-xs font-bold">{nftZipFile.name}</p>
                           <p className="text-xs text-muted-foreground">{(nftZipFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                        </div>
+                      ) : hasIpfsLinks ? (
+                        <div className="space-y-1">
+                          <ImageIcon className="h-6 w-6 mx-auto text-muted-foreground/50" />
+                          <p className="text-xs text-muted-foreground">Not needed - using IPFS links</p>
                         </div>
                       ) : (
                         <div className="space-y-1">
@@ -625,7 +674,10 @@ const CreateCollection = () => {
                 </div>
 
                 <p className="text-[10px] text-muted-foreground">
-                  💡 Metadata must have "name" and "image" columns. Image filenames must match files in ZIP.
+                  {hasIpfsLinks 
+                    ? '✅ IPFS links detected in metadata - images will be used directly'
+                    : '💡 Metadata must have "name" and "image" columns. Image filenames must match files in ZIP.'
+                  }
                 </p>
               </div>
             )}
