@@ -19,7 +19,7 @@ import { NFTPriceChart } from "@/components/NFTPriceChart";
 const NFTDetail = () => {
   const { id } = useParams(); // This is the token address
   const location = useLocation();
-  const { network, publicKey, fetchTokens, client, balance, isConnected } = useWallet();
+  const { network, publicKey, fetchTokens, client, balance, isConnected, walletType } = useWallet();
   const [tokenData, setTokenData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -488,14 +488,23 @@ const NFTDetail = () => {
                         )}
                       </div>
                       {owner.isYou && !owner.isAnchor && (
-                        <Button 
-                          className="w-full pixel-border gap-1 sm:gap-2 text-xs h-10 sm:h-11"
-                          variant="default"
-                          onClick={() => setShowListDialog(true)}
-                        >
-                          <Tag className="w-3 h-3 sm:w-4 sm:h-4" />
-                          LIST FOR SALE
-                        </Button>
+                        <>
+                          {walletType === 'yoda' && (
+                            <div className="p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-[10px] text-yellow-300">
+                              ⚠️ Yoda wallet cannot list NFTs. Please use seed phrase wallet.
+                            </div>
+                          )}
+                          <Button 
+                            className="w-full pixel-border gap-1 sm:gap-2 text-xs h-10 sm:h-11"
+                            variant="default"
+                            onClick={() => setShowListDialog(true)}
+                            disabled={walletType === 'yoda'}
+                            title={walletType === 'yoda' ? 'Yoda wallet does not support NFT transfers' : ''}
+                          >
+                            <Tag className="w-3 h-3 sm:w-4 sm:h-4" />
+                            {walletType === 'yoda' ? 'NOT SUPPORTED' : 'LIST FOR SALE'}
+                          </Button>
+                        </>
                       )}
                     </div>
                   )}

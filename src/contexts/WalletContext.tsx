@@ -770,18 +770,42 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.log('[sendTokens] Using Yoda wallet to send');
         console.log('[sendTokens] To:', to);
         console.log('[sendTokens] Amount:', amount);
-        
-        // Yoda wallet's sendTransaction expects the amount as a string
-        const txHash = await yoda.sendTransaction({
+        console.log('[sendTokens] Token address:', tokenAddress);
+
+        // Build transaction params
+        const txParams: any = {
           to: to,
           amount: amount
-        });
-        
+        };
+
+        // If token address is provided, include it (for NFT/token transfers)
+        if (tokenAddress) {
+          txParams.token = tokenAddress;
+        }
+
+        console.log('[sendTokens] Yoda transaction params:', txParams);
+
+        // Yoda wallet's sendTransaction
+        let txHash;
+        try {
+          txHash = await yoda.sendTransaction(txParams);
+          console.log('[sendTokens] Yoda transaction response:', txHash);
+        } catch (yodaError: any) {
+          console.error('[sendTokens] Yoda wallet error:', yodaError);
+          console.error('[sendTokens] Error details:', {
+            message: yodaError?.message,
+            stack: yodaError?.stack,
+            name: yodaError?.name,
+            raw: yodaError
+          });
+          throw new Error(`Yoda wallet transaction failed: ${yodaError?.message || 'Unknown error'}`);
+        }
+
         console.log('[sendTokens] Yoda transaction sent:', txHash);
-        
+
         // Refresh balances after sending
         await fetchBalance();
-        
+
         toast.success("Transaction sent via Yoda wallet!");
         return { txHash };
       }

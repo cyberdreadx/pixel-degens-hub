@@ -126,10 +126,23 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
         if (walletType === 'yoda') {
           // Use Yoda wallet's sendTransaction for transfer
           try {
+            console.log('[ListNFTDialog] Attempting Yoda transfer...');
+            console.log('[ListNFTDialog] Token:', tokenAddress);
+            console.log('[ListNFTDialog] To:', anchorAddress);
+            console.log('[ListNFTDialog] Amount: 1');
+            
             const txHash = await sendTokens(anchorAddress, '1', tokenAddress);
             console.log('NFT transferred via Yoda:', txHash);
-          } catch (error) {
+          } catch (error: any) {
             console.error('Yoda transfer error:', error);
+            
+            // Check if this is a known Yoda wallet limitation
+            if (error?.message?.includes('account') || error?.message?.includes('undefined')) {
+              throw new Error(
+                'Yoda wallet does not yet support NFT transfers via this interface. ' +
+                'Please use a seed phrase wallet to list NFTs, or transfer manually and then create the listing.'
+              );
+            }
             throw error;
           }
         } else if (client) {
@@ -198,6 +211,22 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
             Set a price and list your NFT on the marketplace
           </DialogDescription>
         </DialogHeader>
+
+        {/* Yoda Wallet Warning */}
+        {walletType === 'yoda' && (
+          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded pixel-border">
+            <div className="flex items-start gap-2">
+              <span className="text-yellow-500 text-lg">⚠️</span>
+              <div className="text-xs text-yellow-200">
+                <p className="font-bold mb-1">Yoda Wallet Limitation</p>
+                <p className="text-yellow-300/90">
+                  The Yoda wallet extension does not currently support NFT transfers. 
+                  To list NFTs, please use a seed phrase wallet instead.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4 py-4">
           {/* NFT Preview */}
@@ -281,10 +310,11 @@ const ListNFTDialog = ({ open, onOpenChange, tokenAddress, tokenName, tokenImage
           </Button>
           <Button
             onClick={handleList}
-            disabled={isListing || !price || !anchorAddress || isLoadingAnchor}
+            disabled={isListing || !price || !anchorAddress || isLoadingAnchor || walletType === 'yoda'}
             className="pixel-border-thick text-xs"
+            title={walletType === 'yoda' ? 'Yoda wallet does not support NFT transfers' : ''}
           >
-            {isListing ? "LISTING..." : "LIST FOR SALE"}
+            {isListing ? "LISTING..." : walletType === 'yoda' ? "NOT SUPPORTED (YODA)" : "LIST FOR SALE"}
           </Button>
         </DialogFooter>
       </DialogContent>
