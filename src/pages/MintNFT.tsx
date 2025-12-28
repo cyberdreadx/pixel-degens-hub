@@ -350,15 +350,15 @@ const MintNFT = () => {
           <div className="space-y-2">
             <Label className="text-xs font-bold">COLLECTION (OPTIONAL)</Label>
             <Select
-              value={selectedCollectionId}
-              onValueChange={setSelectedCollectionId}
+              value={selectedCollectionId || "none"}
+              onValueChange={(val) => setSelectedCollectionId(val === "none" ? "" : val)}
               disabled={loadingCollections}
             >
               <SelectTrigger className="pixel-border text-xs">
                 <SelectValue placeholder={loadingCollections ? "Loading collections..." : "No collection (standalone NFT)"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No collection (standalone NFT)</SelectItem>
+                <SelectItem value="none">No collection (standalone NFT)</SelectItem>
                 {collections.map((collection) => (
                   <SelectItem key={collection.id} value={collection.id}>
                     {collection.name} ({collection.symbol})
