@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,10 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
-import { Upload, Plus, X } from "lucide-react";
+import { Upload, Plus, X, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import * as KeetaNet from "@keetanetwork/keetanet-client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const { Account } = KeetaNet.lib;
 const { AccountKeyAlgorithm } = Account;
@@ -17,6 +24,12 @@ const { AccountKeyAlgorithm } = Account;
 interface NFTAttribute {
   trait_type: string;
   value: string;
+}
+
+interface Collection {
+  id: string;
+  name: string;
+  symbol: string;
 }
 
 const MintNFT = () => {
@@ -35,6 +48,37 @@ const MintNFT = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string>("");
+  const [loadingCollections, setLoadingCollections] = useState(false);
+
+  // Load user's collections
+  useEffect(() => {
+    const loadCollections = async () => {
+      if (!publicKey && !account) return;
+      
+      const walletAddress = publicKey || account?.publicKeyString?.get();
+      if (!walletAddress) return;
+
+      setLoadingCollections(true);
+      try {
+        const { data, error } = await supabase
+          .from('collections')
+          .select('id, name, symbol')
+          .eq('creator_address', walletAddress)
+          .eq('network', network);
+
+        if (error) throw error;
+        setCollections(data || []);
+      } catch (error) {
+        console.error('Error loading collections:', error);
+      } finally {
+        setLoadingCollections(false);
+      }
+    };
+
+    loadCollections();
+  }, [publicKey, account, network]);
 
   const addAttribute = () => {
     if (!newTraitType || !newTraitValue) {
@@ -150,7 +194,8 @@ const MintNFT = () => {
             attributes,
             externalUrl,
             recipientAddress: publicKey,
-            network
+            network,
+            collectionId: selectedCollectionId || undefined
           }
         });
 
@@ -188,6 +233,7 @@ const MintNFT = () => {
         image: finalImageUrl,
         attributes,
         ...(externalUrl && { external_url: externalUrl }),
+        ...(selectedCollectionId && { collection_id: selectedCollectionId }),
       };
 
       // Encode metadata as base64
@@ -297,6 +343,31 @@ const MintNFT = () => {
             />
             <p className="text-xs text-muted-foreground">
               Letters only, max 4 characters (special characters removed automatically)
+            </p>
+          </div>
+
+          {/* Collection (Optional) */}
+          <div className="space-y-2">
+            <Label className="text-xs font-bold">COLLECTION (OPTIONAL)</Label>
+            <Select
+              value={selectedCollectionId}
+              onValueChange={setSelectedCollectionId}
+              disabled={loadingCollections}
+            >
+              <SelectTrigger className="pixel-border text-xs">
+                <SelectValue placeholder={loadingCollections ? "Loading collections..." : "No collection (standalone NFT)"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No collection (standalone NFT)</SelectItem>
+                {collections.map((collection) => (
+                  <SelectItem key={collection.id} value={collection.id}>
+                    {collection.name} ({collection.symbol})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Associate this NFT with one of your collections, or create it as a standalone token
             </p>
           </div>
 
