@@ -15,7 +15,8 @@ import {
   Users,
   Sparkles,
   LayoutGrid,
-  Rocket
+  Rocket,
+  Settings
 } from "lucide-react";
 
 interface CollectionMetadata {
@@ -236,14 +237,22 @@ const CollectionDetail = () => {
                   </Link>
                 )}
                 
-                {/* Owner batch mint button */}
+                {/* Owner controls */}
                 {isOwner && (
-                  <Link to={`/collection/${collectionId}/batch-mint`}>
-                    <Button variant="outline" className="pixel-border gap-2">
-                      <Upload className="h-4 w-4" />
-                      BATCH MINT
-                    </Button>
-                  </Link>
+                  <div className="flex gap-2">
+                    <Link to={`/collection/${collectionId}/edit`}>
+                      <Button variant="outline" className="pixel-border gap-2">
+                        <Settings className="h-4 w-4" />
+                        EDIT
+                      </Button>
+                    </Link>
+                    <Link to={`/collection/${collectionId}/batch-mint`}>
+                      <Button variant="outline" className="pixel-border gap-2">
+                        <Upload className="h-4 w-4" />
+                        BATCH MINT
+                      </Button>
+                    </Link>
+                  </div>
                 )}
               </div>
             </div>
