@@ -284,6 +284,30 @@ const MintNFT = () => {
       await builder.publish();
 
       const tokenAddress = tokenAccount.publicKeyString.get();
+      
+      // If minting to a collection, update minted_count
+      if (selectedCollectionId) {
+        try {
+          const { data: collection } = await supabase
+            .from('collections')
+            .select('minted_count')
+            .eq('id', selectedCollectionId)
+            .single();
+          
+          if (collection) {
+            await supabase
+              .from('collections')
+              .update({ 
+                minted_count: (collection.minted_count || 0) + 1,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', selectedCollectionId);
+          }
+        } catch (dbError) {
+          console.error('[MintNFT] Failed to update collection count:', dbError);
+        }
+      }
+
       toast.success(`Token minted successfully!`);
       
       // Wait a moment for blockchain to process

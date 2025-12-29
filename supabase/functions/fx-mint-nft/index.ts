@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as KeetaNet from "npm:@keetanetwork/keetanet-client@0.14.12";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.84.0";
 
 const { AccountKeyAlgorithm } = KeetaNet.lib.Account;
 
@@ -17,6 +18,7 @@ interface MintRequest {
   externalUrl?: string;
   recipientAddress: string;
   network: 'main' | 'test';
+  collectionId?: string;
 }
 
 serve(async (req) => {
@@ -27,9 +29,9 @@ serve(async (req) => {
 
   try {
     const body: MintRequest = await req.json();
-    const { name, ticker, description, imageUrl, attributes, externalUrl, recipientAddress, network } = body;
+    const { name, ticker, description, imageUrl, attributes, externalUrl, recipientAddress, network, collectionId } = body;
 
-    console.log('[fx-mint-nft] Request:', { name, ticker, recipientAddress, network });
+    console.log('[fx-mint-nft] Request:', { name, ticker, recipientAddress, network, collectionId });
 
     // Validate required fields
     if (!name || !ticker || !imageUrl || !recipientAddress) {
@@ -65,7 +67,7 @@ serve(async (req) => {
     const nftId = Date.now();
     const identifier = `NFT_KTA_ANCHOR_${nftId}`;
 
-    // Create metadata
+    // Create metadata - include collection_id if provided
     const metadata = {
       platform: "degen8bit",
       version: "1.0",
@@ -76,12 +78,13 @@ serve(async (req) => {
       image: imageUrl,
       attributes: attributes || [],
       ...(externalUrl && { external_url: externalUrl }),
+      ...(collectionId && { collection_id: collectionId }),
     };
 
     const metadataJson = JSON.stringify(metadata);
     const metadataBase64 = btoa(metadataJson);
 
-    console.log('[fx-mint-nft] Creating token with metadata:', { identifier, name, ticker });
+    console.log('[fx-mint-nft] Creating token with metadata:', { identifier, name, ticker, collectionId });
 
     // Build minting transaction
     const builder = client.initBuilder();
@@ -126,6 +129,37 @@ serve(async (req) => {
 
     const tokenAddress = tokenAccount.publicKeyString.toString();
     console.log('[fx-mint-nft] Token minted successfully:', tokenAddress);
+
+    // If collection_id was provided, update the collection's minted_count
+    if (collectionId) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // Get current minted_count and increment it
+        const { data: collection } = await supabase
+          .from('collections')
+          .select('minted_count')
+          .eq('id', collectionId)
+          .single();
+
+        if (collection) {
+          await supabase
+            .from('collections')
+            .update({ 
+              minted_count: (collection.minted_count || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', collectionId);
+          
+          console.log('[fx-mint-nft] Updated collection minted_count for:', collectionId);
+        }
+      } catch (dbError) {
+        console.error('[fx-mint-nft] Failed to update collection count:', dbError);
+        // Don't fail the mint if DB update fails
+      }
+    }
 
     return new Response(
       JSON.stringify({
