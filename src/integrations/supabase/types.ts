@@ -79,6 +79,7 @@ export type Database = {
           minted_count: number
           name: string
           network: string
+          royalty_percentage: number | null
           symbol: string
           total_supply: number | null
           updated_at: string
@@ -103,6 +104,7 @@ export type Database = {
           minted_count?: number
           name: string
           network?: string
+          royalty_percentage?: number | null
           symbol: string
           total_supply?: number | null
           updated_at?: string
@@ -127,6 +129,7 @@ export type Database = {
           minted_count?: number
           name?: string
           network?: string
+          royalty_percentage?: number | null
           symbol?: string
           total_supply?: number | null
           updated_at?: string

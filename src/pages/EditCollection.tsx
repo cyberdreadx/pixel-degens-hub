@@ -43,6 +43,7 @@ const EditCollection = () => {
   // Form state
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [royaltyPercentage, setRoyaltyPercentage] = useState("5");
   const [mintEnabled, setMintEnabled] = useState(false);
   const [mintPriceKta, setMintPriceKta] = useState("");
   const [maxPerWallet, setMaxPerWallet] = useState("");
@@ -76,6 +77,7 @@ const EditCollection = () => {
       // Populate form
       setName(data.name);
       setDescription(data.description || "");
+      setRoyaltyPercentage(data.royalty_percentage?.toString() || "5");
       setMintEnabled(data.mint_enabled);
       setMintPriceKta(data.mint_price_kta?.toString() || "");
       setMaxPerWallet(data.max_per_wallet?.toString() || "");
@@ -94,9 +96,17 @@ const EditCollection = () => {
 
     setIsSaving(true);
     try {
+      const royalty = parseFloat(royaltyPercentage) || 5;
+      if (royalty < 0 || royalty > 10) {
+        toast.error("Royalty must be between 0% and 10%");
+        setIsSaving(false);
+        return;
+      }
+
       const updates: Record<string, any> = {
         name,
         description,
+        royalty_percentage: royalty,
         mint_enabled: mintEnabled,
         mint_price_kta: mintPriceKta ? parseFloat(mintPriceKta) : null,
         max_per_wallet: maxPerWallet ? parseInt(maxPerWallet) : null,
@@ -242,6 +252,32 @@ const EditCollection = () => {
             <p className="text-xs text-muted-foreground">
               Maximum number of NFTs in this collection. Currently minted: {collection.minted_count}
             </p>
+          </div>
+
+          {/* Royalty Settings */}
+          <div className="border-t pt-6 space-y-4">
+            <h3 className="font-bold text-sm">ROYALTY SETTINGS</h3>
+            <p className="text-xs text-muted-foreground">
+              Earn a percentage of every secondary sale of NFTs in this collection.
+            </p>
+
+            <div className="space-y-2">
+              <Label htmlFor="royalty" className="text-xs font-bold">ROYALTY PERCENTAGE</Label>
+              <Input
+                id="royalty"
+                type="number"
+                min="0"
+                max="10"
+                step="0.5"
+                value={royaltyPercentage}
+                onChange={(e) => setRoyaltyPercentage(e.target.value)}
+                placeholder="5"
+                className="pixel-border text-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                Set between 0% and 10%. You'll receive this percentage from every resale.
+              </p>
+            </div>
           </div>
 
           {/* Mint Settings Section */}

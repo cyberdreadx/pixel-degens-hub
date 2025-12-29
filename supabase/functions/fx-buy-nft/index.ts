@@ -154,13 +154,13 @@ serve(async (req) => {
               // Fetch collection for royalty info
               const { data: collection } = await supabaseClient
                 .from('collections')
-                .select('creator_address')
+                .select('creator_address, royalty_percentage')
                 .eq('id', metadata.collection_id)
                 .maybeSingle();
               
               if (collection) {
-                // Default 5% royalty for collections
-                royaltyPercentage = 5;
+                // Use collection's royalty_percentage (defaults to 5 if not set)
+                royaltyPercentage = collection.royalty_percentage ?? 5;
                 creatorAddress = collection.creator_address;
                 console.log('[fx-buy-nft] Collection found, royalty:', royaltyPercentage + '%', 'creator:', creatorAddress);
               }
