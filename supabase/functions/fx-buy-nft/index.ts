@@ -117,9 +117,9 @@ serve(async (req) => {
 
     // TRUSTED ANCHOR MODEL (2 transactions):
     // Transaction 1: Buyer already sent payment to anchor (handled by frontend)
-    // Transaction 2: Anchor sends NFT to buyer
+    // Transaction 2: Anchor sends NFT to buyer and distributes payment (with royalties)
     
-    console.log('[fx-buy-nft] Sending NFT to buyer and payment to seller...');
+    console.log('[fx-buy-nft] Sending NFT to buyer and distributing payment...');
     
     const builder = anchorClient.initBuilder();
     const buyerAccountObj = KeetaNet.lib.Account.fromPublicKeyString(buyerAddress);
@@ -129,14 +129,82 @@ serve(async (req) => {
     // Send NFT to buyer
     builder.send(buyerAccountObj, 1n, tokenAccountObj);
     
+    // Check if NFT belongs to a collection for royalties
+    let royaltyPercentage = 0;
+    let creatorAddress: string | null = null;
+    
+    try {
+      // Fetch NFT metadata to get collection_id
+      const apiBase = network === 'test' 
+        ? 'https://rep2.test.network.api.keeta.com/api'
+        : 'https://rep2.main.network.api.keeta.com/api';
+      
+      const nftResponse = await fetch(`${apiBase}/node/ledger/accounts/${listing.token_address}`);
+      if (nftResponse.ok) {
+        const rawData = await nftResponse.json();
+        const accountData = Array.isArray(rawData) ? rawData[0] : rawData;
+        const tokenInfo = accountData?.info || {};
+        
+        if (tokenInfo.metadata) {
+          try {
+            const metadata = JSON.parse(atob(tokenInfo.metadata));
+            console.log('[fx-buy-nft] NFT metadata:', { collection_id: metadata.collection_id });
+            
+            if (metadata.collection_id) {
+              // Fetch collection for royalty info
+              const { data: collection } = await supabaseClient
+                .from('collections')
+                .select('creator_address')
+                .eq('id', metadata.collection_id)
+                .maybeSingle();
+              
+              if (collection) {
+                // Default 5% royalty for collections
+                royaltyPercentage = 5;
+                creatorAddress = collection.creator_address;
+                console.log('[fx-buy-nft] Collection found, royalty:', royaltyPercentage + '%', 'creator:', creatorAddress);
+              }
+            }
+          } catch (e) {
+            console.log('[fx-buy-nft] Could not parse NFT metadata for royalties');
+          }
+        }
+      }
+    } catch (e) {
+      console.log('[fx-buy-nft] Error checking collection royalties:', e);
+    }
+    
+    // Calculate payment distribution
+    let sellerAmount = expectedAmountInSmallestUnit;
+    let royaltyAmount = 0n;
+    
+    if (royaltyPercentage > 0 && creatorAddress && creatorAddress.toLowerCase() !== listing.seller_address.toLowerCase()) {
+      // Only apply royalties if creator is different from seller
+      royaltyAmount = (expectedAmountInSmallestUnit * BigInt(royaltyPercentage)) / 100n;
+      sellerAmount = expectedAmountInSmallestUnit - royaltyAmount;
+      
+      console.log('[fx-buy-nft] Payment distribution:');
+      console.log('  - Seller receives:', sellerAmount.toString(), listing.currency);
+      console.log('  - Creator royalty:', royaltyAmount.toString(), listing.currency, `(${royaltyPercentage}%)`);
+    } else {
+      console.log('[fx-buy-nft] No royalties (seller is creator or no collection)');
+      console.log('  - Seller receives:', sellerAmount.toString(), listing.currency);
+    }
+    
     // Send payment to seller
-    console.log('[fx-buy-nft] Sending payment to seller:', expectedAmountInSmallestUnit.toString(), listing.currency);
-    builder.send(sellerAccountObj, expectedAmountInSmallestUnit, paymentTokenObj);
+    builder.send(sellerAccountObj, sellerAmount, paymentTokenObj);
+    
+    // Send royalty to creator if applicable
+    if (royaltyAmount > 0n && creatorAddress) {
+      const creatorAccountObj = KeetaNet.lib.Account.fromPublicKeyString(creatorAddress);
+      builder.send(creatorAccountObj, royaltyAmount, paymentTokenObj);
+      console.log('[fx-buy-nft] Sending royalty to creator:', creatorAddress);
+    }
     
     await builder.computeBlocks();
     const result = await builder.publish();
     
-    console.log('[fx-buy-nft] NFT sent to buyer and payment sent to seller:', result);
+    console.log('[fx-buy-nft] Transaction complete. NFT sent to buyer, payments distributed.');
 
     // Update the listing status
     const { error: updateError } = await supabaseClient
